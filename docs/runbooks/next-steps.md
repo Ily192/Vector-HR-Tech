@@ -1,137 +1,112 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: 2026-05-08
+> Última actualización: **2026-05-25** (sesión 2).
 
-## Inmediato — Cierre de Cycle 0 (próxima sesión, ~2-3h)
+## TL;DR
 
-### 1. Verificación end-to-end del foundation
+Cycle 0 cerrado en lo que dependía de Claude/local. Avance Cycle 1 wk1 ~50%:
+workers `sourcer` + `cv_evaluator` listos, supabase-client wired, ADRs 010-014 documentadas. Falta acción del user para conectar servicios externos.
 
-Objetivo: probar que `pnpm install && pnpm dev` y los engines arrancan sin errores en máquina limpia.
+---
 
-```bash
-cd Vortex-Ops
+## Bloqueado por el user (no se puede hacer en local)
 
-# Levantar Postgres + Redis
-docker compose -f infra/docker/docker-compose.dev.yml up -d
-
-# Aplicar schema
-psql postgresql://vortex:vortex@localhost:5432/vortex_dev \
-  -f infra/supabase/migrations/0001_initial_schema.sql
-psql postgresql://vortex:vortex@localhost:5432/vortex_dev \
-  -f infra/supabase/seed.sql
-
-# Frontends
-pnpm install
-pnpm tokens:build
-pnpm dev   # career-site:3000, hrbp:3001
-
-# Backend (otra terminal)
-cd services/hr-engine
-cp .env.example .env
-uv sync --dev
-uv run uvicorn app.main:app --reload --port 8000
-
-# Worker (otra terminal)
-uv run celery -A app.workers.celery_app worker --loglevel=info --queues=hr
-
-# Tests
-pnpm test
-cd services/hr-engine && uv run pytest tests/unit -v
-```
-
-**Riesgo conocido:** algunas versiones de packages (`@vortex/ui`, etc.) pueden tener desajustes que se vean al primer `pnpm install`. Iterar con Claude/Cursor para arreglar.
-
-### 2. Init Git + primer commit + repo GitHub
+### 1. Crear repo GitHub y push
 
 ```bash
-cd Vortex-Ops
-git init
-git add .
-git commit -m "feat(foundation): cycle 0 — repo skeleton, docs PMO, brand, schema, hr-engine stub"
-git tag v0.1.0
-
-# Crear repo privado en GitHub
+# Desde la raíz del repo Vortex-Ops (.git ya inicializado en sesión 2)
 gh repo create vector-hr-tech/vortex-ops --private --source=. --remote=origin --push
 
-# Configurar branch protection en main
+# Branch protection
 gh api -X PUT repos/vector-hr-tech/vortex-ops/branches/main/protection \
   -F required_status_checks.strict=true \
+  -F required_status_checks.contexts[]='Lint TS' \
+  -F required_status_checks.contexts[]='Typecheck TS' \
+  -F required_status_checks.contexts[]='Unit tests (TS)' \
+  -F required_status_checks.contexts[]='Lint Python' \
+  -F required_status_checks.contexts[]='Typecheck Python (mypy)' \
+  -F required_status_checks.contexts[]='Multi-tenant RLS tests' \
   -F enforce_admins=true \
   -F required_pull_request_reviews.required_approving_review_count=1 \
   -F restrictions=
 ```
 
-### 3. Configurar secretos GitHub Actions
+### 2. Provisionar Supabase Cloud project
 
-Necesarios para que CI pase:
+- supabase.com → New project (region: `sa-east-1` para LATAM).
+- Habilitar extensión `vector` desde dashboard.
+- Aplicar las 3 migrations en orden:
+  ```bash
+  supabase link --project-ref <PROJECT_REF>
+  supabase db push  # aplica infra/supabase/migrations/0001..0003
+  psql "$DATABASE_URL" -f infra/supabase/seed.sql  # solo dev
+  ```
+- Copiar `URL`, `anon key`, `service_role key` a Doppler.
+
+### 3. Provisionar proyectos Vercel (1 por app)
+
+Para `career-site` y `hrbp`:
+
+- New Project → Import Git Repository → seleccionar `vortex-ops`.
+- Root Directory: `apps/career-site` (y luego `apps/hrbp`).
+- Framework Preset: auto-detect (Next.js / Vite).
+- Build/Install commands: Vercel los lee de `apps/<name>/vercel.json` — ya commiteado.
+- Env vars: copiar desde Doppler (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_HR_ENGINE_URL`, `NEXT_PUBLIC_SENTRY_DSN`; para hrbp prefix `VITE_`).
+- Production domain: dejar `*.vercel.app` por ahora (ADR-010).
+
+### 4. Configurar secrets en GitHub Actions
+
+Doppler → integration con GitHub → sync env `prd` a Repository secrets.
+
+Secrets necesarios:
 - `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_*` (4 apps)
-- `COOLIFY_TOKEN`, `COOLIFY_WEBHOOK_STAGING`, `COOLIFY_WEBHOOK_PROD`
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_career-site`, `VERCEL_PROJECT_ID_hrbp`
 - `SENTRY_TOKEN`, `CODECOV_TOKEN`, `LHCI_GITHUB_APP_TOKEN`
-- `TURBO_TOKEN`, `TURBO_TEAM`
+- `TURBO_TOKEN`, `TURBO_TEAM` (opcional — para cache remote)
 
-Idealmente vía **Doppler** (free tier) sincronizado a GitHub Actions environments.
-
-### 4. Crear Supabase Cloud project
-
-- New project en supabase.com (free tier OK para empezar).
-- Copiar URL + anon key + service role key a Doppler.
-- Aplicar `0001_initial_schema.sql`: `supabase db push`.
-- Habilitar pgvector extension en dashboard.
-- Configurar **trigger `on_auth_user_created`** que pobla `profiles` con `empresa_id` custom claim al sign-up.
-
-### 5. Decisión nombre comercial final
-
-- **Vortex Ops** confirmado como producto.
-- Pendiente: ¿el repo público se llamará `vortex-ops` o `vector-hr/vortex-ops`?
-- Comprar dominios: `vortex-ops.com`, `vector-hr.tech` (verificar disponibilidad).
+`COOLIFY_*` secrets diferidos a post-Cycle 2 (ver ADR-012).
 
 ---
 
-## Cycle 1 — MVP HR Pipeline (semanas 1-2 ≈ 60h humano + 120h vibe)
+## Cycle 1 — MVP HR Pipeline (semanas 1-2)
 
-### Semana 1
+### Semana 1 (en curso)
 
-- [ ] **1.1** Levantar Paperclip self-host en Coolify VPS (Hetzner CX31 ~$15/mo).
-- [ ] **1.2** Levantar OpenClaw + adapter Google Chat (gratis para empezar).
-- [ ] **1.3** Vibe-codear `hr-engine/workers/sourcer.py` real (de stub a funcional):
-  - Vector match en pgvector
-  - Gemini 1.5 Flash scoring
-  - Persistencia en `applications`
-- [ ] **1.4** Vibe-codear `hr-engine/workers/cv_evaluator.py`:
-  - Pydantic schema strict para output (mirror de `CvEvaluationSchema` en `packages/types`)
-  - Eval golden set inicial (10 CVs etiquetados)
-- [ ] **1.5** Trigger Supabase `on_auth_user_created` para poblar `profiles.empresa_id`.
-- [ ] **1.6** Wireframes en Figma: career-site, candidate, hrbp (3-4h).
+- [x] **1.3 (50%)** `sourcer.py` vibe-codeado — falta probar end-to-end con Supabase Cloud + LLM real.
+- [x] **1.4 (60%)** `cv_evaluator.py` implementado — falta poblar golden set (10 CVs reales etiquetados).
+- [x] **1.5** Trigger Supabase `on_auth_user_created` (ya en `0003_auth_hooks.sql`).
+- [ ] **1.6** Wireframes: hechos en markdown (`docs/specs/cycle-01-wireframes.md`). Skip Figma para v0.
+- [ ] **1.7** `packages/design-tokens` build (validado en sesión 2 — Tailwind preset funciona).
 
 ### Semana 2
 
-- [ ] **2.1** Career-site: form de aplicación funcional (CV upload → Supabase Storage).
-- [ ] **2.2** Candidate portal: dashboard + status + ruta `/test/:token` para Test-psicometricos embebido.
-- [ ] **2.3** HRBP cockpit: kanban pipeline conectado a Supabase realtime + detalle candidato.
-- [ ] **2.4** Skill `chro-intake` (`SKILL.md` + golden set).
-- [ ] **2.5** Skill `cv-evaluator` con eval Pearson r ≥ 0.75.
-- [ ] **2.6** Wire OpenClaw → hr-engine via run-token (validación JWT en hr-engine).
-- [ ] **2.7** E2E test Playwright: "Subir CV → ver score en hrbp en < 2 min".
+- [ ] **2.1** Career-site: form de aplicación funcional en `/vacantes/[slug]/aplicar` con CV upload a Supabase Storage (bucket `cvs/`, RLS por empresa_id). Server Action.
+- [ ] **2.2** Candidate app: scaffold Vite + React, rutas `/`, `/applications/:id`, `/test/:token`, `/profile`. Copiar HTML legacy a `apps/candidate/public/psicometrico/`.
+- [ ] **2.3** HRBP cockpit: `/vacantes/:id` kanban con `@dnd-kit/core` + Supabase Realtime channel `applications:vacante_id=eq.{id}`. Botón `+ Sourcing` dispara `sourcer.run`.
+- [ ] **2.4** Skill `chro-intake` — SKILL.md (gstack) + golden set en `evals/chro-intake/`. Se invoca cuando un HR Director sube una vacante por chat (Google Chat adapter).
+- [ ] **2.5** Poblar `evals/cv-evaluator/golden.jsonl` con ≥ 10 CVs reales (anonimizados) de Siete. Correr `runner.py --fail-below-threshold` y subir Pearson r de 0.6 a ≥ 0.75.
+- [ ] **2.6** Run-token verification en hr-engine — `python-jose` decode + claims check (empresa_id, agent_skill, run_id, cost_cap_usd) (ADR-005). Hoy el API endpoint recibe empresa_id en body — pasar a header `Authorization: Bearer <run-token>`.
+- [ ] **2.7** E2E Playwright: "Subir CV en career-site → ver score en hrbp en < 2 min wall-clock". Test corre contra Vercel preview + Supabase Cloud staging.
 - [ ] **2.8** Loom demo público de 5 min.
 
-### DoD Cycle 1
+### DoD Cycle 1 (revisado)
 
 - ✅ Subir CV en career-site → ver score en hrbp en < 2 min wall-clock.
 - ✅ Coverage ≥ 60% en `services/hr-engine`.
-- ✅ Lighthouse ≥ 85 en career-site.
-- ✅ RLS tests pasan con multi-tenant fixture.
+- ✅ Lighthouse ≥ 85 en career-site (Vercel preview).
+- ✅ RLS tests pasan con multi-tenant fixture (ya verde — solo falta correr CI).
 - ✅ Loom demo grabado.
+- ✅ Pearson r de `cv-evaluator` ≥ 0.75 en golden set ≥ 10 cases.
 
 ---
 
-## Cycles 2-4 (resumen, detalle en `docs/09_PROJECT_PLAN.md`)
+## Cycles 2-4 (resumen)
 
-- **Cycle 2 (sem 4-5):** scheduler + interviewer + onboarder + constancia_gen + WhatsApp Business adapter + 50 candidatos en producción con Siete.
-- **Cycle 3 (sem 7-8):** sales-engine multi-tenant (migrar SDR-prospection completo).
-- **Cycle 4 (sem 10-11):** lanzamiento público open-source + Stripe billing + 5 clientes Pro firmados → $1.5k MRR.
+- **Cycle 2 (sem 4-5):** Provisionar Fly.io para hr-engine + Paperclip vendoring + OpenClaw vendoring (ADR-009). Workers `scheduler`, `interviewer`, `onboarder`, `constancia_gen`. WhatsApp adapter. 50 candidatos reales con Siete.
+- **Cycle 3 (sem 7-8):** sales-engine multi-tenant (ver `services/sales-engine/README.md`).
+- **Cycle 4 (sem 10-11):** lanzamiento público open-source + Stripe billing + 5 clientes Pro firmados.
 
 ---
 
@@ -139,21 +114,23 @@ Idealmente vía **Doppler** (free tier) sincronizado a GitHub Actions environmen
 
 | Tema | Pregunta | Cuándo resolver |
 |---|---|---|
-| Tipografía | ¿Comprar licencia Proxima Nova ($300-500) o usar Inter (free)? | Antes Cycle 1 wk2 (UI usa fonts) |
-| Hosting | Coolify VPS Hetzner vs Fly.io vs Railway | Cycle 1 wk1 |
+| ~~Tipografía~~ | ~~Proxima Nova o Inter~~ | ✅ **ADR-011: Inter free** |
+| ~~Hosting backend~~ | ~~Coolify vs Fly vs Railway~~ | ✅ **ADR-012: Fly.io desde Cycle 2** |
+| ~~Logo~~ | ~~Diseñar o usar Wordmark~~ | ✅ **ADR-013: Wordmark + Lucide hasta revenue** |
+| ~~Test-psicometricos~~ | ~~Iframe o nativo~~ | ✅ **ADR-014: iframe en v0** |
+| ~~Frontends hosting~~ | ~~Coolify vs Vercel~~ | ✅ **ADR-010: Vercel + subdominio default** |
 | WhatsApp provider | 360dialog vs Twilio vs Meta direct | Cycle 2 |
-| Cliente piloto pagado | ¿Usar contactos de Siete o LinkedIn outbound frío? | Cycle 1 cooldown |
-| Open-source | ¿Liberar Paperclip+OpenClaw+4 skills básicas? ¿AGPLv3 o Elastic License? | Cycle 4 |
-| Logo | ¿Diseñar uno propio o usar wordmark + ícono de Lucide hasta tener revenue? | Cycle 1 wk2 |
-| Test-psicometricos | ¿Migrar a React component o mantener iframe del HTML estático? | Cycle 1 wk2 |
+| Cliente piloto pagado | Siete vs LinkedIn outbound frío | Cycle 1 cooldown |
+| Open-source | Liberar Paperclip+OpenClaw+4 skills básicas | Cycle 4 |
+| Dominio propio | Comprar `vortex-ops.com` o `vector-hr.tech` | Cooldown 4 (post-MRR target $1.5k) |
 
 ---
 
-## Riesgos en watch (top 3 del Risk Register)
+## Riesgos en watch (top 3)
 
-1. **R-07 Bus factor 1.** Mitigación activa: docs obsesivas + repo público mes 4.
+1. **R-07 Bus factor 1.** Mitigación activa: docs obsesivas + repo público mes 4 (Cycle 4).
 2. **R-15 Burnout.** Mitigación: respetar cooldown semana, no trabajar fines de semana.
-3. **R-12 Vibe coding sin review.** Mitigación: DoD obligatorio + code-review agent en CI.
+3. **R-12 Vibe coding sin review.** Mitigación: DoD obligatorio + (futuro) code-review agent en CI.
 
 ---
 
@@ -161,6 +138,6 @@ Idealmente vía **Doppler** (free tier) sincronizado a GitHub Actions environmen
 
 - Lead time (commit → prod) — auto-tracked por `nightly.yml`.
 - Deploy frequency — auto-tracked.
-- Eval pass rate por skill — auto-tracked en CI.
-- Cost USD por run de agente — emitido por hr-engine, agregado en Grafana.
+- Eval pass rate por skill — `evals/runner.py` lo emite.
+- Cost USD por run — sourcer/cv_evaluator ya devuelven `cost_usd` + breakdown; agregar Grafana panel en Cycle 2.
 - Tiempo de pipeline HR (apply → score) — métrica de negocio principal.

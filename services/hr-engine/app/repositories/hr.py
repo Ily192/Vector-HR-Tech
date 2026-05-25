@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -191,6 +192,6 @@ async def update_run_status(
             "status": status,
             "cost_usd": cost_usd,
             "error_message": error_message,
-            "payload": __import__("json").dumps(payload) if payload else None,
+            "payload": json.dumps(payload) if payload else None,
         },
     )

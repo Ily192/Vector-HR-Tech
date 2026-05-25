@@ -4,6 +4,64 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-05-25 · Sesión 2 — Cierre Cycle 0 + scaffold Cycle 1
+
+**Duración:** ~1 jornada · **Modo:** Auto + vibe coding · **Modelo:** Claude Opus 4.7 (1M)
+
+### Lo que se hizo
+
+#### Cierre Cycle 0 (lo que no depende de servicios externos)
+
+- **Git inicializado** + commit `v0.1.0` con 164 archivos.
+- **Tech debt limpio antes de commit:**
+  - `apps/candidate/`, `apps/orgchart/` y `services/{agent-plane,control-plane,sales-engine}/` ahora tienen README con el cycle en que se scaffoldean.
+  - `.github/workflows/preview-deploy.yml` matrix narrow a `[career-site, hrbp]` (las dos apps con package.json hoy).
+  - `package.json` `size-limit` apunta a apps reales (no más `apps/candidate/dist` inexistente).
+  - `@vortex/skills-sdk` creado como minimal package (parser SKILL.md frontmatter con Zod) — antes era empty dir con alias en `tsconfig.base.json` colgado.
+  - `packages/design-tokens/package.json` ya no requiere `style-dictionary` (consumido directo por el preset Tailwind). Build script ahora solo valida tokens.json.
+  - `.gitattributes` + `.nvmrc` para consistencia LF entre Windows dev y Linux CI.
+
+#### Decisiones senior dev (5 ADRs nuevas)
+
+- **ADR-010** — Frontends en Vercel + subdominio default `*.vercel.app` hasta tener revenue. `vercel.json` per app con `buildCommand` turbo-aware y `ignoreCommand` vía `turbo-ignore`.
+- **ADR-011** — Tipografía: **Inter (display)** + Lato (body), ambas free Google Fonts. Proxima Nova diferida.
+- **ADR-012** — Backends en **Fly.io** desde Cycle 2 (api + worker apps separadas, región `gru`). **Coolify diferido** a Enterprise tier (Q3-Q4 o post-revenue).
+- **ADR-013** — Brand visual = `Wordmark` + Lucide React. Logo propio diferido a post-Cycle 4.
+- **ADR-014** — Test psicométrico vía iframe del HTML legacy con `postMessage` validado. Reescritura nativa solo si drop-off > 30%.
+
+#### Cycle 1 — avance real (no solo planning)
+
+- **`@vortex/supabase-client`** wired up — antes empty dir con alias colgado en tsconfig. Ahora con `createBrowserClient` (singleton), `createServerClient` (Next App Router con cookie adapter), `createServiceRoleClient` (defensivo: throw si se llama desde browser). Lee env de NEXT_PUBLIC_/VITE_/raw aliases.
+- **`sourcer.py` vibe-codeado** de stub a worker real:
+  - Pipeline: resolver ICP → embedding OpenAI (cached en `vacantes.icp_embedding`) → match HNSW pgvector → score Gemini Flash con structured JSON output → upsert applications.
+  - `CostTracker` enforce el `cost_cap_usd` del run-token (ADR-005). `capped=true` en el result si paramos antes.
+  - `set_tenant_context` propaga `empresa_id` + role a Postgres session para que RLS aplique aunque el worker corra con DB owner.
+  - Cliente OpenAI/Gemini con `tenacity` retries (3 attempts, exponential backoff).
+  - Unit tests con `monkeypatch` de side-effects — corren sin DB ni LLMs reales.
+- **`cv_evaluator.py`** implementado — variante single (candidato_id, vacante_id), reutiliza scoring y repos. Endpoint `/api/cv-evaluator/run`.
+- **`.agents/skills/cv-evaluator/`** — SKILL.md (gstack format) + `agents/openai.yaml` con `response_format: json_schema`.
+- **`evals/runner.py`** — harness con typer + Pearson r metric, `manifest.yaml` con thresholds (Cycle 1 DoD: pearson ≥ 0.75). `golden.jsonl` placeholder a poblar con ground truth.
+- **Wireframes markdown** en `docs/specs/cycle-01-wireframes.md` (career-site apply, candidate dashboard + test, hrbp pipeline kanban + runs feed).
+
+### Estado del proyecto al cierre
+
+- **Cycle 0 (Foundation):** ✅ cerrado en lo que depende de mí (lo que falta requiere acción del user).
+- **Cycle 1:** semana 1 al ~50% — workers `sourcer` + `cv_evaluator` listos, skill `cv-evaluator` con manifest, supabase-client wired. Falta wire frontend ↔ hr-engine.
+- **Git:** inicializado, commit `v0.1.0`, tag aplicado. **Falta `git remote add origin` + push** — bloqueado por user que tiene que crear el repo en GitHub.
+
+### Pendiente del user (no se puede hacer en local)
+
+1. Crear repo privado en GitHub: `gh repo create vector-hr-tech/vortex-ops --private --source=. --remote=origin --push`.
+2. Crear Supabase Cloud project + aplicar las 3 migrations + pgvector.
+3. Provisionar proyectos Vercel para `career-site` y `hrbp` (root directory por app, framework auto-detect).
+4. Configurar secrets en Doppler → sincronizar a GitHub Actions + Vercel envs.
+
+### Pendiente para próxima sesión (Cycle 1 wk1-2)
+
+Ver `docs/runbooks/next-steps.md` (lista viva actualizada).
+
+---
+
 ## 2026-05-08 · Sesión 1 — Foundation completa
 
 **Duración:** ~1 jornada · **Modo:** Auto + vibe coding · **Modelo:** Claude Opus 4.7 (1M)
