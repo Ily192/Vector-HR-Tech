@@ -1,0 +1,55 @@
+{
+  "name": "vortex-ops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vortex Ops — Operations Engine agentic by Vector HR Tech",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.7.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "turbo run test --parallel -- --watch",
+    "e2e": "turbo run e2e",
+    "e2e:smoke": "turbo run e2e:smoke",
+    "storybook": "turbo run storybook --parallel",
+    "tokens:build": "pnpm --filter @vortex/design-tokens build",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@changesets/cli": "^2.27.0",
+    "@commitlint/cli": "^19.4.0",
+    "@commitlint/config-conventional": "^19.4.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
+    "size-limit": "^11.1.0",
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md}": ["biome check --write --no-errors-on-unmatched"]
+  },
+  "commitlint": {
+    "extends": ["@commitlint/config-conventional"]
+  },
+  "size-limit": [
+    {
+      "path": "apps/career-site/.next/static/**/*.js",
+      "limit": "150 KB"
+    },
+    {
+      "path": "apps/hrbp/dist/assets/index-*.js",
+      "limit": "250 KB"
+    }
+  ]
+}

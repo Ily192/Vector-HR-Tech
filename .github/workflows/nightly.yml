@@ -1,0 +1,63 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC = 02:00 LATAM
+  workflow_dispatch:
+
+jobs:
+  full-eval-suite:
+    name: Full eval suite (golden + regression + adversarial)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - working-directory: evals
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          uv sync
+          uv run python runner.py --suite all --report-to dashboard
+
+  rls-paranoid:
+    name: RLS paranoid scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Run paranoid RLS suite against staging
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          cd scripts && uv run python rls_paranoid_scan.py
+
+  refresh-staging:
+    name: Refresh staging from prod (anonymized)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/refresh_staging.sh
+        env:
+          PROD_DUMP_URL: ${{ secrets.PROD_DUMP_URL }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+
+  dora-report:
+    name: Generate DORA metrics report
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 6 * * 1'  # solo lunes
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python scripts/dora_metrics.py > docs/runbooks/dora.md
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(metrics): weekly DORA report"
+          title: "chore(metrics): weekly DORA report"
+          branch: chore/dora-weekly

@@ -1,0 +1,2 @@
+# Regression cases — añadir aquí cada vez que un eval falle en prod y se fixee.
+# Mismo formato que golden.jsonl.

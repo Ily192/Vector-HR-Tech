@@ -1,0 +1,17 @@
+# Vortex Ops — codeowners
+#
+# Cada archivo/path tiene 1+ owners obligatorios para review.
+# Mientras el equipo sea de 1, todos apuntan a @ilyra-rivas
+# (con la posibilidad de auto-aprobación cuando CI verde + label `solo-dev`).
+
+* @ilyra-rivas
+
+# Áreas críticas que en el futuro requerirán review extra
+/services/control-plane/                @ilyra-rivas
+/services/hr-engine/app/services/       @ilyra-rivas
+/services/hr-engine/app/api/auth/       @ilyra-rivas
+/infra/                                 @ilyra-rivas
+/.github/workflows/                     @ilyra-rivas
+/docs/08_SECURITY_AND_COMPLIANCE.md     @ilyra-rivas
+/.agents/skills/                        @ilyra-rivas
+/packages/design-tokens/                @ilyra-rivas

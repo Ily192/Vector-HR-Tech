@@ -1,0 +1,11 @@
+skill: cv-evaluator
+suite_files:
+  golden: golden.jsonl
+  regression: regression.jsonl
+thresholds:
+  pearson_r: 0.75   # Cycle 1 DoD: subir de 0.6 (stub) a 0.75
+  pass_rate: 0.7    # ≥70% de las predicciones dentro de ±1.5 puntos del expected
+notes: |
+  Ground truth aún por poblar (Cycle 1 wk2 entregable 2.5).
+  Mientras suite esté vacía el runner emite warning pero no falla — el `if:`
+  del workflow `evals` solo dispara cuando cambia `.agents/skills/`.

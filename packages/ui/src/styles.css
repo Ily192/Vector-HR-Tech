@@ -1,0 +1,2 @@
+/* Re-export del theme para apps que solo importan UI */
+@import "@vortex/design-tokens/theme.css";

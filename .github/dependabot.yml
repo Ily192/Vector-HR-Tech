@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/Caracas"
+    open-pull-requests-limit: 10
+    groups:
+      types:
+        patterns: ["@types/*"]
+      tooling:
+        patterns: ["eslint*", "prettier*", "@biomejs/*", "vitest*", "playwright*"]
+      next:
+        patterns: ["next", "@vercel/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react*"]
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "pip"
+    directory: "/services/hr-engine"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "chore(hr-engine deps)" }
+
+  - package-ecosystem: "pip"
+    directory: "/services/sales-engine"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "chore(sales-engine deps)" }
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "chore(actions)" }
+
+  - package-ecosystem: "docker"
+    directory: "/services/hr-engine"
+    schedule: { interval: "weekly", day: "monday" }
+    commit-message: { prefix: "chore(docker hr-engine)" }

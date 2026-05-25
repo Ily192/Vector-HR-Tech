@@ -1,0 +1,31 @@
+name: cv-evaluator
+model: gpt-4o-mini
+temperature: 0.2
+top_p: 0.95
+max_tokens: 1024
+response_format:
+  type: json_schema
+  json_schema:
+    name: cv_evaluation
+    strict: true
+    schema:
+      type: object
+      additionalProperties: false
+      required: [score, rationale, gaps, strengths, recommended_next_step]
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 10
+        rationale:
+          type: string
+          minLength: 10
+        gaps:
+          type: array
+          items: { type: string }
+        strengths:
+          type: array
+          items: { type: string }
+        recommended_next_step:
+          type: string
+          enum: [psicometrico, entrevista, rechazar]

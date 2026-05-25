@@ -1,0 +1,8 @@
+# Ground truth para cv-evaluator. Formato: JSONL, una case por línea.
+# Cada línea: { "id": "case-NN", "inputs": {...}, "expected": {...} }
+# inputs.candidato: { full_name, headline, summary }
+# inputs.vacante: { title, icp_text }
+# expected: { score: 0-10, rationale, gaps[], strengths[], recommended_next_step }
+#
+# Poblar con CVs reales del cliente alfa (Siete) anonimizados durante Cycle 1 wk2.
+# Mínimo 10 casos para que Pearson r sea estable.

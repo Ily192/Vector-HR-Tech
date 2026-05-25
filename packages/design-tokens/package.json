@@ -1,0 +1,29 @@
+{
+  "name": "@vortex/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vector HR Tech — design tokens for Vortex Ops",
+  "type": "commonjs",
+  "exports": {
+    "./tailwind.preset": {
+      "default": "./tailwind.preset.js"
+    },
+    "./theme.css": "./theme.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "files": [
+    "tailwind.preset.js",
+    "theme.css",
+    "tokens.json"
+  ],
+  "scripts": {
+    "build": "node -e \"JSON.parse(require('fs').readFileSync('./tokens.json'))\" && echo tokens validated",
+    "typecheck": "node -e \"require('./tailwind.preset.js')\"",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "tailwindcss-animate": "^1.0.7",
+    "@tailwindcss/typography": "^0.5.10",
+    "@tailwindcss/forms": "^0.5.7"
+  }
+}

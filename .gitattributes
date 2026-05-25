@@ -1,0 +1,21 @@
+# Vortex Ops — line endings normalizadas a LF en todo el repo.
+# Evita ruido de CRLF en Windows + cache misses en CI (Linux).
+
+* text=auto eol=lf
+
+# Binarios — no tocar
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.woff      binary
+*.woff2     binary
+
+# Lockfiles — opcional generated, no merge conflicts esperados
+pnpm-lock.yaml linguist-generated=true -diff
+uv.lock        linguist-generated=true -diff
+
+# Docs detectados como Markdown
+*.md text=auto eol=lf linguist-detectable=true

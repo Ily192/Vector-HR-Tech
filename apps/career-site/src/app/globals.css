@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "@vortex/design-tokens/theme.css";
+
+/* Variables locales del career-site (light por default) */
+:root {
+  --font-display-fallback: "Inter", system-ui, sans-serif;
+  --font-body-fallback: "Lato", "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: var(--font-body), var(--font-body-fallback);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), var(--font-display-fallback);
+    @apply font-black tracking-tighter;
+  }
+}

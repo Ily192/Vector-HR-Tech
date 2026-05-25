@@ -1,0 +1,69 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vercel-preview:
+    name: Vercel preview (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Solo apps con package.json — añadir candidate/orgchart cuando se scaffold-een.
+      matrix:
+        app: [career-site, hrbp]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: amondnet/vercel-action@v25
+        id: deploy
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets[format('VERCEL_PROJECT_ID_{0}', matrix.app)] }}
+          working-directory: apps/${{ matrix.app }}
+      - name: Comment URL
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            🚀 **${{ matrix.app }}** preview: ${{ steps.deploy.outputs.preview-url }}
+
+  lighthouse:
+    name: Lighthouse CI (career-site)
+    runs-on: ubuntu-latest
+    needs: vercel-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install -g @lhci/cli@0.13.x
+      - run: lhci autorun --config=./.lighthouserc.json
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  playwright-smoke:
+    name: Playwright E2E smoke
+    runs-on: ubuntu-latest
+    needs: vercel-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e:smoke
+        env:
+          BASE_URL: ${{ needs.vercel-preview.outputs.preview-url }}
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace
+          path: apps/*/playwright-report/
+          retention-days: 7

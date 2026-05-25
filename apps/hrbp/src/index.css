@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "@vortex/design-tokens/theme.css";
+
+@layer base {
+  body {
+    font-family: "Lato", "Helvetica Neue", Arial, sans-serif;
+    @apply bg-background text-foreground antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", system-ui, sans-serif;
+    @apply font-black tracking-tighter;
+  }
+}
