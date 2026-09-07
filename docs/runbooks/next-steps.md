@@ -12,14 +12,31 @@ workers `sourcer` + `cv_evaluator` listos, supabase-client wired, ADRs 010-014 d
 
 ## Bloqueado por el user (no se puede hacer en local)
 
-### 1. Crear repo GitHub y push
+### 1. Push a `Ily192/Vector-HR-Tech` (repo personal, público)
+
+Repo target: https://github.com/Ily192/Vector-HR-Tech (público, owner `Ily192`).
+Auth `gh` actual (`ilyra-dev`) solo tiene pull → re-auth como `Ily192` antes de pushear:
 
 ```bash
-# Desde la raíz del repo Vortex-Ops (.git ya inicializado en sesión 2)
-gh repo create vector-hr-tech/vortex-ops --private --source=. --remote=origin --push
+gh auth login            # GitHub.com → HTTPS → browser → loguear como Ily192
+gh auth switch -u Ily192 # activar la cuenta
+gh auth status           # confirmar Active: Ily192
+```
 
-# Branch protection
-gh api -X PUT repos/vector-hr-tech/vortex-ops/branches/main/protection \
+Luego desde la raíz del repo:
+
+```bash
+git remote add origin https://github.com/Ily192/Vector-HR-Tech.git
+git push --force-with-lease origin main
+```
+
+**Por qué force-push:** el remoto tenía 1 commit `b4d41f2 "Add files via upload"` (2026-03-14) con un scaffold de Google AI Studio (Vite single-app, Login/Dashboard/Profile) totalmente incompatible con nuestro pnpm monorepo. Sin valor mergeable: chocan `package.json`/`tsconfig.json`/`vercel.json` a nivel root y la convención `src/` vs `apps/*/src/`. El commit queda preservado en el reflog de GitHub (`b4d41f2`) si alguna vez se necesita.
+
+**Branch protection** (deferido — repo es público y solo trabaja Ilyra, no hay PRs externos en Cycle 1):
+
+```bash
+# Cuando se sumen contributors:
+gh api -X PUT repos/Ily192/Vector-HR-Tech/branches/main/protection \
   -F required_status_checks.strict=true \
   -F required_status_checks.contexts[]='Lint TS' \
   -F required_status_checks.contexts[]='Typecheck TS' \
@@ -27,7 +44,7 @@ gh api -X PUT repos/vector-hr-tech/vortex-ops/branches/main/protection \
   -F required_status_checks.contexts[]='Lint Python' \
   -F required_status_checks.contexts[]='Typecheck Python (mypy)' \
   -F required_status_checks.contexts[]='Multi-tenant RLS tests' \
-  -F enforce_admins=true \
+  -F enforce_admins=false \
   -F required_pull_request_reviews.required_approving_review_count=1 \
   -F restrictions=
 ```

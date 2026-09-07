@@ -24,8 +24,7 @@ htmlcov/
 
 # env
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
 
 # logs
@@ -62,3 +61,6 @@ evals/results/
 
 # docker
 docker-compose.override.yml
+
+# TS build artifacts
+*.tsbuildinfo

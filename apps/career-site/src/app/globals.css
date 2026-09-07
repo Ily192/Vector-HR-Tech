@@ -1,8 +1,10 @@
+/* El import va PRIMERO: postcss-import lo inlinea antes de que corra Tailwind,
+   de modo que los `@layer base` de theme.css encuentren su `@tailwind base`. */
+@import "@vortex/design-tokens/theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "@vortex/design-tokens/theme.css";
 
 /* Variables locales del career-site (light por default) */
 :root {
