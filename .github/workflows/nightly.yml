@@ -1,8 +1,14 @@
 name: Nightly
 
+# Cron DESACTIVADO (2026-09-07): los 4 jobs referencian scripts que no
+# existen (scripts/ esta vacio) y flags que el runner de evals no acepta.
+# Correrian en rojo cada 24 h. Reactivar el `schedule` cuando existan
+# scripts/rls_paranoid_scan.py, scripts/refresh_staging.sh,
+# scripts/dora_metrics.py y un entorno de staging real.
+#
+# Nota: el job dora-report tiene `if: github.event.schedule == '0 6 * * 1'`,
+# que nunca coincidia con el cron diario declarado aqui.
 on:
-  schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC = 02:00 LATAM
   workflow_dispatch:
 
 jobs:

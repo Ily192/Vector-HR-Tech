@@ -1,8 +1,18 @@
 name: Release (staging → prod canary)
 
+# DESACTIVADO en push automatico (2026-09-07).
+#
+# Este pipeline despliega vía webhooks de Coolify, plataforma que ADR-012
+# descartó en favor de Fly.io sin que el workflow se actualizara. Hoy los
+# secrets COOLIFY_* no existen, 3 de los 4 servicios de la matriz no tienen
+# Dockerfile, y el job monitor-canary no revierte nada si detecta errores.
+# Dispararlo en cada push a main significaba intentar un "deploy a produccion"
+# roto en cada commit.
+#
+# Reactivar el trigger `push` cuando exista destino real de deploy (Fly.io,
+# Cycle 2) y el canary tenga rollback de verdad.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: release
