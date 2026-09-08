@@ -212,9 +212,13 @@ jobs:
       - working-directory: services/hr-engine
         # La fixture `_migrated_db` aplica los SQL files de
         # infra/supabase/migrations/ directamente — no usamos alembic.
+        #
+        # El directorio entero, no `test_rls.py` a secas: `test_search_path.py`
+        # son las guardas estructurales de 0006 y apuntar al fichero las dejaba
+        # fuera del gate.
         run: |
           uv sync --frozen
-          uv run pytest tests/security/test_rls.py -q -v
+          uv run pytest tests/security -q -v
 
   # ──────────────────── Skills (evals) ────────────────────
   changes:

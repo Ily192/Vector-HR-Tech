@@ -80,10 +80,19 @@ async def _ensure_auth_schema(conn: asyncpg.Connection) -> None:
             raw_app_meta_data jsonb default '{}'::jsonb,
             created_at timestamptz not null default now()
         );
+        -- Replica literal de la `auth.uid()` de Supabase. El orden importa: el
+        -- `nullif` va ANTES del cast a jsonb. Con el GUC seteado a cadena vacia
+        -- —que es como esta fixture representa "sin sesion"— un `''::jsonb`
+        -- lanza 22P02 y tumba la query entera en vez de comportarse como
+        -- "sin claims". El stub anterior tenia el nullif despues del cast, asi
+        -- que `empresas`, `constancias` y `platform_admins` abortaban para un
+        -- `authenticated` sin claims. Es el mismo error que 0001 documenta para
+        -- `public.empresa_id()`, cometido en el arnes en vez de en el esquema:
+        -- los tests ejercitaban una funcion que no es la de produccion.
         create or replace function auth.uid() returns uuid as $$
-            select nullif(
-                current_setting('request.jwt.claims', true)::jsonb ->> 'sub',
-                ''
+            select coalesce(
+                nullif(current_setting('request.jwt.claim.sub', true), ''),
+                nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
             )::uuid;
         $$ language sql stable;
         do $$ begin

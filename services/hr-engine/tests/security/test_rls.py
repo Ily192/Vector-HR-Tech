@@ -25,6 +25,15 @@ from .conftest import EMPRESA_SIETE, EMPRESA_VECTOR, assume_anon, assume_tenant
 
 pytestmark = pytest.mark.asyncio
 
+# Las funciones `security definer` del esquema rechazan input invalido con
+# `raise ... using errcode = '22023'` (invalid_parameter_value), no con el
+# P0001 por defecto. asyncpg mapea cada SQLSTATE a su propia clase, asi que un
+# `pytest.raises(RaiseError)` NO captura esos rechazos aunque el motivo del
+# error sea el correcto. El errcode explicito es deliberado: PostgREST lo
+# traduce a 400, mientras que un P0001 generico se presta a confusion con
+# fallos internos.
+RejectedInput = asyncpg.exceptions.InvalidParameterValueError
+
 
 async def _elevate(db: asyncpg.Connection) -> None:
     """Salir del rol authenticated → DB owner (bypasea RLS)."""
@@ -37,24 +46,44 @@ async def _drop(db: asyncpg.Connection) -> None:
 
 
 async def _make_user(db: asyncpg.Connection, empresa_id: str, role: str = "Colaborador") -> str:
-    """Crea auth.users + profiles como owner y devuelve el user_id."""
+    """Da de alta un usuario del tenant y devuelve su user_id.
+
+    Pasa por el flujo REAL de invitacion (0003): crea la invitacion, inserta en
+    `auth.users` con el token en el metadata, y deja que el trigger
+    `on_auth_user_created` cree el profile.
+
+    Antes este helper insertaba en `profiles` a mano, lo cual dejo de funcionar
+    en cuanto 0004 hizo obligatoria la invitacion: el propio insert en
+    `auth.users` dispara `handle_new_user()`, que aborta sin `invite_token`. Los
+    tests que lo usaban fallaban en el setup, no en su asercion.
+
+    Ir por la via real tiene un beneficio extra: cada fixture ejercita el camino
+    de alta, asi que una regresion ahi rompe media suite en vez de pasar
+    desapercibida.
+    """
     user_id = str(uuid.uuid4())
+    email = f"{user_id}@test.local"
+    token = f"invite-{user_id}"
     await _elevate(db)
     try:
         await db.execute(
-            "insert into auth.users (id, email) values ($1::uuid, $2)",
-            user_id,
-            f"{user_id}@test.local",
+            """
+            insert into invitations (empresa_id, email, role, token_hash)
+            values ($1::uuid, $2, $3::role_type, encode(sha256($4::text::bytea), 'hex'))
+            """,
+            empresa_id,
+            email,
+            role,
+            token,
         )
         await db.execute(
             """
-            insert into profiles (id, empresa_id, email, full_name, role)
-            values ($1::uuid, $2::uuid, $3, 'Test User', $4::role_type)
+            insert into auth.users (id, email, raw_user_meta_data)
+            values ($1::uuid, $2, jsonb_build_object('invite_token', $3::text))
             """,
             user_id,
-            empresa_id,
-            f"{user_id}@test.local",
-            role,
+            email,
+            token,
         )
     finally:
         await _drop(db)
@@ -118,7 +147,7 @@ async def test_user_cannot_self_promote(db: asyncpg.Connection) -> None:
     user_id = await _make_user(db, EMPRESA_VECTOR, "Colaborador")
     await assume_tenant(db, EMPRESA_VECTOR, "Colaborador", user_id=user_id)
 
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
         await db.execute(
             "update profiles set role = 'SuperAdmin'::role_type where id = $1::uuid",
             user_id,
@@ -134,7 +163,7 @@ async def test_user_cannot_move_themselves_to_another_tenant(
     user_id = await _make_user(db, EMPRESA_VECTOR, "Colaborador")
     await assume_tenant(db, EMPRESA_VECTOR, "Colaborador", user_id=user_id)
 
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
         await db.execute(
             "update profiles set empresa_id = $2::uuid where id = $1::uuid",
             user_id,
@@ -167,7 +196,7 @@ async def test_signup_without_invitation_is_rejected(db: asyncpg.Connection) -> 
     """
     await _elevate(db)
     try:
-        with pytest.raises(asyncpg.exceptions.RaiseError):
+        with pytest.raises(RejectedInput):
             await db.execute(
                 """
                 insert into auth.users (id, email, raw_user_meta_data)
@@ -196,7 +225,7 @@ async def test_signup_with_invitation_ignores_metadata_role(
             """
             insert into invitations (empresa_id, email, role, token_hash)
             values ($1::uuid, $2, 'Colaborador',
-                    encode(sha256($3::bytea), 'hex'))
+                    encode(sha256($3::text::bytea), 'hex'))
             """,
             EMPRESA_VECTOR,
             email,
@@ -237,7 +266,7 @@ async def test_invitation_token_is_single_use(db: asyncpg.Connection) -> None:
             """
             insert into invitations (empresa_id, email, role, token_hash)
             values ($1::uuid, $2, 'Colaborador',
-                    encode(sha256($3::bytea), 'hex'))
+                    encode(sha256($3::text::bytea), 'hex'))
             """,
             EMPRESA_VECTOR,
             email,
@@ -252,7 +281,7 @@ async def test_invitation_token_is_single_use(db: asyncpg.Connection) -> None:
             email,
             token,
         )
-        with pytest.raises(asyncpg.exceptions.RaiseError):
+        with pytest.raises(RejectedInput):
             await db.execute(
                 """
                 insert into auth.users (id, email, raw_user_meta_data)
@@ -454,7 +483,7 @@ async def test_token_rpc_hides_expired_test(db: asyncpg.Connection) -> None:
             values
                 ($1::uuid,
                  (select id from applications where empresa_id = $1::uuid limit 1),
-                 encode(sha256($2::bytea), 'hex'),
+                 encode(sha256($2::text::bytea), 'hex'),
                  'pending', now() - interval '1 day')
             """,
             EMPRESA_SIETE,
@@ -487,7 +516,7 @@ async def test_submit_rpc_cannot_move_test_between_tenants(
     try:
         row = await db.fetchrow(
             "select empresa_id, status::text as status, raw_answers "
-            "from psicometricos where token_hash = encode(sha256($1::bytea), 'hex')",
+            "from psicometricos where token_hash = encode(sha256($1::text::bytea), 'hex')",
             "psy-tok-vec-001",
         )
     finally:
@@ -500,7 +529,7 @@ async def test_submit_rpc_cannot_move_test_between_tenants(
 
 async def test_submit_rpc_rejects_invalid_token(db: asyncpg.Connection) -> None:
     await assume_anon(db)
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(RejectedInput):
         await db.execute(
             "select submit_psicometrico($1, $2::jsonb, null, false)",
             "token-que-no-existe",
@@ -710,7 +739,7 @@ async def test_aplicar_a_vacante_rejects_draft_vacante(db: asyncpg.Connection) -
         await _drop(db)
 
     await assume_anon(db)
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(RejectedInput):
         await db.execute(
             "select aplicar_a_vacante($1::uuid, $2, $3)",
             vacante_id,
@@ -735,7 +764,7 @@ async def test_aplicar_a_vacante_rejects_cv_path_of_other_tenant(
         await _drop(db)
 
     await assume_anon(db)
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(RejectedInput):
         await db.execute(
             "select aplicar_a_vacante($1::uuid, $2, $3, $4)",
             vacante_id,
@@ -756,7 +785,7 @@ async def test_aplicar_a_vacante_rejects_invalid_email(db: asyncpg.Connection) -
         await _drop(db)
 
     await assume_anon(db)
-    with pytest.raises(asyncpg.exceptions.RaiseError):
+    with pytest.raises(RejectedInput):
         await db.execute(
             "select aplicar_a_vacante($1::uuid, $2, $3)",
             vacante_id,

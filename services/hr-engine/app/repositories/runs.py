@@ -5,12 +5,30 @@ Esta tabla es el estado canónico local de una ejecución: se crea al ENCOLAR
 matcheaba 0 filas y el cost tracking nunca se persistía) y se usa además como
 lock de idempotencia para el redelivery de Celery (`task_acks_late=True`).
 
-⚠️ RLS: en `0001_initial_schema.sql` la tabla `runs` solo tiene política
-`for select`. Bajo el rol `authenticated` (el que setea `set_tenant_context`)
-un INSERT falla y un UPDATE matchea 0 filas. Por eso TODAS estas funciones
-deben ejecutarse en una sesión SIN `set_tenant_context` (rol owner/service del
-engine). El aislamiento por tenant se garantiza igual porque el `empresa_id`
-viene del run-token firmado y se compara contra la fila.
+⚠️ RLS — estado actual y decisión pendiente.
+
+Este docstring decía que `runs` solo tenía política `for select`, así que un
+INSERT bajo `authenticated` fallaba y un UPDATE matcheaba 0 filas. **Eso dejó
+de ser cierto en `0004_security_hardening.sql`**, que añadió `runs_tenant_write`.
+Verificado contra Postgres real: `tests/security/test_rls.py::
+test_worker_can_persist_run_status` inserta y actualiza un run bajo
+`authenticated` con contexto de tenant, y afecta 1 fila.
+
+Hoy conviven por tanto DOS caminos válidos y solo uno debería sobrevivir:
+
+  1. **Sesión sin contexto de tenant** (lo que hace este módulo hoy). El
+     aislamiento lo garantiza la aplicación: el `empresa_id` viene del
+     run-token firmado y se compara contra la fila. Simple, pero la base no
+     tiene forma de atrapar un error de esa comparación.
+  2. **Sesión con `set_tenant_context`**, apoyada en `runs_tenant_write`. Es
+     lo que pide ADR-004 (defensa en profundidad): el motor deniega el
+     cross-tenant aunque el código se equivoque.
+
+(2) es la dirección correcta, pero mover el worker a contexto de tenant toca
+`app/workers/run_state.py` y el ciclo de vida de la sesión, así que se decide y
+se ejecuta aparte. Mientras tanto estas funciones SIGUEN necesitando una sesión
+sin `set_tenant_context` — no por falta de policy, sino porque el `empresa_id`
+del contexto no está seteado en ese punto del flujo.
 """
 
 from __future__ import annotations
