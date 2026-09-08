@@ -22,7 +22,11 @@ def _make_engine() -> AsyncEngine:
         pool_size=settings.db_pool_size,
         max_overflow=settings.db_max_overflow,
         pool_pre_ping=True,
+        pool_timeout=10,
         echo=settings.env == "development",
+        # Sin esto un Postgres inalcanzable cuelga el request hasta el timeout
+        # del SO (minutos).
+        connect_args={"timeout": 10, "command_timeout": 30},
     )
 
 
@@ -51,13 +55,22 @@ async def db_session() -> AsyncIterator[AsyncSession]:
 
 
 def tenant_guard(request: Request) -> UUID:
-    """Defensa en profundidad: extrae empresa_id del JWT validado por middleware.
+    """Defensa en profundidad: `empresa_id` verificado del run-token.
 
-    Llamar como dependencia en cada endpoint que toca data multi-tenant.
+    `app.security.run_token.RunTokenAuth` deja el `empresa_id` del token firmado
+    en `request.state`. Esta dependencia lo re-lee para que ningún endpoint
+    pueda usar un `empresa_id` que no haya pasado por verificación de firma
+    (antes existía pero NINGÚN endpoint la usaba).
     """
     empresa_id = getattr(request.state, "empresa_id", None)
     if empresa_id is None:
-        raise HTTPException(status_code=401, detail="Tenant context missing")
+        raise HTTPException(
+            status_code=401,
+            detail="Tenant context missing — falta un run-token válido",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not isinstance(empresa_id, UUID):
+        empresa_id = UUID(str(empresa_id))
     return empresa_id
 
 

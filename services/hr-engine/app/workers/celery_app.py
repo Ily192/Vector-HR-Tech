@@ -38,6 +38,27 @@ celery_app.conf.update(
     worker_concurrency=settings.celery_concurrency,
     task_default_queue="hr",
     task_reject_on_worker_lost=True,
+    # ── Timeouts ──────────────────────────────────────────────────────────
+    # Sin esto una task colgada en un LLM retiene un slot del worker para
+    # siempre. Soft = excepción dentro de la task (permite cleanup);
+    # hard = SIGKILL al proceso hijo.
+    task_time_limit=settings.celery_task_time_limit,
+    task_soft_time_limit=settings.celery_task_soft_time_limit,
+    # TTL de resultados en Redis: sin esto crecen sin límite.
+    result_expires=settings.celery_result_expires,
+    broker_transport_options={
+        # Debe ser > task_time_limit; si no, Redis re-entrega la task mientras
+        # todavía está corriendo (duplicando el gasto en LLMs).
+        "visibility_timeout": settings.celery_visibility_timeout,
+    },
+    result_backend_transport_options={
+        "visibility_timeout": settings.celery_visibility_timeout,
+    },
+    # ── Rate limit ────────────────────────────────────────────────────────
+    # Techo por worker sobre TODAS las tasks: acota el gasto LLM aunque la
+    # cola venga llena.
+    task_default_rate_limit=settings.celery_task_default_rate_limit,
+    broker_connection_retry_on_startup=True,
     beat_schedule={
         # placeholder: cycle 1 agrega scheduler
     },
@@ -46,4 +67,9 @@ celery_app.conf.update(
 
 @worker_ready.connect
 def _on_worker_ready(**_kwargs: object) -> None:
-    logger.info("celery worker ready", queue="hr")
+    logger.info(
+        "celery worker ready",
+        queue="hr",
+        concurrency=settings.celery_concurrency,
+        task_time_limit=settings.celery_task_time_limit,
+    )

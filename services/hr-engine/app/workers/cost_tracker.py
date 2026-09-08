@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-class CostCapExceeded(RuntimeError):
+class CostCapExceededError(RuntimeError):
     """Excede el cost cap del run-token. Para inmediatamente la ejecución."""
 
 
@@ -21,7 +21,7 @@ class CostTracker:
 
     def assert_under_cap(self) -> None:
         if self.spent_usd >= self.cap_usd:
-            raise CostCapExceeded(
+            raise CostCapExceededError(
                 f"cost cap excedido: ${self.spent_usd:.4f} ≥ ${self.cap_usd:.4f}",
             )
 

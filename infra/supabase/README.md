@@ -63,7 +63,7 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
   `HR`/`Director` para escribir. Un `Colaborador` no lee la base de candidatos.
 - **`vacantes`**: `anon` no tiene acceso a la tabla. El career-site lee la vista
   `vacantes_publicas`, que expone solo las vacantes `open` y omite `icp_text`,
-  `icp_embedding` y las bandas salariales.
+  `icp_embedding`, las bandas salariales y `empresa_id`.
 - **`psicometricos`**: `anon` no tiene acceso a la tabla. El candidato usa
   `get_psicometrico_by_token()` y `submit_psicometrico()`, dos funciones
   `security definer` de superficie mínima. El token se guarda hasheado
@@ -74,8 +74,11 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
   `profiles.role`. Ningún usuario `authenticated` puede escribirla.
 - **`activity_log`** es append-only: triggers bloquean UPDATE, DELETE y
   TRUNCATE.
-- **`force row level security`** está activo en las tablas con PII, de modo que
-  el owner de la conexión tampoco bypassa RLS por olvidar `set role`.
+- **`force row level security` NO está activo**, y la razón está documentada en
+  `0004` §9: FORCE alcanza también al owner cuando ejecuta una función
+  `security definer` o una vista con `security_invoker = false`, que es
+  exactamente cómo está construido todo el acceso público de este esquema. Con
+  FORCE, el career-site no listaría vacantes y ningún candidato podría aplicar.
 
 Tests automatizados de aislamiento multi-tenant en
 `services/hr-engine/tests/security/test_rls.py` (CI job `rls-tests`). Incluyen

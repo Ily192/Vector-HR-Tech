@@ -43,10 +43,14 @@ type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
 /** Nunca se debe reasignar la fila a otro tenant desde el cliente. */
 type Update<T> = Partial<Omit<T, "id" | "empresa_id">>;
 
-/** Proyección pública de `vacantes` (ver 0004): sin ICP ni bandas salariales. */
+/**
+ * Proyección pública de `vacantes` (ver 0004): sin ICP, sin bandas salariales
+ * y sin `empresa_id` — publicar los uuids de tenant daba a cualquiera la lista
+ * de objetivos a los que apuntar.
+ */
 export type VacantePublica = Pick<
   Vacante,
-  "id" | "empresa_id" | "slug" | "title" | "jd" | "modality" | "created_at"
+  "id" | "slug" | "title" | "jd" | "modality" | "created_at"
 > & {
   seniority: Vacante["seniority"];
   location: Vacante["location"];

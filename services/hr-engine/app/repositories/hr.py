@@ -1,10 +1,12 @@
-"""Repository del dominio HR. Queries raw para evitar duplicar el schema."""
+"""Repository del dominio HR. Queries raw para evitar duplicar el schema.
+
+El estado de `runs` vive en `app.repositories.runs` (necesita una sesión sin
+tenant context por RLS; ver el docstring de ese módulo).
+"""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
@@ -38,18 +40,22 @@ def _vec_literal(embedding: list[float]) -> str:
 
 async def get_vacante(db: AsyncSession, vacante_id: UUID | str) -> VacanteRow | None:
     row = (
-        await db.execute(
-            text(
-                """
+        (
+            await db.execute(
+                text(
+                    """
                 select id, empresa_id, title, jd, icp_text,
                        icp_embedding::text as icp_embedding_text, status
                   from vacantes
                  where id = :id
                 """,
-            ),
-            {"id": str(vacante_id)},
+                ),
+                {"id": str(vacante_id)},
+            )
         )
-    ).mappings().first()
+        .mappings()
+        .first()
+    )
     if not row:
         return None
     embedding_text = row["icp_embedding_text"]
@@ -69,7 +75,9 @@ async def get_vacante(db: AsyncSession, vacante_id: UUID | str) -> VacanteRow | 
 
 
 async def update_vacante_embedding(
-    db: AsyncSession, vacante_id: UUID | str, embedding: list[float],
+    db: AsyncSession,
+    vacante_id: UUID | str,
+    embedding: list[float],
 ) -> None:
     await db.execute(
         text(
@@ -92,9 +100,10 @@ async def match_candidates(
 ) -> list[CandidatoMatch]:
     """Vector search ordenado por cosine distance (HNSW index)."""
     rows = (
-        await db.execute(
-            text(
-                """
+        (
+            await db.execute(
+                text(
+                    """
                 select id, full_name, headline, summary,
                        (cv_embedding <=> cast(:emb as vector)) as distance
                   from candidatos
@@ -102,10 +111,13 @@ async def match_candidates(
                  order by cv_embedding <=> cast(:emb as vector)
                  limit :limit
                 """,
-            ),
-            {"emb": _vec_literal(icp_embedding), "limit": limit},
+                ),
+                {"emb": _vec_literal(icp_embedding), "limit": limit},
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     return [
         CandidatoMatch(
             id=r["id"],
@@ -130,9 +142,10 @@ async def upsert_application(
 ) -> UUID:
     """Crea o actualiza la application (vacante, candidato) → status='evaluated'."""
     row = (
-        await db.execute(
-            text(
-                """
+        (
+            await db.execute(
+                text(
+                    """
                 insert into applications
                     (empresa_id, vacante_id, candidato_id, status,
                      fit_score, fit_rationale, fit_gaps)
@@ -149,49 +162,21 @@ async def upsert_application(
                     end
                 returning id
                 """,
-            ),
-            {
-                "empresa_id": str(empresa_id),
-                "vacante_id": str(vacante_id),
-                "candidato_id": str(candidato_id),
-                "fit_score": fit_score,
-                "fit_rationale": fit_rationale,
-                "fit_gaps": fit_gaps,
-            },
+                ),
+                {
+                    "empresa_id": str(empresa_id),
+                    "vacante_id": str(vacante_id),
+                    "candidato_id": str(candidato_id),
+                    "fit_score": fit_score,
+                    "fit_rationale": fit_rationale,
+                    "fit_gaps": fit_gaps,
+                },
+            )
         )
-    ).mappings().first()
+        .mappings()
+        .first()
+    )
     if not row:
         raise RuntimeError("upsert_application no devolvió id")
-    return row["id"]
-
-
-async def update_run_status(
-    db: AsyncSession,
-    *,
-    run_id: UUID | str,
-    status: str,
-    cost_usd: float,
-    payload: dict[str, Any] | None = None,
-    error_message: str | None = None,
-) -> None:
-    """Actualiza la fila local de runs (mirror del control plane)."""
-    await db.execute(
-        text(
-            """
-            update runs
-               set status = :status,
-                   cost_usd = :cost_usd,
-                   finished_at = case when :status in ('completed','failed') then now() else finished_at end,
-                   error_message = :error_message,
-                   payload = coalesce(:payload::jsonb, payload)
-             where id = :run_id
-            """,
-        ),
-        {
-            "run_id": str(run_id),
-            "status": status,
-            "cost_usd": cost_usd,
-            "error_message": error_message,
-            "payload": json.dumps(payload) if payload else None,
-        },
-    )
+    application_id: UUID = row["id"]
+    return application_id

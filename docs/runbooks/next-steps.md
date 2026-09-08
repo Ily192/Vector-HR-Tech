@@ -157,9 +157,15 @@ Más: `SuperAdmin` deja de ser un rol de tenant con alcance global (pasa a
 no pueda referenciar un candidato de otra empresa; `vacantes` deja de exponer
 `icp_text` y bandas salariales a `anon` (vista `vacantes_publicas`); `runs` gana
 policy de escritura (su `UPDATE` afectaba 0 filas en silencio y el cost tracking
-nunca se persistía); `activity_log` ya no se puede vaciar con `TRUNCATE`;
-`force row level security` en las tablas con PII. Ver **ADR-015** y
+nunca se persistía); `activity_log` ya no se puede vaciar con `TRUNCATE`. Ver **ADR-015** y
 `0004_security_hardening.sql`.
+
+Se evaluó activar `force row level security` y **se descartó**: FORCE alcanza
+también al owner cuando ejecuta una función `security definer` o una vista con
+`security_invoker = false`, que es cómo está construido todo el acceso público
+(vista de vacantes, RPCs del test psicométrico, signup, aplicación). Con FORCE
+esas rutas devolverían cero filas. Funcionaría si el owner tuviera `BYPASSRLS`,
+cosa que no se pudo verificar sin Postgres. Queda como TODO en `0004` §9.
 
 También se movieron `auth.empresa_id()`/`auth.role()` a `public`: la versión
 anterior **no se podía aplicar en Supabase Cloud** (`must be owner of function

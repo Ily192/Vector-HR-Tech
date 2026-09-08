@@ -52,7 +52,10 @@ create unique index if not exists invitations_one_active_per_email
     where consumed_at is null;
 
 alter table public.invitations enable row level security;
-alter table public.invitations force row level security;
+-- Sin FORCE a proposito: `handle_new_user()` es `security definer` y lee y
+-- actualiza esta tabla durante el signup, cuando todavia no hay claims de
+-- tenant. Con FORCE, la policy de abajo denegaria y el alta fallaria siempre.
+-- Ver la nota extensa en 0004 §9.
 
 -- HR/Director gestionan invitaciones de SU empresa, y NO pueden repartir
 -- SuperAdmin (que es un privilegio de plataforma, no de tenant — ver 0004).

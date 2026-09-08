@@ -1,17 +1,26 @@
 """Fixtures para los RLS tests.
 
 Aplica las migraciones Supabase (`infra/supabase/migrations/*.sql`) sobre la
-DB de prueba y expone helpers para abrir conexiones con JWT-claim simulado
-vía la función `public.set_tenant_context`.
+DB de prueba y expone helpers para abrir conexiones con JWT-claim simulado.
 
 El stack se basa en asyncpg directo (no SQLAlchemy) porque queremos ejecutar
 SQL crudo y observar el comportamiento de RLS sin la capa ORM en medio.
+
+Modelo de privilegios
+---------------------
+En Supabase, `anon` y `authenticated` reciben GRANT sobre las tablas por
+default privileges, y RLS es lo unico que separa tenants. Este bench replica
+eso concediendo los mismos default privileges ANTES de que las migraciones
+creen las tablas — asi los `revoke` que las migraciones hacen (por ejemplo,
+quitarle `psicometricos` a `anon` en 0004) se ejercitan de verdad en vez de
+quedar pisados por un grant de la fixture.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -20,11 +29,10 @@ import pytest_asyncio
 
 # Buscar repo root subiendo desde tests/security/ hasta encontrar pnpm-workspace.yaml.
 _HERE = Path(__file__).resolve()
-_REPO_ROOT = next(
-    p for p in _HERE.parents if (p / "pnpm-workspace.yaml").exists()
-)
+_REPO_ROOT = next(p for p in _HERE.parents if (p / "pnpm-workspace.yaml").exists())
 MIGRATIONS_DIR = _REPO_ROOT / "infra" / "supabase" / "migrations"
 SEED_FILE = _REPO_ROOT / "infra" / "supabase" / "seed.sql"
+
 
 # asyncpg usa el DSN sin el dialecto SQLAlchemy.
 def _asyncpg_dsn() -> str:
@@ -35,6 +43,18 @@ def _asyncpg_dsn() -> str:
     return raw.replace("postgresql+asyncpg://", "postgresql://")
 
 
+def _assert_disposable(dsn: str) -> None:
+    """La fixture hace `drop schema public cascade`. Si DATABASE_URL apunta a
+    algo que no es una DB de prueba desechable, aborta antes de destruirla.
+    """
+    dbname = dsn.rsplit("/", 1)[-1].split("?")[0]
+    if not ("test" in dbname or "dev" in dbname):
+        raise RuntimeError(
+            f"Los RLS tests dropean el schema public. DATABASE_URL apunta a "
+            f"la base '{dbname}', que no parece desechable. Aborto."
+        )
+
+
 EMPRESA_VECTOR = "11111111-1111-1111-1111-111111111111"
 EMPRESA_SIETE = "22222222-2222-2222-2222-222222222222"
 
@@ -42,9 +62,13 @@ EMPRESA_SIETE = "22222222-2222-2222-2222-222222222222"
 async def _ensure_auth_schema(conn: asyncpg.Connection) -> None:
     """Supabase corre sobre Postgres con un schema `auth` y varios roles
     preinstalados. En el contenedor `pgvector/pgvector:pg15` de CI nada de eso
-    existe, así que stubeamos lo mínimo que las migraciones referencian:
+    existe, asi que stubeamos lo minimo que las migraciones referencian:
     schema `auth`, `auth.users`, `auth.uid()` y los roles `authenticated`,
-    `anon`, `supabase_auth_admin`.
+    `anon`, `service_role` y `supabase_auth_admin`.
+
+    Los default privileges se conceden AQUI, antes de que existan las tablas,
+    para que las migraciones puedan revocarlos despues (ver docstring del
+    modulo).
     """
     await conn.execute(
         """
@@ -52,7 +76,9 @@ async def _ensure_auth_schema(conn: asyncpg.Connection) -> None:
         create table if not exists auth.users (
             id uuid primary key,
             email text,
-            raw_user_meta_data jsonb default '{}'::jsonb
+            raw_user_meta_data jsonb default '{}'::jsonb,
+            raw_app_meta_data jsonb default '{}'::jsonb,
+            created_at timestamptz not null default now()
         );
         create or replace function auth.uid() returns uuid as $$
             select nullif(
@@ -67,8 +93,19 @@ async def _ensure_auth_schema(conn: asyncpg.Connection) -> None:
             create role authenticated nologin;
         exception when duplicate_object then null; end $$;
         do $$ begin
+            create role service_role nologin bypassrls;
+        exception when duplicate_object then null; end $$;
+        do $$ begin
             create role supabase_auth_admin nologin;
         exception when duplicate_object then null; end $$;
+
+        grant usage on schema public to anon, authenticated, service_role;
+        alter default privileges in schema public
+            grant select, insert, update, delete on tables
+            to anon, authenticated, service_role;
+        alter default privileges in schema public
+            grant usage, select on sequences
+            to anon, authenticated, service_role;
         """
     )
 
@@ -88,10 +125,12 @@ async def _apply_seed(conn: asyncpg.Connection) -> None:
 
 @pytest_asyncio.fixture(scope="session")
 async def _migrated_db() -> AsyncIterator[None]:
-    """Una sola vez por sesión: drop+create del schema y aplicar migraciones."""
-    conn = await asyncpg.connect(_asyncpg_dsn())
+    """Una sola vez por sesion: drop+create del schema y aplicar migraciones."""
+    dsn = _asyncpg_dsn()
+    _assert_disposable(dsn)
+    conn = await asyncpg.connect(dsn)
     try:
-        # Limpiar todo lo de runs anteriores. Drop cascade del schema público.
+        # Limpiar todo lo de runs anteriores. Drop cascade del schema publico.
         await conn.execute(
             """
             drop schema if exists public cascade;
@@ -110,21 +149,10 @@ async def _migrated_db() -> AsyncIterator[None]:
 
 @pytest_asyncio.fixture
 async def db(_migrated_db: None) -> AsyncIterator[asyncpg.Connection]:
-    """Conexión nueva por test. Importante: cada conexión empieza con role
+    """Conexion nueva por test. Importante: cada conexion empieza con role
     `authenticated` y SIN claims (deny-by-default para RLS)."""
     conn = await asyncpg.connect(_asyncpg_dsn())
     try:
-        # Replicar el role que Supabase asigna al cliente con anon key.
-        # Necesita SELECT/INSERT grants — las dan las migraciones de Supabase
-        # vía `grant ... to authenticated`, pero acá las concedemos amplias
-        # porque RLS es lo único que separa tenants en este test bench.
-        await conn.execute(
-            "grant select, insert, update, delete "
-            "on all tables in schema public to authenticated;"
-        )
-        await conn.execute(
-            "grant usage on all sequences in schema public to authenticated;"
-        )
         await conn.execute("set role authenticated;")
         yield conn
     finally:
@@ -133,19 +161,41 @@ async def db(_migrated_db: None) -> AsyncIterator[asyncpg.Connection]:
 
 
 async def assume_tenant(
-    conn: asyncpg.Connection, empresa_id: str, role: str = "HR"
+    conn: asyncpg.Connection,
+    empresa_id: str,
+    role: str = "HR",
+    user_id: str | None = None,
 ) -> None:
     """Simula el JWT que Supabase Auth inyecta para un usuario del tenant.
 
-    Setea el GUC `request.jwt.claims` a nivel de sesión (no transacción) —
-    asyncpg corre cada statement en su propio bloque implícito, así que
-    `is_local=true` se perdería antes del siguiente query.
+    Los claims van bajo `app_metadata`, igual que los emite
+    `custom_access_token_hook` desde 0003. `role` en la raiz del JWT es un
+    claim RESERVADO que PostgREST usa para hacer `SET LOCAL ROLE`, asi que el
+    rol de aplicacion viaja como `app_metadata.app_role`.
+
+    Setea el GUC `request.jwt.claims` a nivel de sesion (no transaccion) —
+    asyncpg corre cada statement en su propio bloque implicito, asi que
+    `is_local=true` se perderia antes del siguiente query.
     """
-    claims = json.dumps({"empresa_id": empresa_id, "role": role})
+    claims = json.dumps(
+        {
+            "sub": user_id or str(uuid.uuid4()),
+            "app_metadata": {"empresa_id": empresa_id, "app_role": role},
+        }
+    )
     # set_config requiere ser corrido como superuser/owner para setear GUCs
     # custom. Salimos del role authenticated, seteamos, y volvemos.
     await conn.execute("reset role;")
-    await conn.execute(
-        "select set_config('request.jwt.claims', $1, false)", claims
-    )
+    await conn.execute("select set_config('request.jwt.claims', $1, false)", claims)
     await conn.execute("set role authenticated;")
+
+
+async def assume_anon(conn: asyncpg.Connection) -> None:
+    """Simula un cliente con la anon key: sin claims y con el rol `anon`.
+
+    Antes los tests usaban `authenticated` sin claims para representar esto,
+    lo cual ocultaba los `revoke ... from anon` de las migraciones.
+    """
+    await conn.execute("reset role;")
+    await conn.execute("select set_config('request.jwt.claims', '', false)")
+    await conn.execute("set role anon;")

@@ -41,7 +41,9 @@ create table if not exists public.platform_admins (
 );
 
 alter table public.platform_admins enable row level security;
-alter table public.platform_admins force row level security;
+-- Sin FORCE, por coherencia con la decision de §9. Aqui la proteccion real no
+-- es RLS sino la ausencia de policies de escritura mas el revoke de grants:
+-- ningun `authenticated` puede insertar en esta tabla.
 
 -- Sin policies de escritura a proposito: solo `service_role` (BYPASSRLS) o el
 -- superusuario pueden dar de alta un admin de plataforma.
@@ -271,10 +273,13 @@ grant execute on function public.submit_psicometrico(text, jsonb, jsonb, boolean
 drop policy if exists vacantes_public_open_read on public.vacantes;
 revoke all on public.vacantes from anon;
 
+-- `empresa_id` NO se expone: el career-site no lo necesita (le pasa el
+-- `vacante_id` a `aplicar_a_vacante()`, que resuelve el tenant del lado del
+-- servidor), y publicarlo daba a cualquiera la lista de uuids de tenant sobre
+-- los que apuntar.
 create or replace view public.vacantes_publicas
 with (security_invoker = false) as
-    select id, empresa_id, slug, title, jd, seniority, modality, location,
-           created_at
+    select id, slug, title, jd, seniority, modality, location, created_at
       from public.vacantes
      where status = 'open';
 
@@ -456,27 +461,41 @@ create policy activity_log_tenant_insert on public.activity_log
     for insert with check (empresa_id = (select public.empresa_id()));
 
 -- ════════════════════════════════════════════════════════════════════════════
--- 9. FORCE ROW LEVEL SECURITY en las tablas con PII
+-- 9. Por que NO se usa FORCE ROW LEVEL SECURITY
 -- ════════════════════════════════════════════════════════════════════════════
 --
--- Sin FORCE, el owner de la tabla (`postgres`) ignora RLS. El worker de
--- hr-engine se conecta con el owner y hace `set local role authenticated`
+-- La tentacion es obvia: sin FORCE, el owner de la tabla ignora RLS. El worker
+-- de hr-engine se conecta con el owner y hace `set local role authenticated`
 -- como primera sentencia — correcto, pero si un worker futuro olvida esa
--- llamada, corre sin ninguna barrera y en silencio. Con FORCE, ese olvido
--- falla de forma ruidosa en vez de filtrar datos entre tenants.
+-- llamada corre sin ninguna barrera y en silencio.
 --
--- Nota: `service_role` tiene el atributo BYPASSRLS, que FORCE no anula. Sigue
--- siendo un privilegio de blast radius total y debe tratarse como tal.
-
-alter table public.empresas      force row level security;
-alter table public.profiles      force row level security;
-alter table public.vacantes      force row level security;
-alter table public.candidatos    force row level security;
-alter table public.applications  force row level security;
-alter table public.runs          force row level security;
-alter table public.psicometricos force row level security;
-alter table public.entrevistas   force row level security;
-alter table public.constancias   force row level security;
+-- El problema es que FORCE alcanza tambien al owner cuando ejecuta una funcion
+-- `security definer` o una vista con `security_invoker = false`. Y todo el
+-- acceso publico de este esquema esta construido justamente asi:
+--
+--   · la vista `vacantes_publicas` (§4)
+--   · `get_psicometrico_by_token()` / `submit_psicometrico()` (§3)
+--   · `handle_new_user()`, que lee `invitations` durante el signup (0003)
+--   · `aplicar_a_vacante()`, que escribe candidatos y applications (0005)
+--
+-- Ninguna de esas rutas tiene claims de tenant en su contexto, asi que con
+-- FORCE activo las policies denegarian y las funciones devolverian cero filas.
+-- Falla en la direccion segura, pero deja el producto sin flujo publico: el
+-- career-site no listaria vacantes y ningun candidato podria aplicar.
+--
+-- Funcionaria SI el owner tuviera el atributo BYPASSRLS (que gana sobre FORCE),
+-- cosa que depende de como Supabase configure el rol `postgres` y que no se ha
+-- podido verificar aqui — no hay Postgres disponible en esta maquina. Activar
+-- FORCE a ciegas seria apostar el flujo publico entero a esa suposicion.
+--
+-- Mitigacion equivalente, y verificable: que las queries de los repositorios
+-- lleven el predicado `empresa_id = :empresa_id` EXPLICITO en el SQL, en vez de
+-- delegar el aislamiento entero a RLS. Hoy `match_candidates` no lo hace.
+--
+-- TODO: reevaluar con un Postgres real. Si el owner resulta tener BYPASSRLS,
+-- activar FORCE en empresas/profiles/candidatos/applications/runs/entrevistas/
+-- constancias y verificar con los tests de `tests/security/` que el flujo
+-- publico sigue funcionando.
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- 10. Indices compuestos por tenant
