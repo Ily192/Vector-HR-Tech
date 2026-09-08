@@ -4,6 +4,127 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-09-08 · Sesión 4 — El bloqueante duro, resuelto (y lo que había detrás)
+
+**Duración:** media jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)
+
+### Cómo empezó
+
+"Continúa con los pendientes de ayer". El pendiente nº1 de `next-steps.md` era
+un requisito duro antes de cualquier deploy: correr los tests de RLS contra un
+Postgres real. La sesión 3 lo había dejado bloqueado con este diagnóstico:
+
+> Docker Desktop está instalado pero **WSL2 no tiene ninguna distro**, así que su
+> engine Linux no arranca. Para desbloquearlo: `wsl --install`, reiniciar.
+
+### El diagnóstico de ayer era incorrecto
+
+`wsl -l -v` confirmaba que no había distros, pero `wsl --version` mostraba WSL
+2.7.12 con kernel instalado. La distro que faltaba no era una que hubiera que
+instalar: **Docker Desktop crea la suya** (`docker-desktop`) al arrancar. Lo
+único que pasaba es que la aplicación no estaba lanzada.
+
+Se lanzó, y `docker ps` respondió a la primera. El bloqueante que costó una
+sesión entera y proponía un reinicio del sistema se resolvió abriendo un
+programa.
+
+Vale la pena registrar el patrón, porque no es el primero de esta serie: se
+tomó una observación cierta (no hay distros) y se saltó a una causa plausible
+(falta WSL2) sin comprobar el eslabón intermedio.
+
+### Lo que apareció al ejecutar
+
+Primera corrida: **25 pasan, 15 fallan**. Clasificados, eran cuatro causas —
+tres bugs reales de esquema y un arnés desactualizado.
+
+**Los dos primeros estaban en serie sobre la misma sentencia**, que es lo que
+los hacía interesantes:
+
+1. `submit_psicometrico()` es `security definer` con `set search_path = ''` —
+   la defensa correcta contra shadoweo de objetos. Pero su cuerpo casteaba a
+   `'completed'::psicometrico_status` sin calificar. El cuerpo plpgsql se
+   resuelve al **invocar**, con el path vacío: `type does not exist`. Como 0004
+   le revocó la tabla a `anon`, esa función es la única vía de escritura del
+   test psicométrico. **Ningún candidato podía enviar su test.**
+
+2. Con eso arreglado, la misma línea volvió a fallar:
+   `relation "applications" does not exist`. El trigger
+   `enforce_empresa_id_from_application` no fija su `search_path`, y una
+   función de trigger sin path propio **hereda el de quien la dispara** — que
+   aquí era la función definer. Arreglar solo el primero no habría devuelto el
+   flujo a la vida; el segundo apareció porque el primer fix lo destapó.
+
+3. `empresas_platform_admin_all` no lleva cláusula `TO`, así que se evaluaba
+   también para `anon`, que no puede ejecutar `is_platform_admin()`. Un
+   `select from empresas` sin sesión abortaba con 42501 en vez de devolver
+   `[]` — un 500 en PostgREST donde tocaba un array vacío.
+
+Los tres son la misma clase de bug: **un nombre sin calificar resuelto en
+runtime contra un `search_path` que no es el que el autor tenía en la cabeza**.
+Ninguno es visible leyendo el SQL ni parseándolo, y la migración que los
+contiene se aplica sin un solo warning. Es exactamente el hueco que la
+validación con libpg_query de la sesión 3 no podía cubrir.
+
+Todos en `0006_definer_search_path_fix.sql`.
+
+### El arnés también mentía
+
+Una de las guardas nuevas destapó que el stub de `auth.uid()` en `conftest.py`
+tenía el `nullif` **después** del cast a `jsonb`, así que reventaba con el GUC
+en cadena vacía. Es el mismo error que `0001` documenta y evita explícitamente
+en `public.empresa_id()`, cometido en el arnés en vez de en el esquema: los
+tests estaban ejercitando una función que no es la de producción. Ahora es una
+réplica literal de la de Supabase.
+
+### Guardas para la clase, no para las instancias
+
+`tests/security/test_search_path.py` — tres tests que consultan el catálogo de
+la base migrada (no el texto de los `.sql`, así que también cubren lo que entre
+por el dashboard o un hotfix manual):
+
+- ninguna función con `search_path` fijado nombra objetos de `public` sin
+  calificar;
+- toda función de trigger que resuelva objetos de `public` fija su
+  `search_path`;
+- ningún rol con SELECT sobre una tabla recibe un error de permisos al
+  evaluarse sus policies.
+
+**Se comprobó que pueden fallar.** Se reintrodujeron los tres bugs en una
+migración temporal, se verificó que los tres tests fallan con mensajes
+accionables, y se borró. La lección de la sesión 3 era que un gate que nadie ha
+visto fallar no es un gate; esta vez se aplicó antes de cerrarlo.
+
+También se corrigió el job de CI, que apuntaba a `test_rls.py` en vez de al
+directorio y habría dejado las guardas nuevas fuera del gate.
+
+### Verificación final
+
+| Comando | Resultado |
+|---|---|
+| `pytest tests/security` (Postgres real) | **43/43** — 40 RLS + 3 estructurales |
+| Migraciones 0001-0006 desde cero | aplicadas sin error |
+| `pytest tests/unit --cov-fail-under=60` | 128 tests, cobertura 90% |
+| `ruff check` + `ruff format --check` | limpio, 47 ficheros |
+| `mypy app` (strict) | limpio, 27 ficheros |
+
+### Lo que NO se pudo hacer
+
+- **Push a GitHub.** Cambió el motivo respecto a la sesión 3: ya no es el
+  clasificador de permisos. Se cambió la cuenta activa a `Ily192` (era
+  `ilyra-dev`, sin acceso de escritura) y se configuró `gh` como credential
+  helper, pero **el token no tiene el scope `workflow`** y los commits tocan
+  `.github/workflows/`. GitHub lo rechaza en el servidor. Requiere un
+  `gh auth refresh -s workflow`, que es interactivo.
+- **`force row level security` (0004 §9): sigue sin decidirse.** Necesita saber
+  si el owner del esquema tiene `BYPASSRLS`. En el contenedor el owner es
+  superusuario — y un superusuario bypasea RLS por serlo, no por el atributo —
+  así que la respuesta local no dice nada sobre el rol `postgres` de Supabase.
+- **Migraciones en Supabase Cloud.** Que pasen contra el contenedor no lo
+  garantiza: ahí `auth` son stubs y no están el hook de JWT, las policies de
+  Storage ni los roles reales.
+
+---
+
 ## 2026-09-07 · Sesión 3 — Auditoría completa y corrección de lo que nunca se ejecutó
 
 **Duración:** ~1 jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)

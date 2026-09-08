@@ -1,9 +1,27 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-09-07** (sesión 3).
+> Última actualización: **2026-09-08** (sesión 4).
 
-## TL;DR
+## TL;DR sesión 4 (2026-09-08)
+
+**El bloqueante duro está resuelto: las migraciones se aplicaron y los tests de
+RLS corrieron contra un Postgres real.** No hizo falta instalar WSL2 — el
+diagnóstico de la sesión 3 era incorrecto. Docker Desktop simplemente no estaba
+arrancado; al lanzarlo, crea su propia distro WSL2 (`docker-desktop`) y el
+engine levanta. Coste real del bloqueante que costó una sesión entera: abrir la
+aplicación.
+
+Ejecutar reveló **tres bugs de esquema que ningún análisis estático podía ver**,
+todos de resolución de nombres en runtime (ver § "Lo que se arregló en la
+sesión 4"). Dos de ellos, en serie sobre la misma línea, dejaban el test
+psicométrico completamente muerto: la primera llamada de cualquier candidato
+reventaba.
+
+Estado: **43/43 tests de seguridad en verde** (40 de RLS + 3 guardas
+estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
+
+## TL;DR sesión 3
 
 La sesión 3 fue una auditoría completa del repo seguida de correcciones. El
 hallazgo central: **casi ninguna señal de calidad del proyecto era real**. El
@@ -29,17 +47,35 @@ importante de este documento.
 
 | Área | Estado | Por qué |
 |---|---|---|
-| Migraciones SQL (0001-0005) | **Sintaxis validada, NUNCA ejecutadas** | Se parsearon con libpg_query. No hay Postgres en la máquina de desarrollo: Docker Desktop está instalado pero **WSL2 no tiene ninguna distro**, así que su engine Linux no arranca (`docker ps` → 500). |
-| Tests de RLS (40 casos) | **Escritos, nunca ejecutados** | Necesitan Postgres. Mismo bloqueo. |
+| Migraciones SQL (0001-0006) | ✅ **Aplicadas desde cero contra Postgres real** | `pgvector/pgvector:pg15`, la misma imagen que usa CI. Sin errores. |
+| Tests de RLS (40 casos) | ✅ **40/40 en verde** | Más 3 guardas estructurales nuevas: 43/43. |
+| `force row level security` (0004 §9) | **Sigue sin decidirse** | Depende de si el owner del esquema tiene `BYPASSRLS`. En el contenedor local el owner es `vortex`, que es **superusuario** — y un superusuario bypasea RLS por serlo, no por el atributo. No dice nada sobre cómo Supabase configura su rol `postgres`. Solo se resuelve contra un proyecto Supabase real. |
+| Migraciones en Supabase Cloud | **No aplicadas** | Un Postgres plano con los stubs de `auth` no es Supabase: faltan el hook de JWT, las policies de Storage y los roles reales. Ver "Bloqueado por el user" #2. |
 | Flujo end-to-end HR | **Nunca ejecutado** | No hay proyecto Supabase, ni Redis corriendo, ni claves de LLM. |
 | Deploy en Vercel | **No hecho** | Ver "Bloqueado por el user" #1. |
 
-Nada de lo tocado en la capa de datos se puede dar por bueno hasta correr
-`pytest tests/security/test_rls.py` contra un Postgres real. **Ese es el
-siguiente paso, y es un requisito duro antes de cualquier deploy.**
+### Cómo levantar la base de pruebas (2 minutos)
 
-Para desbloquearlo en Windows: `wsl --install`, reiniciar, y volver a abrir
-Docker Desktop.
+El bloqueo de la sesión 3 —"WSL2 no tiene ninguna distro"— era un diagnóstico
+equivocado. Docker Desktop **crea su propia distro** (`docker-desktop`) al
+arrancar; lo único que pasaba es que no estaba lanzado. No hace falta
+`wsl --install` ni reiniciar.
+
+```bash
+# 1. Abrir Docker Desktop (o: Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe")
+docker run -d --name vortex-rls-pg \
+  -e POSTGRES_USER=vortex -e POSTGRES_PASSWORD=vortex -e POSTGRES_DB=vortex_test \
+  -p 5432:5432 pgvector/pgvector:pg15
+
+# 2. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
+cd services/hr-engine
+DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test" \
+JWT_SECRET="test-secret-do-not-use" \
+  uv run pytest tests/security -q
+```
+
+En Windows, si `uv` no está en el PATH: `python -m pip install uv` y luego
+`python -m uv run ...`.
 
 ---
 
@@ -47,10 +83,34 @@ Docker Desktop.
 
 ### 1. Publicar en GitHub y desplegar en Vercel
 
-El trabajo está commiteado en local pero **no se pudo pushear**: el clasificador
-de permisos de la sesión bloqueó `git push` en todas sus formas (force, merge de
-historias no relacionadas, y push a una rama nueva). Sin el código en GitHub,
-Vercel no puede importar el repo, así que el deploy tampoco se pudo hacer.
+El trabajo está commiteado en local pero **sigue sin pushearse**. El motivo
+cambió en la sesión 4: ya no es el clasificador de permisos (que en la sesión 3
+bloqueó `git push` en todas sus formas), sino un **scope de OAuth que falta**.
+
+El token de la cuenta `Ily192` tiene `gist, read:org, repo` pero **no
+`workflow`**, y los commits tocan `.github/workflows/`. GitHub lo rechaza en el
+servidor:
+
+```
+! [remote rejected] main -> main (refusing to allow an OAuth App to create or
+  update workflow `.github/workflows/ci.yml` without `workflow` scope)
+```
+
+Se configuró ya lo que sí se podía: `gh auth switch -u Ily192` (la cuenta activa
+era `ilyra-dev`, que no tiene acceso de escritura al repo) y `gh auth setup-git`,
+para que git use el token de `gh` en vez de las credenciales de Git Credential
+Manager.
+
+Falta un paso interactivo que solo puede hacer el user (abre un flujo de código
+de dispositivo en el navegador):
+
+```bash
+gh auth refresh -h github.com -u Ily192 -s workflow
+git push --force-with-lease=main:b4d41f296bc4cd85e35e23959b33015226832b54 origin main
+```
+
+Sin el código en GitHub, Vercel no puede importar el repo, así que el deploy
+sigue bloqueado detrás de esto.
 
 Estado del remoto `https://github.com/Ily192/Vector-HR-Tech`:
 
@@ -59,14 +119,7 @@ Estado del remoto `https://github.com/Ily192/Vector-HR-Tech`:
 - **Ese commit ya está preservado** como tag `legacy/ai-studio-scaffold`, que sí
   se pudo pushear. El force-push no pierde nada.
 
-Para desbloquear, desde la raíz del repo:
-
-```bash
-gh auth switch -u Ily192          # ya autenticado, solo hay que activarlo
-git push --force-with-lease origin main
-```
-
-Luego, en Vercel, un proyecto por app:
+Una vez pusheado, en Vercel, un proyecto por app:
 
 - New Project → Import Git Repository → `Ily192/Vector-HR-Tech`.
 - Root Directory: `apps/career-site` (y repetir con `apps/hrbp`).
@@ -117,6 +170,111 @@ Doppler → integración con GitHub → sync del env `prd` a repository secrets.
 
 `COOLIFY_*` ya no hacen falta: `release.yml` está desactivado y su destino de
 deploy se replantea en Cycle 2 sobre Fly.io (ADR-012).
+
+---
+
+## Lo que se arregló en la sesión 4
+
+Todo salió de ejecutar por primera vez las migraciones contra un Postgres real.
+Los tres bugs de esquema son **la misma clase**: un nombre sin calificar que se
+resuelve en tiempo de ejecución contra un `search_path` que no es el que quien
+escribió la función tenía en la cabeza. Ninguno es visible leyendo el SQL, ni
+parseándolo, ni aplicando la migración — que se aplica sin un solo warning.
+
+Están todos en `0006_definer_search_path_fix.sql`, con la explicación larga
+en el propio fichero.
+
+### 1. `submit_psicometrico()` reventaba en la primera llamada
+
+0004 §3 movió el flujo público del test psicométrico a funciones
+`security definer` con `set search_path = ''` — que es la defensa correcta
+contra el shadoweo de objetos. Pero el cuerpo quedó con dos casts sin
+calificar:
+
+```sql
+status = case when p_finish then 'completed'::psicometrico_status ...
+```
+
+El cuerpo de una función plpgsql se resuelve al **invocarla**, con el
+`search_path` de la propia función, que aquí está vacío. Resultado:
+`ERROR: type "psicometrico_status" does not exist`.
+
+Como 0004 le revocó `psicometricos` a `anon`, esa función es la única vía de
+escritura: **ningún candidato podía enviar su test**. La clausula `RETURNS` de
+la función hermana nombra el mismo tipo sin calificar y no falla, porque esa sí
+se resuelve al crear — por eso la migración se aplicaba limpia.
+
+### 2. El mismo bug, encadenado, en un trigger
+
+Con el cast arreglado, la suite volvió a fallar en la misma línea con
+`relation "applications" does not exist`.
+
+`enforce_empresa_id_from_application()` (0002) no fija su `search_path` y lee
+`applications` sin calificar. Una función de trigger sin `search_path` propio
+no tiene uno "por defecto": **hereda el de quien la dispara**. 0004 §5 la
+extendió —correctamente— a `BEFORE UPDATE` de `psicometricos`, y el único
+UPDATE del flujo público lo hace `submit_psicometrico()`, que corre con el
+path vacío.
+
+Los dos bugs estaban **en serie sobre la misma sentencia**, así que arreglar
+solo el primero no habría devuelto el flujo a la vida. El segundo apareció
+únicamente porque el primer fix destapó lo que había detrás.
+
+### 3. `select from empresas` sin sesión abortaba en vez de devolver `[]`
+
+`empresas_platform_admin_all` (0004 §1) no lleva cláusula `TO`, así que su rol
+implícito es PUBLIC y Postgres la evalúa **también para `anon`**, que no tiene
+EXECUTE sobre `is_platform_admin()`.
+
+No es fuga de datos —el error ocurre antes de leer ninguna fila— pero PostgREST
+lo traduce a un 500 en `/rest/v1/empresas` en vez del `[]` que corresponde. Se
+acotó la policy a `authenticated`, el único rol que puede satisfacerla.
+
+Verificado contra la base: de las 9 relaciones sobre las que `anon` conserva
+grants, `empresas` era la única que reventaba.
+
+### 4. El arnés de tests estaba probando otra función que la de producción
+
+El stub de `auth.uid()` en `conftest.py` tenía el `nullif` **después** del cast
+a `jsonb`, así que con el GUC en cadena vacía —que es como la fixture
+representa "sin sesión"— lanzaba `22P02` y tumbaba la query. Es exactamente el
+error que `0001` documenta y evita en `public.empresa_id()`, cometido en el
+arnés en vez de en el esquema. Ahora es una réplica literal de la de Supabase.
+
+Lo destapó una de las guardas nuevas, no un test funcional.
+
+### 5. Guardas estructurales (`tests/security/test_search_path.py`)
+
+Tres tests que cubren la **clase** de bug, no las tres instancias:
+
+- ninguna función con `search_path` fijado puede nombrar objetos de `public`
+  sin calificar;
+- toda función de trigger que resuelva objetos de `public` debe fijar su
+  `search_path`;
+- ningún rol con SELECT sobre una tabla puede recibir un error de permisos al
+  evaluarse sus policies (se pone en la piel de `anon` y `authenticated` y lee
+  cada tabla: cero filas es correcto, un error no).
+
+Se apoyan en el catálogo de la base migrada, no en el texto de los `.sql`, así
+que también atrapan lo que llegue por el dashboard de Supabase o un hotfix
+manual.
+
+**Se verificó que pueden fallar**: se reintrodujeron los tres bugs en una
+migración temporal y los tres tests fallaron con mensajes accionables antes de
+borrarla. Es la lección de la sesión 3 aplicada — un gate que no se ha visto
+fallar no es un gate.
+
+### 6. CI
+
+El job de RLS apuntaba a `tests/security/test_rls.py`, así que las guardas
+nuevas habrían quedado fuera del gate. Ahora corre el directorio entero.
+
+### 7. Docstring de `runs.py`
+
+Afirmaba que `runs` solo tenía policy `for select` y que un INSERT bajo
+`authenticated` fallaba. **0004 lo dejó obsoleto** y el test
+`test_worker_can_persist_run_status` lo confirma: con contexto de tenant,
+inserta y actualiza. Corregido, con la decisión pendiente documentada in situ.
 
 ---
 
@@ -217,16 +375,29 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 
 ### Bloqueantes antes de cualquier deploy de backend
 
-- [ ] **Correr los tests de RLS contra Postgres real.** Requisito duro. Instalar
-      WSL2 o usar el Supabase CLI. Dos cosas concretas que solo se pueden
-      verificar ahí:
-      - Si el owner del esquema tiene `BYPASSRLS` (decide si se puede activar
-        `force row level security`; ver `0004` §9).
-      - La escritura de `runs`: `0004` añadió la policy que faltaba, y
-        `app/repositories/runs.py` además usa una sesión de servicio sin
-        contexto de tenant. Ambos caminos funcionan; conviene quedarse con uno.
+- [x] ~~**Correr los tests de RLS contra Postgres real.**~~ Hecho en la sesión 4:
+      43/43 en verde contra `pgvector/pgvector:pg15`. Destapó tres bugs de
+      esquema (§ "Lo que se arregló en la sesión 4"). De las dos preguntas que
+      solo una base real podía contestar:
+      - **`BYPASSRLS` del owner: sigue abierta.** En el contenedor el owner es
+        superusuario, y un superusuario bypasea RLS por serlo, no por el
+        atributo. No dice nada sobre el rol `postgres` de Supabase. `force row
+        level security` sigue sin decidirse (`0004` §9).
+      - **Escritura de `runs`: contestada.** La policy `runs_tenant_write` de
+        `0004` funciona bajo `authenticated` con contexto de tenant (verificado
+        por `test_worker_can_persist_run_status`). Quedan los dos caminos vivos
+        y hay que elegir — ver la decisión pendiente abajo.
+- [ ] **Elegir un solo camino de escritura para `runs`.** Hoy `runs.py` corre
+      sin contexto de tenant y confía en la comparación de `empresa_id` contra
+      el run-token firmado. ADR-004 (defensa en profundidad) pide lo otro: usar
+      `set_tenant_context` y apoyarse en la policy, para que el motor atrape el
+      cross-tenant aunque el código se equivoque. Mover el worker toca
+      `app/workers/run_state.py` y el ciclo de vida de la sesión. La
+      recomendación es (2); está documentada en el docstring de `runs.py`.
 - [ ] **Aplicar las migraciones en un proyecto Supabase real** y verificar que
-      `supabase db push` no falla.
+      `supabase db push` no falla. Que pasen contra el contenedor **no** lo
+      garantiza: el contenedor usa stubs de `auth` y no tiene el hook de JWT,
+      las policies de Storage ni los roles reales de Supabase.
 - [ ] **Rate limiting / captcha en `aplicar_a_vacante()`** antes de exponer el
       formulario público.
 - [ ] **Destino de deploy del backend.** ADR-012 eligió Fly.io y no existe ni
@@ -286,6 +457,7 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 | Branch protection | Diferida. Con `main` desprotegido, cualquier push va directo. |
 | `activity_log` | La cadena de hash (`prev_hash`/`hash`) no la calcula ni valida nada; es decorativa. Sin particionado ni purga. |
 | Recall de pgvector | `match_candidates` no filtra por `empresa_id` en el SQL y confía en RLS, que se aplica **después** del scan del índice. Con muchos tenants, un tenant chico puede recibir 0 resultados teniendo candidatos perfectos. |
+| Policies sin cláusula `TO` | Las 21 policies del esquema son `{public}`, así que se evalúan para todo rol, incluidos los que jamás podrían satisfacerlas. Solo una rompía (arreglada en `0006` §2, era la única que invocaba una función con EXECUTE restringido); las otras 20 son coste de planner y una mina para el futuro. Acotarlas a `authenticated` es higiene pendiente. |
 
 ---
 
