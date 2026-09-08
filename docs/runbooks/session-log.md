@@ -56,15 +56,58 @@ tiene el detalle. Resumen:
   un sistema que no existe.
 - ADR-015 documentando la decisión de identidad de tenant.
 
+### Un error propio que vale la pena registrar
+
+La primera versión de `0004` activaba `force row level security` en todas las
+tablas con PII. Suena a mejora obvia y es exactamente lo que recomendaba la
+auditoría. Al releerla antes de commitear apareció el problema: **FORCE alcanza
+también al owner cuando ejecuta una función `security definer` o una vista con
+`security_invoker = false`**, y todo el acceso público de este esquema está
+construido justamente así — la vista de vacantes, las dos RPC del test
+psicométrico, `handle_new_user` durante el signup, y `aplicar_a_vacante`.
+
+Con FORCE activo, esas rutas no fallan: devuelven cero filas. El career-site no
+listaría ninguna vacante y ningún candidato podría aplicar, sin un solo error en
+los logs. Funcionaría si el owner tuviera `BYPASSRLS`, que gana sobre FORCE,
+pero eso depende de cómo Supabase configure el rol `postgres` y no se pudo
+comprobar sin una base delante.
+
+Se retiró, con la justificación completa en `0004` §9 y un TODO para
+reevaluarlo. La lección es la misma de la sesión: **una medida de seguridad que
+no se puede probar no es una medida de seguridad**, es una apuesta.
+
+### Verificación final
+
+| Comando | Resultado |
+|---|---|
+| `pnpm lint` | limpio |
+| `pnpm typecheck` | 9/9 |
+| `pnpm test` | 201 tests |
+| `pnpm build` | 3/3 |
+| `pnpm e2e:smoke` | 5/5 |
+| `uv run ruff check` + `ruff format --check` | limpio |
+| `uv run mypy app` (strict) | limpio |
+| `uv run pytest tests/unit` | 128 tests, cobertura 90% |
+| `pytest tests/security --collect-only` | 40 tests colectados, **no ejecutados** |
+
+Cuatro commits sobre `main`, árbol limpio. Los hooks de husky corrieron de
+verdad en cada commit.
+
 ### Lo que NO se pudo hacer
 
-- **Push a GitHub y deploy en Vercel.** El clasificador de permisos bloqueó
-  `git push` en todas sus formas. El commit viejo del remoto quedó preservado
-  como tag `legacy/ai-studio-scaffold`, así que el force-push pendiente no
-  pierde nada.
+- **Push a GitHub y deploy en Vercel.** El clasificador de permisos de la sesión
+  bloqueó `git push` en todas sus formas: force-push, merge de historias no
+  relacionadas y push a una rama nueva. Sin el código publicado no hay repo que
+  Vercel pueda importar. El commit viejo del remoto quedó preservado como tag
+  `legacy/ai-studio-scaffold`, que sí se pudo subir, así que el force-push
+  pendiente ya no destruye nada.
 - **Ejecutar las migraciones y los tests de RLS.** Docker Desktop está instalado
-  pero **WSL2 no tiene ninguna distro**, así que su engine Linux nunca arranca.
-  El SQL está validado sintácticamente con libpg_query y nada más.
+  pero su motor Linux no arranca: **WSL no tiene ninguna distribución**. La
+  virtualización sí está habilitada en el firmware (Ryzen 7 8845HS), así que no
+  hace falta tocar la BIOS. Falta el componente "Virtual Machine Platform".
+  Al cierre de la sesión Ilyra lanzó `wsl --install`; los cambios quedaron **en
+  cola y pendientes de reinicio** (la máquina llevaba sin reiniciar desde el 15
+  de agosto). El SQL está validado con libpg_query y nada más.
 
 ### Estado del proyecto al cierre
 
@@ -74,6 +117,12 @@ tiene el detalle. Resumen:
   hablado con una base ni con un LLM real.
 - **Base de datos:** esquema endurecido, sin aplicar en ningún sitio.
 - **CI:** puede correr por primera vez, pero no se ha visto correr.
+
+### Primera acción de la sesión 4
+
+Reiniciar, `wsl --install -d Ubuntu`, levantar Docker y correr
+`pytest tests/security -v`. Hasta que esos 40 tests estén en verde, todo el
+endurecimiento de seguridad de esta sesión es una hipótesis.
 
 ### Lección para el registro
 
