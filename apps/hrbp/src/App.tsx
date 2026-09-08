@@ -1,4 +1,13 @@
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Wordmark } from "@vortex/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Wordmark,
+} from "@vortex/ui";
 import { Activity, Briefcase, Users, Zap } from "lucide-react";
 
 const KPIS = [
@@ -9,11 +18,19 @@ const KPIS = [
 ];
 
 const PIPELINE = [
-  { stage: "Aplicados", count: 84, color: "bg-vector-cian-electric-500/20 text-vector-cian-electric-500" },
+  {
+    stage: "Aplicados",
+    count: 84,
+    color: "bg-vector-cian-electric-500/20 text-vector-cian-electric-500",
+  },
   { stage: "Evaluados", count: 41, color: "bg-vector-orange-500/20 text-vector-orange-500" },
   { stage: "Shortlist", count: 12, color: "bg-success-500/20 text-success-500" },
   { stage: "Entrevista", count: 3, color: "bg-warning-500/20 text-warning-500" },
-  { stage: "Oferta", count: 2, color: "bg-vector-cian-electric-500/20 text-vector-cian-electric-500" },
+  {
+    stage: "Oferta",
+    count: 2,
+    color: "bg-vector-cian-electric-500/20 text-vector-cian-electric-500",
+  },
 ];
 
 export function App() {
@@ -76,7 +93,10 @@ export function App() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
               {PIPELINE.map((stage) => (
-                <div key={stage.stage} className="rounded-lg border border-border bg-background p-4">
+                <div
+                  key={stage.stage}
+                  className="rounded-lg border border-border bg-background p-4"
+                >
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {stage.stage}

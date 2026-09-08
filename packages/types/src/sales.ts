@@ -15,13 +15,7 @@ export const IcpSchema = z.object({
 });
 export type Icp = z.infer<typeof IcpSchema>;
 
-export const CampaignStatusSchema = z.enum([
-  "draft",
-  "running",
-  "paused",
-  "completed",
-  "failed",
-]);
+export const CampaignStatusSchema = z.enum(["draft", "running", "paused", "completed", "failed"]);
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 
 export const CampaignSchema = z.object({

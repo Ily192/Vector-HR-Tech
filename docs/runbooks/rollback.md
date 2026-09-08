@@ -1,5 +1,25 @@
 # Runbook · Rollback
 
+> **⚠️ ESTADO REAL (2026-09-07): no existe ningun mecanismo de rollback
+> implementado.** Ni job, ni step, ni script. Todo lo de abajo es diseño.
+>
+> Concretamente, los tres mecanismos que este runbook da por sentados:
+> - `coolify rollback --service ... --to <sha>` — ese CLI no esta instalado ni
+>   configurado en ninguna parte, y apunta a la plataforma que ADR-012 descarto.
+> - `unleash flag disable <flag>` como kill-switch — Unleash no esta integrado.
+>   `UNLEASH_URL`/`UNLEASH_API_TOKEN` estan en `.env.example` pero ningun
+>   paquete del monorepo tiene el SDK ni lee esas variables.
+> - **PITR de Supabase** — es una feature del plan Pro. ADR-012 planifica el
+>   free tier, donde PITR no esta disponible. El RTO de 30 min no se sostiene
+>   sin cambiar de plan o montar dumps propios.
+>
+> Lo unico que si se puede hacer hoy es revertir un deploy de frontend desde el
+> dashboard de Vercel (Deployments → ... → Promote to Production sobre el
+> deployment anterior), y `git revert` del commit.
+>
+> Cerrar esto es requisito para el primer deploy de backend; ver
+> `docs/runbooks/next-steps.md`.
+
 > Cuando un deploy salió mal y necesitas volver atrás rápido.
 
 ## Decisión: rollback vs hotfix

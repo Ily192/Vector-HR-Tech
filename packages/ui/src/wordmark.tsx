@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "./utils";
 
 interface WordmarkProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -11,12 +11,7 @@ interface WordmarkProps extends React.HTMLAttributes<HTMLDivElement> {
  *   "VECTOR" en Proxima Nova Black + "HR TECH" en Lato Bold Italic naranja
  *   "VORTEX"  en Proxima Nova Black + "OPS" en Lato Bold Italic cian electric
  */
-export function Wordmark({
-  brand = "vortex",
-  size = "md",
-  className,
-  ...props
-}: WordmarkProps) {
+export function Wordmark({ brand = "vortex", size = "md", className, ...props }: WordmarkProps) {
   const sizes = {
     sm: "text-lg",
     md: "text-2xl",

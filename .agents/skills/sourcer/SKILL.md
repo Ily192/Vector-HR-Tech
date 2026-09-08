@@ -1,12 +1,38 @@
+---
+name: sourcer
+version: 0.1.0
+description: Encuentra y rankea candidatos según el ICP del HRBP. Devuelve top-N con score 0-10, rationale y gaps.
+owner: Vortex Ops · HR engine
+domain: hr
+inputs:
+  - vacante_id (uuid, opcional si viene icp_text)
+  - icp_text (string, opcional si viene vacante_id)
+  - target (int, default 50)
+  - sources (internal | linkedin | bumeran)
+outputs:
+  - candidate_id
+  - full_name
+  - headline
+  - score (0-10)
+  - rationale
+  - gaps (lista)
+  - source
+models:
+  default: gemini-1.5-flash
+  fallback: gpt-4o-mini
+cost_cap_usd: 0.05
+tags:
+  - hr
+  - sourcing
+  - cycle-1
+---
+
 # Sourcer-Bot
 
 > Encuentra y rankea candidatos según el ICP del HRBP.
 
-- **Version:** 0.1.0
-- **Owner:** Vortex Ops · HR engine
 - **Channel:** invocado desde `hr-engine/workers/sourcer.py` o conversacionalmente desde OpenClaw
-- **Default model:** Google Gemini 1.5 Flash
-- **Cost cap:** $0.05 USD por run (override por tenant en Paperclip)
+- **Cost cap:** override por tenant en Paperclip (el valor base vive en `cost_cap_usd` del frontmatter)
 
 ## Purpose
 

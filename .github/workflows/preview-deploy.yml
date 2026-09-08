@@ -14,8 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       # Solo apps con package.json — añadir candidate/orgchart cuando se scaffold-een.
+      # `secret_suffix` existe porque los nombres de secrets de GitHub solo
+      # admiten alfanumericos y "_": `VERCEL_PROJECT_ID_career-site` no se puede
+      # crear, asi que la expresion resolvia siempre a string vacio.
       matrix:
-        app: [career-site, hrbp]
+        include:
+          - app: career-site
+            secret_suffix: CAREER_SITE
+          - app: hrbp
+            secret_suffix: HRBP
     steps:
       - uses: actions/checkout@v4
       - uses: amondnet/vercel-action@v25
@@ -23,13 +30,22 @@ jobs:
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets[format('VERCEL_PROJECT_ID_{0}', matrix.app)] }}
+          vercel-project-id: ${{ secrets[format('VERCEL_PROJECT_ID_{0}', matrix.secret_suffix)] }}
           working-directory: apps/${{ matrix.app }}
       - name: Comment URL
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
             🚀 **${{ matrix.app }}** preview: ${{ steps.deploy.outputs.preview-url }}
+      - name: Publicar preview URL para los jobs siguientes
+        run: |
+          mkdir -p preview-urls
+          echo "${{ steps.deploy.outputs.preview-url }}" > "preview-urls/${{ matrix.app }}.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-url-${{ matrix.app }}
+          path: preview-urls/
+          retention-days: 1
 
   lighthouse:
     name: Lighthouse CI (career-site)
@@ -39,9 +55,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-url-career-site
+          path: preview-urls/
+      - name: Resolver URL del preview
+        id: url
+        run: echo "value=$(cat preview-urls/career-site.txt)" >> "$GITHUB_OUTPUT"
       - run: npm install -g @lhci/cli@0.13.x
       - run: lhci autorun --config=./.lighthouserc.json
         env:
+          LHCI_BASE_URL: ${{ steps.url.outputs.value }}
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
   playwright-smoke:
@@ -57,13 +81,20 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: preview-url-career-site
+          path: preview-urls/
+      - name: Resolver URL del preview
+        id: url
+        run: echo "value=$(cat preview-urls/career-site.txt)" >> "$GITHUB_OUTPUT"
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e:smoke
         env:
-          BASE_URL: ${{ needs.vercel-preview.outputs.preview-url }}
+          BASE_URL: ${{ steps.url.outputs.value }}
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-trace
-          path: apps/*/playwright-report/
+          path: packages/e2e/playwright-report/
           retention-days: 7

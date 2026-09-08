@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const RoleSchema = z.enum([
-  "Colaborador",
-  "HR",
-  "Director",
-  "SuperAdmin",
-  "cliente",
-]);
+export const RoleSchema = z.enum(["Colaborador", "HR", "Director", "SuperAdmin", "cliente"]);
 export type Role = z.infer<typeof RoleSchema>;
 
 export const EmpresaSchema = z.object({
@@ -42,12 +36,28 @@ export const ProfileSchema = z.object({
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 
-/** JWT custom claims emitted by Supabase Auth */
+/**
+ * JWT custom claims emitidos por Supabase Auth.
+ *
+ * `empresa_id` y `app_role` viven bajo `app_metadata`, no en la raiz (ADR-015):
+ *
+ * - `role` en la raiz es un claim RESERVADO — PostgREST hace `SET LOCAL ROLE`
+ *   con el, asi que escribir `"HR"` ahi rompia toda peticion autenticada.
+ * - `user_metadata` lo puede editar el propio usuario con `updateUser()`;
+ *   `app_metadata` no.
+ *
+ * Los pobla `custom_access_token_hook` (`infra/supabase/migrations/0003`).
+ */
+export const AppMetadataSchema = z.object({
+  empresa_id: z.string().uuid(),
+  app_role: RoleSchema,
+  permissions: z.array(z.string()).optional(),
+});
+export type AppMetadata = z.infer<typeof AppMetadataSchema>;
+
 export const JwtClaimsSchema = z.object({
   sub: z.string().uuid(),
-  empresa_id: z.string().uuid(),
-  role: RoleSchema,
-  permissions: z.array(z.string()).optional(),
+  app_metadata: AppMetadataSchema,
   exp: z.number(),
 });
 export type JwtClaims = z.infer<typeof JwtClaimsSchema>;

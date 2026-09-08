@@ -173,14 +173,14 @@ create policy psicometricos_public_token_update on psicometricos
 -- HR del tenant tiene control total.
 create policy psicometricos_tenant_manage on psicometricos
     for all using (
-        empresa_id = auth.empresa_id()
-        and auth.role() in ('HR', 'Director', 'SuperAdmin')
+        empresa_id = (select public.empresa_id())
+        and (select public.app_role()) in ('HR', 'Director', 'SuperAdmin')
     );
 
 alter table entrevistas enable row level security;
 
 create policy entrevistas_tenant_isolation on entrevistas
-    for all using (empresa_id = auth.empresa_id());
+    for all using (empresa_id = (select public.empresa_id()));
 
 alter table constancias enable row level security;
 
@@ -190,8 +190,8 @@ create policy constancias_self_read on constancias
 
 create policy constancias_tenant_manage on constancias
     for all using (
-        empresa_id = auth.empresa_id()
-        and auth.role() in ('HR', 'Director', 'SuperAdmin')
+        empresa_id = (select public.empresa_id())
+        and (select public.app_role()) in ('HR', 'Director', 'SuperAdmin')
     );
 
 -- ════════════════════════════════════════════════════════════════════════════

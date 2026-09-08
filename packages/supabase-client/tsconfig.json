@@ -1,8 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+    // Paquete source-only: `main`/`types` apuntan a src/, no se compila a dist.
+    // Con `rootDir: src` TypeScript fallaba (TS6059) al resolver los tipos de
+    // @vortex/types, que viven fuera de este directorio.
+    "noEmit": true
   },
   "include": ["src/**/*"]
 }

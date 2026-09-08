@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const VacanteStatusSchema = z.enum([
-  "draft",
-  "open",
-  "paused",
-  "closed",
-  "filled",
-]);
+export const VacanteStatusSchema = z.enum(["draft", "open", "paused", "closed", "filled"]);
 export type VacanteStatus = z.infer<typeof VacanteStatusSchema>;
 
 export const VacanteSchema = z.object({
@@ -16,9 +10,7 @@ export const VacanteSchema = z.object({
   title: z.string().min(1),
   jd: z.string().min(1),
   icp_text: z.string().nullable(),
-  seniority: z
-    .enum(["junior", "semi-senior", "senior", "lead", "manager", "director"])
-    .nullable(),
+  seniority: z.enum(["junior", "semi-senior", "senior", "lead", "manager", "director"]).nullable(),
   modality: z.enum(["onsite", "hybrid", "remote"]),
   location: z.string().nullable(),
   salary_min: z.number().nonnegative().nullable(),

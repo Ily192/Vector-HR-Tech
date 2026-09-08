@@ -1,5 +1,32 @@
 # Runbook · Deploy
 
+> **⚠️ ESTADO REAL (2026-09-07): este runbook describe un sistema que todavia
+> no existe.** Leelo como el diseño objetivo, no como instrucciones ejecutables.
+>
+> Lo que si funciona hoy:
+> - Frontends: se despliegan por la integracion Git de Vercel, con la config de
+>   `apps/*/vercel.json`. Los proyectos aun no estan provisionados.
+>
+> Lo que NO existe:
+> - **No hay entorno de staging.** `staging.vortex-ops.com` y
+>   `api.vortex-ops.com` no estan provisionados.
+> - **No hay destino de deploy para el backend.** Los comandos de Coolify de
+>   abajo apuntan a una plataforma que ADR-012 descarto en favor de Fly.io; los
+>   secrets `COOLIFY_*` no existen y no se van a crear. No hay `fly.toml` ni
+>   step de `flyctl` en ningun workflow.
+> - **`release.yml` esta desactivado** (solo `workflow_dispatch`) justamente
+>   porque intentaba ejecutar esto en cada push a `main`.
+> - **El canary no existe.** Los `curl` con `canary_pct` son un JSON inventado:
+>   Coolify no tiene traffic-splitting, y no hay balanceador ni service mesh en
+>   ninguna parte del repo.
+> - **Alembic no esta configurado**: no hay `alembic.ini` ni directorio de
+>   migraciones. El esquema real son los `.sql` de `infra/supabase/migrations/`,
+>   aplicados con `supabase db push`. Cualquier `alembic upgrade head` de aqui
+>   abajo es aspiracional.
+>
+> Antes de un primer deploy real hay que cerrar esto; ver
+> `docs/runbooks/next-steps.md`.
+
 ## Staging (automático)
 
 Cualquier merge a `main` dispara `release.yml`:

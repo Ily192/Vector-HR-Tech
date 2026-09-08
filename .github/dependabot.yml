@@ -25,10 +25,12 @@ updates:
     schedule: { interval: "weekly", day: "monday" }
     commit-message: { prefix: "chore(hr-engine deps)" }
 
-  - package-ecosystem: "pip"
-    directory: "/services/sales-engine"
-    schedule: { interval: "weekly", day: "monday" }
-    commit-message: { prefix: "chore(sales-engine deps)" }
+  # sales-engine se scaffoldea en Cycle 3. Mientras el directorio solo tenga
+  # un README, apuntar dependabot ahi produce un error permanente.
+  # - package-ecosystem: "pip"
+  #   directory: "/services/sales-engine"
+  #   schedule: { interval: "weekly", day: "monday" }
+  #   commit-message: { prefix: "chore(sales-engine deps)" }
 
   - package-ecosystem: "github-actions"
     directory: "/"

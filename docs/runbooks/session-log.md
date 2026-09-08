@@ -4,6 +4,88 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-09-07 · Sesión 3 — Auditoría completa y corrección de lo que nunca se ejecutó
+
+**Duración:** ~1 jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)
+
+### Cómo empezó
+
+La sesión arrancó como una revisión ("¿qué nos falta para salir a producción?")
+y derivó en ejecución cuando quedó claro el patrón: **el proyecto tenía mucho
+código plausible y bien estructurado que nunca se había ejecutado**, y todas las
+señales de calidad estaban en verde por vacuidad.
+
+Concretamente, antes de esta sesión:
+
+- `pnpm build` **nunca había pasado**. Fallaba en el primer paso de CSS.
+- El servicio FastAPI **no arrancaba**: `structlog.configure()` sin
+  `logger_factory` hacía que la primera línea de log lanzara `AttributeError`.
+  Eso tiraba el lifespan, el worker Celery, y era la causa de que los 6 tests
+  unitarios fallaran.
+- **No había lockfiles** (`pnpm-lock.yaml` ni `uv.lock`), así que ~21 de los 26
+  jobs de CI fallaban en su primer comando. El CI de Python no había corrido
+  jamás, incluido el gate de RLS.
+- **Ningún workspace definía `test`.** `pnpm test --coverage` en CI no ejecutaba
+  nada y reportaba verde.
+- Los evals **se auto-aprobaban**: `_run_cv_evaluator()` devolvía
+  `case.expected` en ambas ramas, así que Pearson r daba 1.0 por construcción,
+  sobre 0 casos.
+- El esquema de base tenía **tres vías por las que un usuario anónimo tomaba
+  control de cualquier tenant**, y `0001` ni siquiera se podía aplicar en
+  Supabase Cloud.
+
+### Lo que se hizo
+
+**Auditoría** en tres frentes paralelos (backend Python, CI/CD e infra, esquema
+SQL y RLS), con ejecución real del código donde fue posible.
+
+**Correcciones** — ver `docs/runbooks/next-steps.md` § "Lo que se arregló", que
+tiene el detalle. Resumen:
+
+- Build del monorepo verde por primera vez; lockfiles de Node y Python.
+- Infraestructura de tests real: 201 tests unitarios TS + Playwright E2E
+  funcionando, `size-limit` con plugin y límites honestos, husky operativo.
+- Suite de RLS ampliada de 14 a 40 casos, con un test de regresión por cada vía
+  de escalada cerrada.
+- Migraciones `0004` (endurecimiento de seguridad) y `0005` (flujo de
+  aplicación: bucket de CVs + RPC pública). `0001` y `0003` reescritas en su
+  sitio, porque no se habían aplicado nunca en ningún lado.
+- `release.yml` y `nightly.yml` desactivados de disparo automático: el primero
+  intentaba un "deploy a producción" roto en cada push a `main`.
+- Runbooks de deploy y rollback marcados con su estado real, en vez de describir
+  un sistema que no existe.
+- ADR-015 documentando la decisión de identidad de tenant.
+
+### Lo que NO se pudo hacer
+
+- **Push a GitHub y deploy en Vercel.** El clasificador de permisos bloqueó
+  `git push` en todas sus formas. El commit viejo del remoto quedó preservado
+  como tag `legacy/ai-studio-scaffold`, así que el force-push pendiente no
+  pierde nada.
+- **Ejecutar las migraciones y los tests de RLS.** Docker Desktop está instalado
+  pero **WSL2 no tiene ninguna distro**, así que su engine Linux nunca arranca.
+  El SQL está validado sintácticamente con libpg_query y nada más.
+
+### Estado del proyecto al cierre
+
+- **Frontends:** compilan, testeados, listos para desplegar. No dependen de
+  Supabase todavía.
+- **Backend:** arranca, con autenticación de run-tokens implementada. Nunca ha
+  hablado con una base ni con un LLM real.
+- **Base de datos:** esquema endurecido, sin aplicar en ningún sitio.
+- **CI:** puede correr por primera vez, pero no se ha visto correr.
+
+### Lección para el registro
+
+El riesgo R-12 del registro ("vibe coding sin review") se materializó, pero no
+como código malo: el diseño es sólido. Se materializó como **gates que no podían
+fallar**. Un test que no existe, un eval que compara el ground truth consigo
+mismo y un job de CI que aborta antes de empezar producen exactamente la misma
+señal que el éxito. La mitigación no es más disciplina al escribir: es verificar
+que cada gate sea capaz de ponerse en rojo.
+
+---
+
 ## 2026-05-25 · Sesión 2 — Cierre Cycle 0 + scaffold Cycle 1
 
 **Duración:** ~1 jornada · **Modo:** Auto + vibe coding · **Modelo:** Claude Opus 4.7 (1M)

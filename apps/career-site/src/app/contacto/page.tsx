@@ -1,5 +1,13 @@
-import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Wordmark } from "@vortex/ui";
-import { ArrowLeft, Mail, Linkedin, Clock } from "lucide-react";
+import {
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Wordmark,
+} from "@vortex/ui";
+import { ArrowLeft, Clock, Linkedin, Mail } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = {

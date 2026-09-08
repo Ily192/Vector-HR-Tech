@@ -12,12 +12,7 @@
     "./theme.css": "./theme.css",
     "./tokens.json": "./tokens.json"
   },
-  "files": [
-    "tailwind.preset.js",
-    "tailwind.preset.d.ts",
-    "theme.css",
-    "tokens.json"
-  ],
+  "files": ["tailwind.preset.js", "tailwind.preset.d.ts", "theme.css", "tokens.json"],
   "scripts": {
     "build": "node -e \"JSON.parse(require('fs').readFileSync('./tokens.json'))\" && echo tokens validated",
     "typecheck": "node -e \"require('./tailwind.preset.js')\"",

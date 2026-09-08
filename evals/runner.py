@@ -74,18 +74,31 @@ def _load_manifest(skill: str) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-def _run_cv_evaluator(case: EvalCase) -> dict[str, Any]:
-    """Stub — el runner real necesitará llamar al modelo. En CI, sin API keys,
-    devolvemos `expected` directamente para que el harness sea green.
+class EvalNotWired(RuntimeError):
+    """El runner no está conectado al modelo todavía."""
 
-    TODO(cycle-1): integrar con `app.clients.scoring.score_candidate_fit`.
+
+def _run_cv_evaluator(case: EvalCase) -> dict[str, Any]:
+    """Ejecuta el skill sobre un caso y devuelve la predicción.
+
+    NO conectado al modelo todavía (pendiente Cycle 1 wk2: integrar con
+    `app.clients.scoring.score_candidate_fit`).
+
+    La versión anterior devolvía `dict(case.expected)` en ambas ramas — con y
+    sin API keys. Es decir, la predicción ERA el ground truth, así que
+    `pass_rate` y `pearson_r` daban 1.0 por construcción y la suite no podía
+    fallar nunca. Peor: en CI eso se habría subido como evidencia de la calidad
+    del modelo. Un gate que no puede fallar es peor que no tener gate, porque
+    da falsa confianza.
+
+    Ahora falla ruidosamente. Cuando se conecte el modelo real, sustituir por
+    la llamada y borrar esta excepción.
     """
-    if not os.getenv("GOOGLE_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-        # Sin claves: pasar through.
-        return dict(case.expected)
-    # Con claves reales: import lazy y call.
-    # Diferido a integración Cycle 1 wk2.
-    return dict(case.expected)
+    raise EvalNotWired(
+        "cv-evaluator no está conectado al modelo: _run_cv_evaluator() es un "
+        "stub. Integrar con app.clients.scoring.score_candidate_fit antes de "
+        "usar estos evals como gate de calidad."
+    )
 
 
 def _eval_cv_evaluator(cases: list[EvalCase]) -> EvalSummary:
@@ -172,10 +185,21 @@ def run(
     if fail_below_threshold:
         min_pearson = thresholds.get("pearson_r")
         min_pass_rate = thresholds.get("pass_rate")
+        min_cases = thresholds.get("min_cases", 1)
         for s in summaries:
             if s.total == 0:
-                console.print(f"[yellow]suite={s.suite}: 0 cases, skipping threshold check[/yellow]")
-                continue
+                console.print(
+                    f"[red]suite={s.suite}: 0 casos. Con --fail-below-threshold "
+                    f"una suite vacia es un fallo, no un pase: no hay evidencia "
+                    f"de calidad que medir.[/red]"
+                )
+                sys.exit(1)
+            if s.total < min_cases:
+                console.print(
+                    f"[red]suite={s.suite}: {s.total} casos < min_cases={min_cases}. "
+                    f"Pearson r no es estable con tan pocos.[/red]"
+                )
+                sys.exit(1)
             if min_pearson is not None and s.pearson_r is not None and s.pearson_r < min_pearson:
                 console.print(
                     f"[red]suite={s.suite}: pearson_r={s.pearson_r:.3f} < {min_pearson}[/red]",

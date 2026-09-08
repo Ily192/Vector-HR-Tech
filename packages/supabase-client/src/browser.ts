@@ -1,6 +1,4 @@
 import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 import { getRequiredEnv } from "./env";
 import type { Database } from "./types/database";
 
@@ -12,9 +10,13 @@ import type { Database } from "./types/database";
  * Idempotente: llamadas múltiples devuelven el mismo singleton para evitar
  * múltiples conexiones realtime.
  */
-let _client: SupabaseClient<Database> | null = null;
+// El tipo se infiere del factory: anotarlo a mano como `SupabaseClient<Database>`
+// chocaba con la aridad de genericos que expone @supabase/ssr.
+type BrowserClient = ReturnType<typeof createSupabaseBrowserClient<Database>>;
 
-export function createBrowserClient(): SupabaseClient<Database> {
+let _client: BrowserClient | null = null;
+
+export function createBrowserClient(): BrowserClient {
   if (_client) return _client;
   _client = createSupabaseBrowserClient<Database>(
     getRequiredEnv("SUPABASE_URL"),

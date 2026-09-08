@@ -20,7 +20,8 @@ export const metadata: Metadata = {
     default: "Vortex Ops · Vector HR Tech",
     template: "%s · Vortex Ops",
   },
-  description: "Hackeando la rutina, liberando el talento. Operations Engine agentic para HR, Sales y Cross-functional ops.",
+  description:
+    "Hackeando la rutina, liberando el talento. Operations Engine agentic para HR, Sales y Cross-functional ops.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://vortex-ops.com"),
   openGraph: {
     siteName: "Vortex Ops",

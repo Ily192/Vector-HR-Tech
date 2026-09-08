@@ -1,9 +1,12 @@
-import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from "@vortex/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-const VACANTES_MOCK: Record<string, { title: string; jd: string; modality: string; location: string }> = {
+const VACANTES_MOCK: Record<
+  string,
+  { title: string; jd: string; modality: string; location: string }
+> = {
   "senior-software-engineer": {
     title: "Senior Software Engineer",
     modality: "remote",

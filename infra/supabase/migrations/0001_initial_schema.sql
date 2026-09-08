@@ -246,44 +246,85 @@ create trigger candidatos_updated_at before update on candidatos
 -- Row-Level Security (RLS) — defensa multi-tenant
 -- ════════════════════════════════════════════════════════════════════════════
 
--- Helper: extrae empresa_id del JWT claim
-create or replace function auth.empresa_id() returns uuid as $$
-    select coalesce(
-        nullif(current_setting('request.jwt.claim.empresa_id', true), ''),
-        nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'empresa_id', '')
-    )::uuid;
-$$ language sql stable;
+-- ─── Helpers de identidad de tenant ─────────────────────────────────────────
+--
+-- Viven en `public`, NO en `auth`. Tres razones:
+--
+--   1. `auth.role()` ya existe en Supabase y es propiedad de
+--      `supabase_auth_admin`. Un `create or replace` desde el rol `postgres`
+--      aborta con "must be owner of function role" — es decir, la version
+--      anterior de esta migracion NO se podia aplicar en Supabase Cloud.
+--   2. El `auth.role()` nativo devuelve el rol de Postgres (anon /
+--      authenticated / service_role) y lo consumen las policies de Supabase
+--      Storage. Redefinirlo rompe el bucket de CVs en silencio.
+--   3. El schema `auth` es gestionado por la plataforma y puede sobrescribirse
+--      en un upgrade.
+--
+-- `set search_path = ''` es obligatorio: estas funciones se evaluan DENTRO de
+-- cada policy, asi que un atacante capaz de crear `public.current_setting`
+-- podria devolver el empresa_id que quisiera y saltarse RLS por completo.
+-- Por eso todo va calificado con pg_catalog.
 
--- Helper: rol del JWT claim
-create or replace function auth.role() returns text as $$
+create or replace function public.empresa_id() returns uuid
+    language sql
+    stable
+    security invoker
+    set search_path = ''
+as $$
+    -- Ojo con el orden: el `nullif` va ANTES del cast a jsonb. Si el GUC esta
+    -- seteado a cadena vacia (cosa que pasa al resetear la sesion), ''::jsonb
+    -- lanza "invalid input syntax for type json" y tumba la query entera en
+    -- vez de comportarse como "sin claims".
     select coalesce(
-        nullif(current_setting('request.jwt.claim.role', true), ''),
-        nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'role', '')
+        nullif(pg_catalog.current_setting('request.jwt.claim.empresa_id', true), ''),
+        nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb
+               -> 'app_metadata' ->> 'empresa_id',
+        nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb
+               ->> 'empresa_id'
+    )::uuid;
+$$;
+
+-- Rol de aplicacion (HR / Director / Colaborador / SuperAdmin).
+-- Se llama `app_role`, no `role`: `role` es un claim RESERVADO que PostgREST
+-- usa para hacer `SET LOCAL ROLE` en cada request. Escribir 'HR' ahi hacia que
+-- PostgREST intentara `set role "HR"` y fallara con 42704 en toda peticion
+-- autenticada. El claim vive bajo `app_metadata` porque `user_metadata` es
+-- escribible por el propio usuario.
+create or replace function public.app_role() returns text
+    language sql
+    stable
+    security invoker
+    set search_path = ''
+as $$
+    select coalesce(
+        nullif(pg_catalog.current_setting('request.jwt.claim.role', true), ''),
+        nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb
+               -> 'app_metadata' ->> 'app_role'
     );
-$$ language sql stable;
+$$;
 
 -- ─── RLS: empresas ──────────────────────────────────────────────────────────
 alter table empresas enable row level security;
 
 create policy empresas_self_read on empresas
-    for select using (id = auth.empresa_id());
+    for select using (id = (select public.empresa_id()));
 
 create policy empresas_superadmin_all on empresas
-    for all using (auth.role() = 'SuperAdmin');
+    for all using ((select public.app_role()) = 'SuperAdmin');
 
 -- ─── RLS: profiles ──────────────────────────────────────────────────────────
 alter table profiles enable row level security;
 
 create policy profiles_tenant_read on profiles
-    for select using (empresa_id = auth.empresa_id());
+    for select using (empresa_id = (select public.empresa_id()));
 
 create policy profiles_self_update on profiles
     for update using (id = auth.uid());
 
 create policy profiles_hr_manage on profiles
     for all using (
-        empresa_id = auth.empresa_id()
-        and auth.role() in ('HR', 'Director', 'SuperAdmin')
+        empresa_id = (select public.empresa_id())
+        and (select public.app_role()) in ('HR', 'Director', 'SuperAdmin')
     );
 
 -- ─── RLS: vacantes ──────────────────────────────────────────────────────────
@@ -295,33 +336,33 @@ create policy vacantes_public_open_read on vacantes
 
 create policy vacantes_tenant_all on vacantes
     for all using (
-        empresa_id = auth.empresa_id()
-        and auth.role() in ('HR', 'Director', 'SuperAdmin')
+        empresa_id = (select public.empresa_id())
+        and (select public.app_role()) in ('HR', 'Director', 'SuperAdmin')
     );
 
 -- ─── RLS: candidatos ────────────────────────────────────────────────────────
 alter table candidatos enable row level security;
 
 create policy candidatos_tenant_isolation on candidatos
-    for all using (empresa_id = auth.empresa_id());
+    for all using (empresa_id = (select public.empresa_id()));
 
 -- ─── RLS: applications ──────────────────────────────────────────────────────
 alter table applications enable row level security;
 
 create policy applications_tenant_isolation on applications
-    for all using (empresa_id = auth.empresa_id());
+    for all using (empresa_id = (select public.empresa_id()));
 
 -- ─── RLS: runs ──────────────────────────────────────────────────────────────
 alter table runs enable row level security;
 
 create policy runs_tenant_isolation on runs
-    for select using (empresa_id = auth.empresa_id());
+    for select using (empresa_id = (select public.empresa_id()));
 
 -- ─── RLS: activity_log ──────────────────────────────────────────────────────
 alter table activity_log enable row level security;
 
 create policy activity_log_tenant_read on activity_log
-    for select using (empresa_id = auth.empresa_id());
+    for select using (empresa_id = (select public.empresa_id()));
 
 -- service_role bypass automático en Supabase para activity log inserts.
 

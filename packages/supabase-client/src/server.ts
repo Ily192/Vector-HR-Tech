@@ -1,6 +1,4 @@
 import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
-
 import { getRequiredEnv } from "./env";
 import type { Database } from "./types/database";
 
@@ -19,7 +17,9 @@ export interface CookieAdapter {
  * Cliente Supabase para Server Components / API Routes de Next.js. Lee la sesión
  * desde cookies, aplica RLS con el JWT del usuario. NO usa service role.
  */
-export function createServerClient(cookies: CookieAdapter): SupabaseClient<Database> {
+type ServerClient = ReturnType<typeof createSupabaseServerClient<Database>>;
+
+export function createServerClient(cookies: CookieAdapter): ServerClient {
   return createSupabaseServerClient<Database>(
     getRequiredEnv("SUPABASE_URL"),
     getRequiredEnv("SUPABASE_ANON_KEY"),

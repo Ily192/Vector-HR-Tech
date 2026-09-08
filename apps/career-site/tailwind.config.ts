@@ -1,12 +1,9 @@
-import type { Config } from "tailwindcss";
 import vortexPreset from "@vortex/design-tokens/tailwind.preset";
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   presets: [vortexPreset],
-  content: [
-    "./src/**/*.{ts,tsx}",
-    "../../packages/ui/src/**/*.{ts,tsx}",
-  ],
+  content: ["./src/**/*.{ts,tsx}", "../../packages/ui/src/**/*.{ts,tsx}"],
 };
 
 export default config;

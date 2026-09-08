@@ -1,5 +1,14 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Wordmark, Badge } from "@vortex/ui";
-import { ArrowRight, Sparkles, Zap, Shield } from "lucide-react";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Wordmark,
+} from "@vortex/ui";
+import { ArrowRight, Shield, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {

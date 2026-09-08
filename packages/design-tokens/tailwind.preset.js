@@ -13,8 +13,8 @@ const tokens = require("./tokens.json");
 const flatColor = (group) =>
   Object.fromEntries(
     Object.entries(group).map(([k, v]) =>
-      typeof v.value === "string" ? [k, v.value] : [k, flatColor(v)]
-    )
+      typeof v.value === "string" ? [k, v.value] : [k, flatColor(v)],
+    ),
   );
 
 module.exports = {
@@ -77,40 +77,30 @@ module.exports = {
         body: tokens.font.family.body.value.split(",").map((s) => s.trim()),
         mono: tokens.font.family.mono.value.split(",").map((s) => s.trim()),
       },
-      fontSize: Object.fromEntries(
-        Object.entries(tokens.font.size).map(([k, v]) => [k, v.value])
-      ),
+      fontSize: Object.fromEntries(Object.entries(tokens.font.size).map(([k, v]) => [k, v.value])),
       fontWeight: Object.fromEntries(
-        Object.entries(tokens.font.weight).map(([k, v]) => [k, v.value])
+        Object.entries(tokens.font.weight).map(([k, v]) => [k, v.value]),
       ),
       lineHeight: Object.fromEntries(
-        Object.entries(tokens.font.lineHeight).map(([k, v]) => [k, v.value])
+        Object.entries(tokens.font.lineHeight).map(([k, v]) => [k, v.value]),
       ),
       letterSpacing: Object.fromEntries(
-        Object.entries(tokens.font.tracking).map(([k, v]) => [k, v.value])
+        Object.entries(tokens.font.tracking).map(([k, v]) => [k, v.value]),
       ),
-      spacing: Object.fromEntries(
-        Object.entries(tokens.space).map(([k, v]) => [k, v.value])
-      ),
+      spacing: Object.fromEntries(Object.entries(tokens.space).map(([k, v]) => [k, v.value])),
       borderRadius: {
-        ...Object.fromEntries(
-          Object.entries(tokens.radius).map(([k, v]) => [k, v.value])
-        ),
+        ...Object.fromEntries(Object.entries(tokens.radius).map(([k, v]) => [k, v.value])),
         // shadcn/ui uses --radius
         DEFAULT: "var(--radius)",
       },
-      boxShadow: Object.fromEntries(
-        Object.entries(tokens.shadow).map(([k, v]) => [k, v.value])
-      ),
+      boxShadow: Object.fromEntries(Object.entries(tokens.shadow).map(([k, v]) => [k, v.value])),
       transitionDuration: Object.fromEntries(
-        Object.entries(tokens.motion.duration).map(([k, v]) => [k, v.value])
+        Object.entries(tokens.motion.duration).map(([k, v]) => [k, v.value]),
       ),
       transitionTimingFunction: Object.fromEntries(
-        Object.entries(tokens.motion.easing).map(([k, v]) => [k, v.value])
+        Object.entries(tokens.motion.easing).map(([k, v]) => [k, v.value]),
       ),
-      zIndex: Object.fromEntries(
-        Object.entries(tokens.z).map(([k, v]) => [k, v.value])
-      ),
+      zIndex: Object.fromEntries(Object.entries(tokens.z).map(([k, v]) => [k, v.value])),
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

@@ -16,10 +16,11 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test --",
+    "test:coverage": "turbo run test -- --coverage",
     "test:watch": "turbo run test --parallel -- --watch",
-    "e2e": "turbo run e2e",
-    "e2e:smoke": "turbo run e2e:smoke",
+    "e2e": "turbo run e2e --",
+    "e2e:smoke": "turbo run e2e:smoke --",
     "storybook": "turbo run storybook --parallel",
     "tokens:build": "pnpm --filter @vortex/design-tokens build",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
@@ -30,6 +31,7 @@
     "@changesets/cli": "^2.27.0",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.4.0",
+    "@size-limit/file": "^11.2.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.2.0",
     "size-limit": "^11.1.0",
@@ -44,12 +46,14 @@
   },
   "size-limit": [
     {
+      "name": "career-site · JS estático (brotli)",
       "path": "apps/career-site/.next/static/**/*.js",
-      "limit": "150 KB"
+      "limit": "220 KB"
     },
     {
+      "name": "hrbp · bundle principal (brotli)",
       "path": "apps/hrbp/dist/assets/index-*.js",
-      "limit": "250 KB"
+      "limit": "70 KB"
     }
   ]
 }

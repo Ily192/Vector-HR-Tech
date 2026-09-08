@@ -10,8 +10,8 @@
     --radius: 0.5rem;
 
     /* LIGHT MODE — career-site, candidate */
-    --background: 0 0% 100%;                   /* white */
-    --foreground: 244 47% 20%;                 /* cian-dark-500 */
+    --background: 0 0% 100%; /* white */
+    --foreground: 244 47% 20%; /* cian-dark-500 */
 
     --card: 0 0% 100%;
     --card-foreground: 244 47% 20%;
@@ -19,30 +19,30 @@
     --popover: 0 0% 100%;
     --popover-foreground: 244 47% 20%;
 
-    --primary: 30 100% 50%;                    /* orange-500 — CTA */
-    --primary-foreground: 244 47% 20%;         /* cian-dark on orange */
+    --primary: 30 100% 50%; /* orange-500 — CTA */
+    --primary-foreground: 244 47% 20%; /* cian-dark on orange */
 
-    --secondary: 244 47% 96%;                  /* cian-dark-50 */
+    --secondary: 244 47% 96%; /* cian-dark-50 */
     --secondary-foreground: 244 47% 20%;
 
-    --accent: 180 100% 50%;                    /* cian-electric-500 */
+    --accent: 180 100% 50%; /* cian-electric-500 */
     --accent-foreground: 244 47% 20%;
 
-    --muted: 220 13% 96%;                      /* neutral-100 */
-    --muted-foreground: 220 9% 46%;            /* neutral-500 */
+    --muted: 220 13% 96%; /* neutral-100 */
+    --muted-foreground: 220 9% 46%; /* neutral-500 */
 
-    --destructive: 0 84% 60%;                  /* danger-500 */
+    --destructive: 0 84% 60%; /* danger-500 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;                     /* neutral-200 */
+    --border: 220 13% 91%; /* neutral-200 */
     --input: 220 13% 91%;
-    --ring: 180 100% 50%;                      /* cian-electric — focus */
+    --ring: 180 100% 50%; /* cian-electric — focus */
   }
 
   .dark {
     /* DARK MODE — hrbp cockpit, orgchart (default) */
-    --background: 244 47% 12%;                 /* deeper than 500 */
-    --foreground: 0 0% 100%;                   /* white */
+    --background: 244 47% 12%; /* deeper than 500 */
+    --foreground: 0 0% 100%; /* white */
 
     --card: 244 47% 16%;
     --card-foreground: 0 0% 100%;
@@ -50,13 +50,13 @@
     --popover: 244 47% 16%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 30 100% 50%;                    /* orange — CTA siempre */
+    --primary: 30 100% 50%; /* orange — CTA siempre */
     --primary-foreground: 244 47% 12%;
 
     --secondary: 244 47% 22%;
     --secondary-foreground: 0 0% 100%;
 
-    --accent: 180 100% 50%;                    /* cian-electric */
+    --accent: 180 100% 50%; /* cian-electric */
     --accent-foreground: 244 47% 12%;
 
     --muted: 244 47% 18%;
@@ -81,7 +81,9 @@
   }
   /* respeta reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;

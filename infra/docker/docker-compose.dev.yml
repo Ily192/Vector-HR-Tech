@@ -1,6 +1,6 @@
 # Vortex Ops · Stack local para desarrollo.
-# Levanta Postgres + Redis suficientes para correr engines y tests integration.
-# (Frontends y servicios Python corren fuera del compose, en pnpm/uv directamente.)
+# Levanta Postgres + Redis + hr-engine (API y worker Celery).
+# (Los frontends corren fuera del compose, con `pnpm dev`.)
 
 name: vortex-dev
 
@@ -16,9 +16,25 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../supabase/migrations:/docker-entrypoint-initdb.d/
+      # Los scripts del entrypoint corren en orden alfabetico y SOLO en la
+      # primera inicializacion del volumen. Se montan uno a uno, con prefijo
+      # numerico, en vez de montar el directorio de migraciones entero:
+      #
+      #   · el shim tiene que correr ANTES que 0001 (crea el schema `auth`,
+      #     los roles y auth.uid(), sin los cuales 0001 falla y el entrypoint
+      #     aborta la inicializacion del contenedor);
+      #   · montar el directorio completo no deja intercalar el shim.
+      #
+      # Al añadir una migracion nueva, añadela aqui tambien.
+      - ./initdb/00_supabase_shim.sql:/docker-entrypoint-initdb.d/00_supabase_shim.sql:ro
+      - ../supabase/migrations/0001_initial_schema.sql:/docker-entrypoint-initdb.d/10_0001_initial_schema.sql:ro
+      - ../supabase/migrations/0002_hr_phase2.sql:/docker-entrypoint-initdb.d/11_0002_hr_phase2.sql:ro
+      - ../supabase/migrations/0003_auth_hooks.sql:/docker-entrypoint-initdb.d/12_0003_auth_hooks.sql:ro
+      - ../supabase/migrations/0004_security_hardening.sql:/docker-entrypoint-initdb.d/13_0004_security_hardening.sql:ro
+      - ../supabase/migrations/0005_apply_flow.sql:/docker-entrypoint-initdb.d/14_0005_apply_flow.sql:ro
+      - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vortex"]
+      test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -36,6 +52,50 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  hr-engine-api:
+    build:
+      context: ../../services/hr-engine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ENV: development
+      DATABASE_URL: postgresql+asyncpg://vortex:vortex@postgres:5432/vortex_dev
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: DEBUG
+    env_file:
+      - path: ../../services/hr-engine/.env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  hr-engine-worker:
+    build:
+      context: ../../services/hr-engine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # El Dockerfile arranca la API por default; el worker es el mismo image con
+    # otro comando. Este override es el que faltaba en el compose.
+    command:
+      ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
+    environment:
+      ENV: development
+      DATABASE_URL: postgresql+asyncpg://vortex:vortex@postgres:5432/vortex_dev
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: DEBUG
+    env_file:
+      - path: ../../services/hr-engine/.env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres-data:

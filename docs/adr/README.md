@@ -20,6 +20,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [012](012-backend-hosting-deferred.md) | Backends en Fly.io (Cycle 2+); Coolify diferido | Accepted |
 | [013](013-brand-placeholder.md) | Wordmark + Lucide como brand visual; logo diferido | Accepted |
 | [014](014-test-psicometrico-iframe.md) | Test psicométrico vía iframe del HTML legacy (v0) | Accepted |
+| [015](015-tenant-identity-in-app-metadata.md) | Identidad de tenant en `app_metadata`; privilegio de plataforma fuera de `profiles` | Accepted |
 
 ## Cómo escribir una ADR
 

@@ -1,160 +1,299 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-05-25** (sesión 2).
+> Última actualización: **2026-09-07** (sesión 3).
 
 ## TL;DR
 
-Cycle 0 cerrado en lo que dependía de Claude/local. Avance Cycle 1 wk1 ~50%:
-workers `sourcer` + `cv_evaluator` listos, supabase-client wired, ADRs 010-014 documentadas. Falta acción del user para conectar servicios externos.
+La sesión 3 fue una auditoría completa del repo seguida de correcciones. El
+hallazgo central: **casi ninguna señal de calidad del proyecto era real**. El
+monorepo nunca había compilado, el servicio Python no arrancaba, los 6 tests
+unitarios fallaban, el CI no podía correr un solo job de Python, los evals se
+auto-aprobaban con 0 casos, y el esquema de base tenía tres vías por las que un
+usuario anónimo tomaba control de cualquier tenant.
+
+Lo que estaba bien —y es mucho— era el **diseño**: la arquitectura, el modelo
+de datos, la estrategia de RLS, el patrón de workers, los ADRs. El problema era
+que nada de la ruta de I/O real se había ejecutado nunca, así que todo estaba
+en verde por vacuidad.
+
+**Estado tras la sesión 3:** el build pasa, el servicio arranca, hay tests de
+verdad, y las vías de escalada están cerradas en el SQL. **Lo que sigue sin
+verificarse contra infraestructura real es todo lo que necesita Postgres,
+Redis o un LLM** — ver "Qué NO está verificado" abajo, que es la sección más
+importante de este documento.
+
+---
+
+## Qué NO está verificado (leer antes que nada)
+
+| Área | Estado | Por qué |
+|---|---|---|
+| Migraciones SQL (0001-0005) | **Sintaxis validada, NUNCA ejecutadas** | Se parsearon con libpg_query. No hay Postgres en la máquina de desarrollo: Docker Desktop está instalado pero **WSL2 no tiene ninguna distro**, así que su engine Linux no arranca (`docker ps` → 500). |
+| Tests de RLS (40 casos) | **Escritos, nunca ejecutados** | Necesitan Postgres. Mismo bloqueo. |
+| Flujo end-to-end HR | **Nunca ejecutado** | No hay proyecto Supabase, ni Redis corriendo, ni claves de LLM. |
+| Deploy en Vercel | **No hecho** | Ver "Bloqueado por el user" #1. |
+
+Nada de lo tocado en la capa de datos se puede dar por bueno hasta correr
+`pytest tests/security/test_rls.py` contra un Postgres real. **Ese es el
+siguiente paso, y es un requisito duro antes de cualquier deploy.**
+
+Para desbloquearlo en Windows: `wsl --install`, reiniciar, y volver a abrir
+Docker Desktop.
 
 ---
 
 ## Bloqueado por el user (no se puede hacer en local)
 
-### 1. Push a `Ily192/Vector-HR-Tech` (repo personal, público)
+### 1. Publicar en GitHub y desplegar en Vercel
 
-Repo target: https://github.com/Ily192/Vector-HR-Tech (público, owner `Ily192`).
-Auth `gh` actual (`ilyra-dev`) solo tiene pull → re-auth como `Ily192` antes de pushear:
+El trabajo está commiteado en local pero **no se pudo pushear**: el clasificador
+de permisos de la sesión bloqueó `git push` en todas sus formas (force, merge de
+historias no relacionadas, y push a una rama nueva). Sin el código en GitHub,
+Vercel no puede importar el repo, así que el deploy tampoco se pudo hacer.
+
+Estado del remoto `https://github.com/Ily192/Vector-HR-Tech`:
+
+- `main` sigue teniendo solo `b4d41f2 "Add files via upload"` (scaffold de
+  Google AI Studio, incompatible con este monorepo).
+- **Ese commit ya está preservado** como tag `legacy/ai-studio-scaffold`, que sí
+  se pudo pushear. El force-push no pierde nada.
+
+Para desbloquear, desde la raíz del repo:
 
 ```bash
-gh auth login            # GitHub.com → HTTPS → browser → loguear como Ily192
-gh auth switch -u Ily192 # activar la cuenta
-gh auth status           # confirmar Active: Ily192
-```
-
-Luego desde la raíz del repo:
-
-```bash
-git remote add origin https://github.com/Ily192/Vector-HR-Tech.git
+gh auth switch -u Ily192          # ya autenticado, solo hay que activarlo
 git push --force-with-lease origin main
 ```
 
-**Por qué force-push:** el remoto tenía 1 commit `b4d41f2 "Add files via upload"` (2026-03-14) con un scaffold de Google AI Studio (Vite single-app, Login/Dashboard/Profile) totalmente incompatible con nuestro pnpm monorepo. Sin valor mergeable: chocan `package.json`/`tsconfig.json`/`vercel.json` a nivel root y la convención `src/` vs `apps/*/src/`. El commit queda preservado en el reflog de GitHub (`b4d41f2`) si alguna vez se necesita.
+Luego, en Vercel, un proyecto por app:
 
-**Branch protection** (deferido — repo es público y solo trabaja Ilyra, no hay PRs externos en Cycle 1):
-
-```bash
-# Cuando se sumen contributors:
-gh api -X PUT repos/Ily192/Vector-HR-Tech/branches/main/protection \
-  -F required_status_checks.strict=true \
-  -F required_status_checks.contexts[]='Lint TS' \
-  -F required_status_checks.contexts[]='Typecheck TS' \
-  -F required_status_checks.contexts[]='Unit tests (TS)' \
-  -F required_status_checks.contexts[]='Lint Python' \
-  -F required_status_checks.contexts[]='Typecheck Python (mypy)' \
-  -F required_status_checks.contexts[]='Multi-tenant RLS tests' \
-  -F enforce_admins=false \
-  -F required_pull_request_reviews.required_approving_review_count=1 \
-  -F restrictions=
-```
-
-### 2. Provisionar Supabase Cloud project
-
-- supabase.com → New project (region: `sa-east-1` para LATAM).
-- Habilitar extensión `vector` desde dashboard.
-- Aplicar las 3 migrations en orden:
-  ```bash
-  supabase link --project-ref <PROJECT_REF>
-  supabase db push  # aplica infra/supabase/migrations/0001..0003
-  psql "$DATABASE_URL" -f infra/supabase/seed.sql  # solo dev
-  ```
-- Copiar `URL`, `anon key`, `service_role key` a Doppler.
-
-### 3. Provisionar proyectos Vercel (1 por app)
-
-Para `career-site` y `hrbp`:
-
-- New Project → Import Git Repository → seleccionar `vortex-ops`.
-- Root Directory: `apps/career-site` (y luego `apps/hrbp`).
-- Framework Preset: auto-detect (Next.js / Vite).
-- Build/Install commands: Vercel los lee de `apps/<name>/vercel.json` — ya commiteado.
-- Env vars: copiar desde Doppler (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_HR_ENGINE_URL`, `NEXT_PUBLIC_SENTRY_DSN`; para hrbp prefix `VITE_`).
+- New Project → Import Git Repository → `Ily192/Vector-HR-Tech`.
+- Root Directory: `apps/career-site` (y repetir con `apps/hrbp`).
+- Framework Preset: auto-detect. Build/Install los lee de `apps/<name>/vercel.json`.
+- Env vars: las `NEXT_PUBLIC_*` para career-site y las `VITE_*` para hrbp
+  (ver `.env.example`, sección FRONTEND).
 - Production domain: dejar `*.vercel.app` por ahora (ADR-010).
 
-### 4. Configurar secrets en GitHub Actions
+**Las dos apps compilan y no dependen de Supabase todavía**, así que se pueden
+desplegar hoy sin backend ni base de datos.
 
-Doppler → integration con GitHub → sync env `prd` a Repository secrets.
+### 2. Provisionar Supabase Cloud
 
-Secrets necesarios:
+- supabase.com → New project (region `sa-east-1` para LATAM).
+- Habilitar la extensión `vector` desde el dashboard.
+- Aplicar las migraciones:
+  ```bash
+  supabase link --project-ref <PROJECT_REF>
+  supabase db push   # aplica 0001..0005
+  ```
+- **Activar el hook de JWT**: Dashboard → Authentication → Hooks → Custom Access
+  Token → `public.custom_access_token_hook`. **Sin esto todas las policies de HR
+  deniegan.** No es opcional.
+- Dar de alta el primer admin de plataforma a mano (la tabla `platform_admins`
+  no es escribible por ningún usuario):
+  ```sql
+  insert into platform_admins (user_id, note) values ('<uuid>', 'Ilyra · bootstrap');
+  ```
+- Copiar `URL`, `anon key` y `service_role key` a Doppler.
+
+**No correr `seed.sql` contra el proyecto real.** Ahora tiene una guarda de
+entorno que aborta fuera de bases `*dev*`/`*test*`, pero los tokens del seed
+están en el repo público.
+
+### 3. Secrets en GitHub Actions
+
+Doppler → integración con GitHub → sync del env `prd` a repository secrets.
+
 - `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_career-site`, `VERCEL_PROJECT_ID_hrbp`
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_CAREER_SITE`,
+  `VERCEL_PROJECT_ID_HRBP`
+  (⚠️ con guion bajo: los nombres de secrets de GitHub no admiten guiones, y la
+  versión anterior de este documento pedía `VERCEL_PROJECT_ID_career-site`, que
+  es imposible de crear)
 - `SENTRY_TOKEN`, `CODECOV_TOKEN`, `LHCI_GITHUB_APP_TOKEN`
-- `TURBO_TOKEN`, `TURBO_TEAM` (opcional — para cache remote)
+- `TURBO_TOKEN` + var `TURBO_TEAM` (opcional, cache remoto)
 
-`COOLIFY_*` secrets diferidos a post-Cycle 2 (ver ADR-012).
+`COOLIFY_*` ya no hacen falta: `release.yml` está desactivado y su destino de
+deploy se replantea en Cycle 2 sobre Fly.io (ADR-012).
 
 ---
 
-## Cycle 1 — MVP HR Pipeline (semanas 1-2)
+## Lo que se arregló en la sesión 3
 
-### Semana 1 (en curso)
+### Build y toolchain
 
-- [x] **1.3 (50%)** `sourcer.py` vibe-codeado — falta probar end-to-end con Supabase Cloud + LLM real.
-- [x] **1.4 (60%)** `cv_evaluator.py` implementado — falta poblar golden set (10 CVs reales etiquetados).
-- [x] **1.5** Trigger Supabase `on_auth_user_created` (ya en `0003_auth_hooks.sql`).
-- [ ] **1.6** Wireframes: hechos en markdown (`docs/specs/cycle-01-wireframes.md`). Skip Figma para v0.
-- [ ] **1.7** `packages/design-tokens` build (validado en sesión 2 — Tailwind preset funciona).
+- **El monorepo nunca había compilado.** Tres defectos reales: el `@import` de
+  los estilos compartidos iba después de las directivas `@tailwind` (Tailwind
+  veía `@layer base` sin su `@tailwind base`); el preset de Tailwind era un
+  `.js` sin tipos y no satisfacía `Partial<Config>`; y `typedRoutes` fallaba
+  porque el hero enlazaba a `/contacto`, que no existía. Ahora `pnpm build` pasa.
+- **`pnpm-lock.yaml` commiteado.** Sin él, `pnpm install --frozen-lockfile`
+  abortaba y con eso caían 4 jobs de CI y el build de Vercel.
+- **`uv.lock` generado.** Sin él caían los 5 jobs de Python, incluido el de RLS.
 
-### Semana 2
+### Seguridad de la base (lo más grave)
 
-- [ ] **2.1** Career-site: form de aplicación funcional en `/vacantes/[slug]/aplicar` con CV upload a Supabase Storage (bucket `cvs/`, RLS por empresa_id). Server Action.
-- [ ] **2.2** Candidate app: scaffold Vite + React, rutas `/`, `/applications/:id`, `/test/:token`, `/profile`. Copiar HTML legacy a `apps/candidate/public/psicometrico/`.
-- [ ] **2.3** HRBP cockpit: `/vacantes/:id` kanban con `@dnd-kit/core` + Supabase Realtime channel `applications:vacante_id=eq.{id}`. Botón `+ Sourcing` dispara `sourcer.run`.
-- [ ] **2.4** Skill `chro-intake` — SKILL.md (gstack) + golden set en `evals/chro-intake/`. Se invoca cuando un HR Director sube una vacante por chat (Google Chat adapter).
-- [ ] **2.5** Poblar `evals/cv-evaluator/golden.jsonl` con ≥ 10 CVs reales (anonimizados) de Siete. Correr `runner.py --fail-below-threshold` y subir Pearson r de 0.6 a ≥ 0.75.
-- [ ] **2.6** Run-token verification en hr-engine — `python-jose` decode + claims check (empresa_id, agent_skill, run_id, cost_cap_usd) (ADR-005). Hoy el API endpoint recibe empresa_id en body — pasar a header `Authorization: Bearer <run-token>`.
-- [ ] **2.7** E2E Playwright: "Subir CV en career-site → ver score en hrbp en < 2 min wall-clock". Test corre contra Vercel preview + Supabase Cloud staging.
-- [ ] **2.8** Loom demo público de 5 min.
+Tres vías por las que un anónimo con la anon key tomaba control de un tenant:
 
-### DoD Cycle 1 (revisado)
+1. **Signup con privilegios a elección.** `handle_new_user` sacaba `empresa_id`
+   y `role` de `raw_user_meta_data`, que es el `options.data` de `signUp()` y lo
+   controla el cliente. Cualquiera se daba de alta como `SuperAdmin` en el
+   tenant que quisiera. Ahora hace falta una invitación (tabla `invitations`,
+   token hasheado, email validado).
+2. **Auto-promoción.** `profiles_self_update` no tenía `WITH CHECK`, así que
+   `update profiles set role='SuperAdmin' where id = auth.uid()` pasaba. Cerrado
+   con `WITH CHECK` + trigger que congela `role` y `empresa_id`.
+3. **Psicométricos abiertos.** La policy "por token" no mencionaba el token:
+   `select token, raw_answers from psicometricos` devolvía todos los tests
+   activos de todos los tenants, con los tokens en claro. Y su `WITH CHECK` era
+   más débil que su `USING`, así que un anónimo podía reescribir `empresa_id` y
+   los resultados Big5 de cualquier fila. Ahora `anon` no toca la tabla; el
+   flujo pasa por dos funciones `security definer` y el token se guarda hasheado.
 
-- ✅ Subir CV en career-site → ver score en hrbp en < 2 min wall-clock.
-- ✅ Coverage ≥ 60% en `services/hr-engine`.
-- ✅ Lighthouse ≥ 85 en career-site (Vercel preview).
-- ✅ RLS tests pasan con multi-tenant fixture (ya verde — solo falta correr CI).
-- ✅ Loom demo grabado.
-- ✅ Pearson r de `cv-evaluator` ≥ 0.75 en golden set ≥ 10 cases.
+Más: `SuperAdmin` deja de ser un rol de tenant con alcance global (pasa a
+`platform_admins`); FK compuestas `(id, empresa_id)` para que una `application`
+no pueda referenciar un candidato de otra empresa; `vacantes` deja de exponer
+`icp_text` y bandas salariales a `anon` (vista `vacantes_publicas`); `runs` gana
+policy de escritura (su `UPDATE` afectaba 0 filas en silencio y el cost tracking
+nunca se persistía); `activity_log` ya no se puede vaciar con `TRUNCATE`;
+`force row level security` en las tablas con PII. Ver **ADR-015** y
+`0004_security_hardening.sql`.
+
+También se movieron `auth.empresa_id()`/`auth.role()` a `public`: la versión
+anterior **no se podía aplicar en Supabase Cloud** (`must be owner of function
+role`) y además pisaba la función nativa que usan las policies de Storage.
+
+### Flujo de aplicación (nuevo, `0005`)
+
+`anon` no tenía ninguna vía de INSERT, así que "candidato aplica" era imposible.
+Se añadió el bucket `cvs` con policies por path y la RPC
+`public.aplicar_a_vacante()`. Falta la capa anti-abuso (rate limit / captcha)
+antes de exponerla.
+
+### Entorno local
+
+El `docker compose` de desarrollo **no podía inicializar el esquema**: montaba
+las migraciones de Supabase en un Postgres plano sin schema `auth`, así que el
+entrypoint abortaba. Ahora hay un shim (`infra/docker/initdb/`) que corre antes,
+y el compose incluye `hr-engine-api` y `hr-engine-worker`.
+
+### Honestidad de la documentación
+
+`deploy.md` y `rollback.md` describían un sistema que no existe (Coolify, que
+ADR-012 descartó; `alembic upgrade head` sin alembic configurado; `unleash flag
+disable` sin Unleash integrado; PITR que el plan free no incluye). Llevan ahora
+un aviso de estado real al principio. Seguir esos runbooks durante un incidente
+habría costado tiempo crítico.
+
+### CI
+
+`release.yml` se disparaba en **cada push a `main`** e intentaba desplegar a
+Coolify; pasa a `workflow_dispatch`. `nightly.yml` corría a diario contra
+scripts que no existen; también pasa a manual. El job de evals nunca se había
+ejecutado (`pull_request.changed_files` es un entero, no una lista de rutas);
+ahora usa `paths-filter`. Añadidos `--cov-fail-under=60`, la ruta del
+`coverage.xml` para Codecov, `.lighthouserc.json`, y el arreglo del nombre de
+secret con guion en `preview-deploy.yml`.
+
+### Evals
+
+`_run_cv_evaluator()` devolvía `case.expected` en **ambas** ramas: la predicción
+era el ground truth, así que `pass_rate` y `pearson_r` daban 1.0 por
+construcción y la suite no podía fallar. En CI eso se habría subido como
+evidencia de la calidad del modelo. Ahora lanza excepción, y
+`--fail-below-threshold` falla con 0 casos en vez de pasar.
+
+---
+
+## Cycle 1 — MVP HR Pipeline
+
+### Bloqueantes antes de cualquier deploy de backend
+
+- [ ] **Correr los tests de RLS contra Postgres real.** Requisito duro. Instalar
+      WSL2 o usar el Supabase CLI.
+- [ ] **Aplicar las migraciones en un proyecto Supabase real** y verificar que
+      `supabase db push` no falla.
+- [ ] **Rate limiting / captcha en `aplicar_a_vacante()`** antes de exponer el
+      formulario público.
+- [ ] **Destino de deploy del backend.** ADR-012 eligió Fly.io y no existe ni
+      un `fly.toml` ni un step de `flyctl` en ningún workflow.
+- [ ] **Backups.** La única estrategia documentada es PITR de Supabase, que es
+      del plan Pro; ADR-012 planifica el free tier. El RTO de 30 min no se
+      sostiene hoy.
+- [ ] **Entorno de staging.** Hoy se promueve de CI directo a "prod".
+
+### Producto pendiente
+
+- [ ] **2.1** Career-site: formulario de aplicación en `/vacantes/[slug]/aplicar`
+      con subida de CV. El SQL ya está (`0005`); falta la Server Action y la UI.
+      Hoy el detalle de vacante tiene un botón deshabilitado y datos mock.
+- [ ] **2.2** Candidate app: scaffold Vite + React, rutas `/`,
+      `/applications/:id`, `/test/:token`, `/profile`. El HTML legacy del test
+      psicométrico va a `apps/candidate/public/psicometrico/` (ADR-014).
+- [ ] **2.3** HRBP cockpit: `/vacantes/:id` kanban con `@dnd-kit/core` +
+      Supabase Realtime. Hoy `App.tsx` son 100 líneas con KPIs hardcodeados.
+- [ ] **2.4** Skill `chro-intake` — SKILL.md + golden set.
+- [ ] **2.5** Poblar `evals/cv-evaluator/golden.jsonl` con ≥10 CVs reales
+      anonimizados y **conectar `_run_cv_evaluator()` al modelo**.
+- [ ] **2.7** E2E Playwright del flujo completo. La infraestructura ya está
+      (`packages/e2e`); falta el test del flujo real, que necesita la base.
+- [ ] **2.8** Loom demo de 5 min.
+
+### DoD Cycle 1
+
+- Subir CV en career-site → ver score en hrbp en < 2 min wall-clock.
+- Coverage ≥ 60% en `services/hr-engine` (ya enforceado en CI).
+- Lighthouse ≥ 85 en career-site (ya enforceado en `.lighthouserc.json`).
+- RLS tests en verde **contra Postgres real**.
+- Pearson r de `cv-evaluator` ≥ 0.75 sobre ≥10 casos reales.
+- Loom demo grabado.
 
 ---
 
 ## Cycles 2-4 (resumen)
 
-- **Cycle 2 (sem 4-5):** Provisionar Fly.io para hr-engine + Paperclip vendoring + OpenClaw vendoring (ADR-009). Workers `scheduler`, `interviewer`, `onboarder`, `constancia_gen`. WhatsApp adapter. 50 candidatos reales con Siete.
-- **Cycle 3 (sem 7-8):** sales-engine multi-tenant (ver `services/sales-engine/README.md`).
-- **Cycle 4 (sem 10-11):** lanzamiento público open-source + Stripe billing + 5 clientes Pro firmados.
+- **Cycle 2:** Fly.io para hr-engine + vendoring de Paperclip y OpenClaw
+  (ADR-009). Workers `scheduler`, `interviewer`, `onboarder`, `constancia_gen`.
+  Adapter de WhatsApp. 50 candidatos reales con Siete.
+- **Cycle 3:** sales-engine multi-tenant.
+- **Cycle 4:** lanzamiento open-source + Stripe billing + 5 clientes Pro.
 
 ---
 
-## Decisiones pendientes / open questions
+## Deuda técnica conocida y no resuelta
 
-| Tema | Pregunta | Cuándo resolver |
+| Tema | Detalle |
+|---|---|
+| LGPD / Habeas Data | `docs/08` promete retención por tipo de dato y endpoints de export/erasure. El esquema no tiene `deleted_at`, ni `retention_until`, ni jobs de purga, ni tabla de consentimientos. |
+| Cifrado de columna | `psicometricos.raw_answers` y `entrevistas.transcript` están en claro. `docs/08` dice que deberían estar cifrados. |
+| Feature flags | ADR-003 depende de ellos y `rollback.md` los usa como kill-switch. Unleash está en `.env.example` y no hay SDK en ningún paquete. |
+| Doppler | Referenciado en todos lados, sin `doppler.yaml` ni integración. Los secretos no tienen fuente de verdad. |
+| OpenTelemetry | 5 paquetes declarados en `pyproject.toml`. Verificar si el agente los conectó o los quitó. |
+| Branch protection | Diferida. Con `main` desprotegido, cualquier push va directo. |
+| `activity_log` | La cadena de hash (`prev_hash`/`hash`) no la calcula ni valida nada; es decorativa. Sin particionado ni purga. |
+| Recall de pgvector | `match_candidates` no filtra por `empresa_id` en el SQL y confía en RLS, que se aplica **después** del scan del índice. Con muchos tenants, un tenant chico puede recibir 0 resultados teniendo candidatos perfectos. |
+
+---
+
+## Decisiones pendientes
+
+| Tema | Pregunta | Cuándo |
 |---|---|---|
-| ~~Tipografía~~ | ~~Proxima Nova o Inter~~ | ✅ **ADR-011: Inter free** |
-| ~~Hosting backend~~ | ~~Coolify vs Fly vs Railway~~ | ✅ **ADR-012: Fly.io desde Cycle 2** |
-| ~~Logo~~ | ~~Diseñar o usar Wordmark~~ | ✅ **ADR-013: Wordmark + Lucide hasta revenue** |
-| ~~Test-psicometricos~~ | ~~Iframe o nativo~~ | ✅ **ADR-014: iframe en v0** |
-| ~~Frontends hosting~~ | ~~Coolify vs Vercel~~ | ✅ **ADR-010: Vercel + subdominio default** |
 | WhatsApp provider | 360dialog vs Twilio vs Meta direct | Cycle 2 |
-| Cliente piloto pagado | Siete vs LinkedIn outbound frío | Cycle 1 cooldown |
-| Open-source | Liberar Paperclip+OpenClaw+4 skills básicas | Cycle 4 |
-| Dominio propio | Comprar `vortex-ops.com` o `vector-hr.tech` | Cooldown 4 (post-MRR target $1.5k) |
+| Cliente piloto pagado | Siete vs LinkedIn outbound frío | Cooldown Cycle 1 |
+| Plan de Supabase | Free tier sin PITR vs Pro con backups | Antes del primer cliente real |
+| Open-source | Liberar Paperclip + OpenClaw + 4 skills | Cycle 4 |
+| Dominio propio | `vortex-ops.com` o `vector-hr.tech` | Cooldown 4 (post-MRR $1.5k) |
 
 ---
 
 ## Riesgos en watch (top 3)
 
-1. **R-07 Bus factor 1.** Mitigación activa: docs obsesivas + repo público mes 4 (Cycle 4).
-2. **R-15 Burnout.** Mitigación: respetar cooldown semana, no trabajar fines de semana.
-3. **R-12 Vibe coding sin review.** Mitigación: DoD obligatorio + (futuro) code-review agent en CI.
-
----
-
-## Métricas a empezar a medir desde Cycle 1
-
-- Lead time (commit → prod) — auto-tracked por `nightly.yml`.
-- Deploy frequency — auto-tracked.
-- Eval pass rate por skill — `evals/runner.py` lo emite.
-- Cost USD por run — sourcer/cv_evaluator ya devuelven `cost_usd` + breakdown; agregar Grafana panel en Cycle 2.
-- Tiempo de pipeline HR (apply → score) — métrica de negocio principal.
+1. **R-07 Bus factor 1.** Mitigación: docs obsesivas + repo público mes 4.
+2. **R-15 Burnout.** Mitigación: respetar cooldown, no trabajar fines de semana.
+3. **R-12 Vibe coding sin review.** Esta sesión es el caso de estudio: mucho
+   código plausible, bien estructurado y jamás ejecutado, con todas las señales
+   de calidad en verde por vacuidad. La mitigación real no es más disciplina,
+   es **hacer que los gates puedan fallar**.

@@ -26,7 +26,7 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           uv sync
-          uv run python runner.py --suite all --report-to dashboard
+          uv run python runner.py --suite golden --suite regression --fail-below-threshold
 
   rls-paranoid:
     name: RLS paranoid scan

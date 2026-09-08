@@ -1,5 +1,5 @@
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@vortex/ui";
-import { MapPin, Briefcase, Clock } from "lucide-react";
+import { Briefcase, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
 
 // Placeholder — sustituir por fetch a Supabase en cycle 1
@@ -28,9 +28,7 @@ export default function VacantesPage() {
   return (
     <main className="container mx-auto px-4 py-16">
       <header className="mb-12">
-        <h1 className="mb-2 text-4xl font-black tracking-tighter md:text-5xl">
-          Vacantes abiertas
-        </h1>
+        <h1 className="mb-2 text-4xl font-black tracking-tighter md:text-5xl">Vacantes abiertas</h1>
         <p className="text-muted-foreground">
           Buscamos rebeldes que quieran liberar talento, no domesticarlo.
         </p>

@@ -1,15 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalDependencies": [
-    ".env.example",
-    "tsconfig.base.json"
-  ],
-  "globalEnv": [
-    "NODE_ENV",
-    "VERCEL_URL",
-    "VERCEL_ENV"
-  ],
+  "globalDependencies": [".env.example", "tsconfig.base.json"],
+  "globalEnv": ["NODE_ENV", "VERCEL_URL", "VERCEL_ENV"],
   "globalPassThroughEnv": [
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
@@ -42,11 +35,15 @@
       "outputs": ["coverage/**"]
     },
     "e2e": {
-      "dependsOn": ["build"],
+      "dependsOn": ["@vortex/career-site#build"],
+      "cache": false,
+      "env": ["BASE_URL", "CI"],
       "outputs": ["playwright-report/**", "test-results/**"]
     },
     "e2e:smoke": {
-      "dependsOn": ["build"],
+      "dependsOn": ["@vortex/career-site#build"],
+      "cache": false,
+      "env": ["BASE_URL", "CI"],
       "outputs": ["playwright-report/**"]
     },
     "storybook": {
