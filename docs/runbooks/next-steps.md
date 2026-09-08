@@ -218,7 +218,13 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 ### Bloqueantes antes de cualquier deploy de backend
 
 - [ ] **Correr los tests de RLS contra Postgres real.** Requisito duro. Instalar
-      WSL2 o usar el Supabase CLI.
+      WSL2 o usar el Supabase CLI. Dos cosas concretas que solo se pueden
+      verificar ahí:
+      - Si el owner del esquema tiene `BYPASSRLS` (decide si se puede activar
+        `force row level security`; ver `0004` §9).
+      - La escritura de `runs`: `0004` añadió la policy que faltaba, y
+        `app/repositories/runs.py` además usa una sesión de servicio sin
+        contexto de tenant. Ambos caminos funcionan; conviene quedarse con uno.
 - [ ] **Aplicar las migraciones en un proyecto Supabase real** y verificar que
       `supabase db push` no falla.
 - [ ] **Rate limiting / captcha en `aplicar_a_vacante()`** antes de exponer el
