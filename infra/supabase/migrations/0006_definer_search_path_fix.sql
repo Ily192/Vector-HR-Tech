@@ -1,17 +1,26 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- Vortex Ops · 0006_definer_search_path_fix
 -- Fecha: 2026-09-08
--- Dos defectos encontrados al ejecutar por PRIMERA VEZ los tests de RLS contra
+-- TRES defectos encontrados al ejecutar por PRIMERA VEZ los tests de RLS contra
 -- un Postgres real (pgvector/pgvector:pg15, el mismo contenedor que usa CI).
 -- Requiere: 0001..0005
 -- ════════════════════════════════════════════════════════════════════════════
 --
 -- Contexto: hasta hoy las migraciones 0001-0005 solo se habian validado
--- sintacticamente con libpg_query. Parsear no es ejecutar: los dos bugs de
--- abajo son de resolucion de nombres en tiempo de ejecucion, e invisibles para
--- cualquier analisis estatico que no tenga un catalogo delante.
+-- sintacticamente con libpg_query. Parsear no es ejecutar.
 --
--- Ambos son fallos de DISPONIBILIDAD, no de confidencialidad: nada se filtra,
+-- OJO CON EL NOMBRE DEL FICHERO: describe a dos de los tres. §1 y §3 si son de
+-- resolucion de nombres bajo `search_path` fijado. §2 NO: la policy de
+-- `empresas` ya invocaba `public.is_platform_admin()` totalmente calificada, y
+-- lo que le falta es la clausula `TO`. Es un fallo de PRIVILEGIOS (42501), y su
+-- fix no califica nada — anade `to authenticated`. Agruparlos bajo una sola
+-- tesis es comodo y es falso.
+--
+-- Lo que si comparten los tres es que solo aparecen al EJECUTAR: ninguno es
+-- visible para un analisis estatico sin catalogo delante, y esta migracion —como
+-- las anteriores— se aplica sin un solo warning.
+--
+-- Los tres son fallos de DISPONIBILIDAD, no de confidencialidad: nada se filtra,
 -- pero dos rutas del producto devuelven error en vez de funcionar.
 
 

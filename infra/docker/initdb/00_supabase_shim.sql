@@ -36,10 +36,21 @@ create table if not exists auth.users (
 );
 
 -- En Supabase, auth.uid() lee el claim `sub` del JWT de la request.
+--
+-- El orden importa y esta version lo tenia mal: el `nullif` va ANTES del cast a
+-- jsonb. Con el GUC seteado a cadena vacia —que es lo que ocurre en una sesion
+-- sin claims— un `''::jsonb` lanza 22P02 y tumba la query entera en vez de
+-- comportarse como "sin sesion". Las tablas afectadas eran `empresas`,
+-- `constancias` y `platform_admins`, cuyas policies llaman a auth.uid().
+--
+-- Es el mismo error que 0001 documenta y evita en `public.empresa_id()`. Estaba
+-- cometido en las DOS copias del stub: esta y la de
+-- services/hr-engine/tests/security/conftest.py. Ahora ambas son replicas
+-- literales de la funcion real de Supabase.
 create or replace function auth.uid() returns uuid as $$
-    select nullif(
-        current_setting('request.jwt.claims', true)::jsonb ->> 'sub',
-        ''
+    select coalesce(
+        nullif(current_setting('request.jwt.claim.sub', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
     )::uuid;
 $$ language sql stable;
 

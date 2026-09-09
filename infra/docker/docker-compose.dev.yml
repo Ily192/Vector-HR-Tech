@@ -25,13 +25,18 @@ services:
       #     aborta la inicializacion del contenedor);
       #   · montar el directorio completo no deja intercalar el shim.
       #
-      # Al añadir una migracion nueva, añadela aqui tambien.
+      # Al añadir una migracion nueva, añadela aqui tambien. Esto se
+      # desincroniza solo —0006 se anadio en la sesion 4 y esta lista se quedo
+      # en 0005, asi que el entorno de desarrollo seguia creando una base con
+      # los tres bugs que 0006 arregla— y por eso ahora lo vigila un test:
+      # tests/security/test_search_path.py::test_dev_compose_mounts_every_migration
       - ./initdb/00_supabase_shim.sql:/docker-entrypoint-initdb.d/00_supabase_shim.sql:ro
       - ../supabase/migrations/0001_initial_schema.sql:/docker-entrypoint-initdb.d/10_0001_initial_schema.sql:ro
       - ../supabase/migrations/0002_hr_phase2.sql:/docker-entrypoint-initdb.d/11_0002_hr_phase2.sql:ro
       - ../supabase/migrations/0003_auth_hooks.sql:/docker-entrypoint-initdb.d/12_0003_auth_hooks.sql:ro
       - ../supabase/migrations/0004_security_hardening.sql:/docker-entrypoint-initdb.d/13_0004_security_hardening.sql:ro
       - ../supabase/migrations/0005_apply_flow.sql:/docker-entrypoint-initdb.d/14_0005_apply_flow.sql:ro
+      - ../supabase/migrations/0006_definer_search_path_fix.sql:/docker-entrypoint-initdb.d/15_0006_definer_search_path_fix.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

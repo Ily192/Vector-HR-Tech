@@ -527,6 +527,102 @@ async def test_submit_rpc_cannot_move_test_between_tenants(
     assert row["status"] == "in_progress"
 
 
+async def test_submit_rpc_can_finish_the_test(db: asyncpg.Connection) -> None:
+    """El candidato puede CERRAR su test, no solo guardarlo a medias.
+
+    Este test existe por un hueco que se colo en la sesion 4: `0006` arreglo
+    los DOS casts a `psicometrico_status` de `submit_psicometrico`, pero toda
+    la suite llamaba a la funcion con `p_finish = false`. La rama
+    `'completed'::public.psicometrico_status` —la mitad del fix— no la
+    ejecutaba nada, asi que se dio por buena sin haberse corrido nunca. Es
+    exactamente el modo de fallo que este repo persigue, cometido al arreglarlo.
+
+    Cubre ademas la unica escritura de `completed_at`.
+    """
+    await _elevate(db)
+    try:
+        token = "psy-tok-finish-001"
+        await db.execute(
+            """
+            insert into psicometricos (empresa_id, application_id, token_hash, status)
+            values (
+                $1::uuid,
+                (select id from applications where empresa_id = $1::uuid limit 1),
+                encode(sha256($2::text::bytea), 'hex'),
+                'pending'
+            )
+            """,
+            EMPRESA_VECTOR,
+            token,
+        )
+    finally:
+        await _drop(db)
+
+    await assume_anon(db)
+    await db.execute(
+        "select submit_psicometrico($1, $2::jsonb, $3::jsonb, true)",
+        token,
+        '{"q1": 4, "q2": 2}',
+        '{"openness": 0.81, "neuroticism": 0.22}',
+    )
+
+    await _elevate(db)
+    try:
+        row = await db.fetchrow(
+            """
+            select status::text as status, completed_at, big5_openness, big5_neuroticism
+              from psicometricos
+             where token_hash = encode(sha256($1::text::bytea), 'hex')
+            """,
+            token,
+        )
+    finally:
+        await _drop(db)
+
+    assert row is not None
+    assert row["status"] == "completed"
+    assert row["completed_at"] is not None
+    assert float(row["big5_openness"]) == 0.81
+    assert float(row["big5_neuroticism"]) == 0.22
+
+
+async def test_submit_rpc_rejects_a_finished_test(db: asyncpg.Connection) -> None:
+    """Un test ya cerrado no se puede reabrir ni reescribir.
+
+    `submit_psicometrico` filtra por `status in ('pending','in_progress')`, asi
+    que tras cerrarlo el mismo token deja de valer. Sin esto, quien conserve el
+    token podria sobreescribir sus propios resultados despues de verlos.
+    """
+    await _elevate(db)
+    try:
+        token = "psy-tok-finish-002"
+        await db.execute(
+            """
+            insert into psicometricos (empresa_id, application_id, token_hash, status)
+            values (
+                $1::uuid,
+                (select id from applications where empresa_id = $1::uuid limit 1),
+                encode(sha256($2::text::bytea), 'hex'),
+                'pending'
+            )
+            """,
+            EMPRESA_VECTOR,
+            token,
+        )
+    finally:
+        await _drop(db)
+
+    await assume_anon(db)
+    await db.execute("select submit_psicometrico($1, $2::jsonb, null, true)", token, '{"q1": 1}')
+
+    with pytest.raises(RejectedInput):
+        await db.execute(
+            "select submit_psicometrico($1, $2::jsonb, null, false)",
+            token,
+            '{"q1": 5}',
+        )
+
+
 async def test_submit_rpc_rejects_invalid_token(db: asyncpg.Connection) -> None:
     await assume_anon(db)
     with pytest.raises(RejectedInput):
