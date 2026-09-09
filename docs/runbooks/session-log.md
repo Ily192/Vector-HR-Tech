@@ -59,13 +59,26 @@ los hacía interesantes:
    `select from empresas` sin sesión abortaba con 42501 en vez de devolver
    `[]` — un 500 en PostgREST donde tocaba un array vacío.
 
-Los tres son la misma clase de bug: **un nombre sin calificar resuelto en
-runtime contra un `search_path` que no es el que el autor tenía en la cabeza**.
-Ninguno es visible leyendo el SQL ni parseándolo, y la migración que los
-contiene se aplica sin un solo warning. Es exactamente el hueco que la
+Los **dos primeros** son la misma clase de bug: un nombre sin calificar resuelto
+en runtime contra un `search_path` vacío, que no es el que el autor tenía en la
+cabeza. El tercero **no lo es**, y conviene no confundirlo: la policy de
+`empresas` ya invocaba `public.is_platform_admin()` totalmente calificada; lo que
+le falta es la cláusula `TO`. Es un fallo de privilegios (42501), y su fix no
+califica nada — añade `to authenticated`.
+
+Lo que sí comparten los tres, y es el punto, es que **solo aparecen al
+ejecutar**. Ninguno es visible leyendo el SQL ni parseándolo, y la migración que
+los contiene se aplica sin un solo warning. Es exactamente el hueco que la
 validación con libpg_query de la sesión 3 no podía cubrir.
 
-Todos en `0006_definer_search_path_fix.sql`.
+Todos en `0006_definer_search_path_fix.sql`, cuyo nombre describe a dos de los
+tres.
+
+> **Corrección (2026-09-09).** La primera versión de esta entrada afirmaba que
+> los tres eran la misma clase. Lo detectó una auditoría adversarial del propio
+> registro: agrupar tres hallazgos bajo una tesis elegante que solo describe a
+> dos es justo la clase de racionalización que este proyecto persigue, y el
+> nombre del fichero la reforzaba.
 
 ### El arnés también mentía
 
@@ -101,11 +114,63 @@ directorio y habría dejado las guardas nuevas fuera del gate.
 
 | Comando | Resultado |
 |---|---|
-| `pytest tests/security` (Postgres real) | **43/43** — 40 RLS + 3 estructurales |
+| `pytest tests/security` (Postgres real) | **46/46** — 42 RLS + 4 estructurales |
 | Migraciones 0001-0006 desde cero | aplicadas sin error |
 | `pytest tests/unit --cov-fail-under=60` | 128 tests, cobertura 90% |
-| `ruff check` + `ruff format --check` | limpio, 47 ficheros |
-| `mypy app` (strict) | limpio, 27 ficheros |
+| `ruff check` + `ruff format --check` | limpio |
+| `mypy app` (strict) | limpio |
+
+### Auditoría del propio registro (2026-09-09)
+
+Antes de cerrar, este registro se sometió a una auditoría adversarial: cuatro
+lentes independientes (exactitud, claims de verificación no soportados,
+omisiones, utilidad para retomar) leyendo los documentos **contra el código
+real**, y cada hallazgo sometido a dos refutadores antes de aceptarse. 42
+hallazgos en bruto, 6 verificados a fondo.
+
+No fue un ejercicio cosmético. Encontró **tres bugs reales que la sesión 4 no
+vio**, dos de ellos en el propio trabajo de la sesión:
+
+1. **El `docker compose` de desarrollo seguía montando 0001→0005.** Enumera las
+   migraciones a mano y nadie añadió `0006`. La suite pasaba en verde porque su
+   fixture hace *glob* del directorio: el gate pasaba por una vía que no es la
+   que usa la gente, y `docker compose up` seguía creando una base con los tres
+   bugs dentro. Ahora lo vigila un test.
+2. **El shim del compose tenía el mismo bug de `auth.uid()`** que se arregló en
+   `conftest.py`. Había dos copias del stub y solo se corrigió la que usan los
+   tests.
+3. **La mitad del fix de `0006` §1 no la ejecutaba nada.** Se arreglaron los dos
+   casts a `psicometrico_status`, pero toda la suite llamaba a
+   `submit_psicometrico` con `p_finish = false`. La rama `'completed'` se dio
+   por buena sin haberse corrido nunca — el modo de fallo del repo, cometido al
+   arreglarlo.
+
+Y dos correcciones al registro mismo:
+
+- **«Los tres son la misma clase de bug» era falso.** El tercero es de
+  privilegios, no de `search_path`: la policy ya invocaba la función totalmente
+  calificada. Agrupar tres hallazgos bajo una tesis elegante que solo describe a
+  dos, con el nombre del fichero reforzándola, es exactamente la racionalización
+  que este proyecto persigue.
+- **Las guardas estructurales estaban sobrevendidas.** Tenían tres agujeros que
+  la reintroducción *total* de los bugs no podía revelar: la exención se aplicaba
+  por par (función, objeto) en cuanto el nombre aparecía calificado una sola vez;
+  la allowlist eximía funciones enteras; y no escaneaban funciones. Se
+  reforzaron y se volvieron a falsar con regresiones **parciales** — un cast
+  calificado y el otro no, un trigger con la tabla calificada en un sitio y
+  desnuda en otro, una llamada a función sin calificar. Las tres se detectan
+  ahora; ninguna antes.
+
+Un cuarto hallazgo era operativo y del que más colgaba: **el comando
+`gh auth refresh -h github.com -u Ily192 -s workflow`, único paso que destraba el
+push y con él todo el Cycle 1, está roto**. `gh auth refresh` no acepta
+`-u/--user`; opera sobre la cuenta activa.
+
+La lección se repite y conviene decirla sin adornos: la sesión 4 arregló bugs
+que existían porque nadie había ejecutado el código, y acto seguido introdujo un
+fix cuya mitad nadie ejecutó, dejó fuera el entorno que usa la gente, y describió
+sus propias guardas como más fuertes de lo que eran. **Verificar una vez no
+inmuniza.**
 
 ### Lo que NO se pudo hacer
 
@@ -230,6 +295,14 @@ verdad en cada commit.
   cola y pendientes de reinicio** (la máquina llevaba sin reiniciar desde el 15
   de agosto). El SQL está validado con libpg_query y nada más.
 
+  > ⚠️ **Este diagnóstico era FALSO.** Se deja tal cual porque es el registro de
+  > lo que se creyó, pero no se debe seguir. La sesión 4 comprobó que Docker
+  > Desktop **crea él mismo su distro WSL2** al arrancar: lo único que pasaba es
+  > que la aplicación no estaba lanzada. No hacía falta `wsl --install`, ni
+  > Ubuntu, ni reiniciar. El dato que desmontaba la hipótesis —`wsl --version`
+  > reportando WSL 2.7.12 con kernel instalado— estaba disponible y no se miró.
+  > Ver la entrada del 2026-09-08.
+
 ### Estado del proyecto al cierre
 
 - **Frontends:** compilan, testeados, listos para desplegar. No dependen de
@@ -244,6 +317,10 @@ verdad en cada commit.
 Reiniciar, `wsl --install -d Ubuntu`, levantar Docker y correr
 `pytest tests/security -v`. Hasta que esos 40 tests estén en verde, todo el
 endurecimiento de seguridad de esta sesión es una hipótesis.
+
+> ⚠️ Lo que hizo falta de verdad fue **abrir Docker Desktop**. Ni reinicio ni
+> `wsl --install`. La segunda frase, en cambio, era exacta: al correr los tests
+> aparecieron tres bugs reales.
 
 ### Lección para el registro
 

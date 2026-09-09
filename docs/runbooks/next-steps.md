@@ -1,7 +1,7 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-09-08** (sesión 4).
+> Última actualización: **2026-09-09** (sesión 4 + auditoría del registro).
 
 ## TL;DR sesión 4 (2026-09-08)
 
@@ -12,14 +12,23 @@ arrancado; al lanzarlo, crea su propia distro WSL2 (`docker-desktop`) y el
 engine levanta. Coste real del bloqueante que costó una sesión entera: abrir la
 aplicación.
 
-Ejecutar reveló **tres bugs de esquema que ningún análisis estático podía ver**,
-todos de resolución de nombres en runtime (ver § "Lo que se arregló en la
-sesión 4"). Dos de ellos, en serie sobre la misma línea, dejaban el test
+Ejecutar reveló **tres bugs de esquema que ningún análisis estático podía ver**:
+dos de resolución de nombres en runtime y uno de privilegios (una policy sin
+cláusula `TO`) — ver § "Lo que se arregló en la sesión 4". Los dos de resolución
+de nombres estaban en serie sobre la misma sentencia y dejaban el test
 psicométrico completamente muerto: la primera llamada de cualquier candidato
 reventaba.
 
-Estado: **43/43 tests de seguridad en verde** (40 de RLS + 3 guardas
+Estado: **46/46 tests de seguridad en verde** (42 de RLS + 4 guardas
 estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
+
+> **Addendum 2026-09-09.** Una auditoría adversarial de este mismo registro
+> encontró seis problemas confirmados, tres de ellos bugs reales que la sesión 4
+> no vio: el compose de desarrollo seguía montando solo hasta `0005`, el shim de
+> ese compose arrastraba el bug de `auth.uid()` que solo se arregló en el arnés,
+> y la mitad del fix de `0006` §1 no la ejecutaba ningún test. Además, las
+> guardas estructurales estaban sobrevendidas y el comando de `gh auth refresh`
+> del runbook estaba roto. Todo corregido; el detalle en §§5-8.
 
 ## TL;DR sesión 3
 
@@ -47,8 +56,8 @@ importante de este documento.
 
 | Área | Estado | Por qué |
 |---|---|---|
-| Migraciones SQL (0001-0006) | ✅ **Aplicadas desde cero contra Postgres real** | `pgvector/pgvector:pg15`, la misma imagen que usa CI. Sin errores. |
-| Tests de RLS (40 casos) | ✅ **40/40 en verde** | Más 3 guardas estructurales nuevas: 43/43. |
+| Migraciones SQL (0001-0006) | ✅ **Aplicadas desde cero contra Postgres real** | `pgvector/pgvector:pg15`, la misma imagen que usa CI. Sin errores. Ojo: eso es el contenedor ad-hoc de los tests. El `docker compose` de desarrollo montaba solo hasta `0005` hasta el 2026-09-09 — ver §8. |
+| Tests de RLS (42 casos) | ✅ **42/42 en verde** | Más 4 guardas estructurales: 46/46. |
 | `force row level security` (0004 §9) | **Sigue sin decidirse** | Depende de si el owner del esquema tiene `BYPASSRLS`. En el contenedor local el owner es `vortex`, que es **superusuario** — y un superusuario bypasea RLS por serlo, no por el atributo. No dice nada sobre cómo Supabase configura su rol `postgres`. Solo se resuelve contra un proyecto Supabase real. |
 | Migraciones en Supabase Cloud | **No aplicadas** | Un Postgres plano con los stubs de `auth` no es Supabase: faltan el hook de JWT, las policies de Storage y los roles reales. Ver "Bloqueado por el user" #2. |
 | Flujo end-to-end HR | **Nunca ejecutado** | No hay proyecto Supabase, ni Redis corriendo, ni claves de LLM. |
@@ -61,21 +70,37 @@ equivocado. Docker Desktop **crea su propia distro** (`docker-desktop`) al
 arrancar; lo único que pasaba es que no estaba lanzado. No hace falta
 `wsl --install` ni reiniciar.
 
+La shell por defecto de esta máquina es PowerShell; el bloque de abajo es **bash**
+(Git Bash), que es donde se ejecutó. Las continuaciones con `\` y los `VAR=x cmd`
+en línea no funcionan en PowerShell.
+
 ```bash
-# 1. Abrir Docker Desktop (o: Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe")
+# 1. Abrir Docker Desktop. Desde PowerShell:
+#    Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+#    Espera a que `docker ps` responda; crea él solo su distro WSL2.
+
+# 2. Postgres con pgvector. El `rm -f` es lo que hace el bloque
+#    reproducible: sin él, la segunda vez falla con "name already in use".
+docker rm -f vortex-rls-pg 2>/dev/null
 docker run -d --name vortex-rls-pg \
   -e POSTGRES_USER=vortex -e POSTGRES_PASSWORD=vortex -e POSTGRES_DB=vortex_test \
   -p 5432:5432 pgvector/pgvector:pg15
 
-# 2. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
+# 3. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
 cd services/hr-engine
 DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test" \
 JWT_SECRET="test-secret-do-not-use" \
   uv run pytest tests/security -q
 ```
 
-En Windows, si `uv` no está en el PATH: `python -m pip install uv` y luego
-`python -m uv run ...`.
+Si `uv` no está en el PATH (es lo normal en esta máquina):
+`python -m pip install uv` y luego `python -m uv run ...`.
+
+⚠️ **Este contenedor ocupa el puerto 5432, igual que el `docker compose` de
+desarrollo** (`infra/docker/docker-compose.dev.yml`, base `vortex_dev`). No
+pueden correr los dos a la vez. Son entornos distintos a propósito: el de arriba
+es desechable y lo recrea el fixture en cada sesión de pytest; el del compose
+persiste en un volumen y es el que usa el onboarding.
 
 ---
 
@@ -105,9 +130,17 @@ Falta un paso interactivo que solo puede hacer el user (abre un flujo de código
 de dispositivo en el navegador):
 
 ```bash
-gh auth refresh -h github.com -u Ily192 -s workflow
+gh auth status                    # confirmar que la cuenta ACTIVA es Ily192
+gh auth refresh -h github.com -s workflow
 git push --force-with-lease=main:b4d41f296bc4cd85e35e23959b33015226832b54 origin main
 ```
+
+⚠️ **`gh auth refresh` NO acepta `-u/--user`** (verificado con `gh` 2.97.0:
+sus únicos flags son `-c`, `-h`, `--insecure-storage`, `-r`, `--reset-scopes`
+y `-s`). Opera siempre sobre la **cuenta activa**, y por eso el primer comando
+del bloque no es decorativo. La versión anterior de este runbook pedía
+`gh auth refresh -h github.com -u Ily192 -s workflow`, que falla al parsear los
+flags — el único comando del que cuelgan Vercel y todo el Cycle 1 estaba roto.
 
 Sin el código en GitHub, Vercel no puede importar el repo, así que el deploy
 sigue bloqueado detrás de esto.
@@ -138,7 +171,7 @@ desplegar hoy sin backend ni base de datos.
 - Aplicar las migraciones:
   ```bash
   supabase link --project-ref <PROJECT_REF>
-  supabase db push   # aplica 0001..0005
+  supabase db push   # aplica 0001..0006
   ```
 - **Activar el hook de JWT**: Dashboard → Authentication → Hooks → Custom Access
   Token → `public.custom_access_token_hook`. **Sin esto todas las policies de HR
@@ -176,13 +209,30 @@ deploy se replantea en Cycle 2 sobre Fly.io (ADR-012).
 ## Lo que se arregló en la sesión 4
 
 Todo salió de ejecutar por primera vez las migraciones contra un Postgres real.
-Los tres bugs de esquema son **la misma clase**: un nombre sin calificar que se
-resuelve en tiempo de ejecución contra un `search_path` que no es el que quien
-escribió la función tenía en la cabeza. Ninguno es visible leyendo el SQL, ni
-parseándolo, ni aplicando la migración — que se aplica sin un solo warning.
 
-Están todos en `0006_definer_search_path_fix.sql`, con la explicación larga
-en el propio fichero.
+Los **dos primeros** (§1 y §2 de abajo) son **la misma clase**: un nombre sin
+calificar que se resuelve en tiempo de ejecución contra un `search_path` vacío,
+que no es el que quien escribió la función tenía en la cabeza. El **tercero**
+(§3) **no lo es**: la policy ya invocaba `public.is_platform_admin()` totalmente
+calificada, y lo que falla es la ausencia de cláusula `TO` — Postgres evalúa el
+predicado para un rol sin EXECUTE sobre la función y aborta con 42501. Es un
+fallo de privilegios; el fix añade `to authenticated` y no califica nada.
+
+Lo que comparten los tres es que **solo aparecen al ejecutar**: ninguno es
+visible leyendo el SQL, ni parseándolo, ni aplicando la migración — que se
+aplica sin un solo warning.
+
+Están todos en `0006_definer_search_path_fix.sql`, cuyo nombre describe a dos de
+los tres, con la explicación larga en el propio fichero.
+
+⚠️ **La numeración de abajo NO coincide con la del fichero.** Aquí van en el
+orden en que aparecieron; en `0006` van en el orden en que se aplican:
+
+| Aquí | En `0006` | Bug |
+|---|---|---|
+| 1 | §1 | `submit_psicometrico`, cast sin calificar |
+| 2 | **§3** | trigger que hereda el `search_path` |
+| 3 | **§2** | policy de `empresas` sin `TO` |
 
 ### 1. `submit_psicometrico()` reventaba en la primera llamada
 
@@ -245,36 +295,145 @@ Lo destapó una de las guardas nuevas, no un test funcional.
 
 ### 5. Guardas estructurales (`tests/security/test_search_path.py`)
 
-Tres tests que cubren la **clase** de bug, no las tres instancias:
+Cuatro tests que cubren la **clase** de bug, no las instancias concretas:
 
-- ninguna función con `search_path` fijado puede nombrar objetos de `public`
-  sin calificar;
-- toda función de trigger que resuelva objetos de `public` debe fijar su
+- ninguna función con `search_path` fijado nombra objetos de `public` sin
+  calificar — relaciones, tipos enum **y funciones**;
+- toda función de trigger que resuelva objetos de `public` fija su
   `search_path`;
-- ningún rol con SELECT sobre una tabla puede recibir un error de permisos al
+- ningún rol con SELECT sobre una tabla recibe un error de permisos al
   evaluarse sus policies (se pone en la piel de `anon` y `authenticated` y lee
-  cada tabla: cero filas es correcto, un error no).
+  cada tabla: cero filas es correcto, un error no);
+- el `docker-compose.dev.yml` monta **todas** las migraciones (ver §8).
 
-Se apoyan en el catálogo de la base migrada, no en el texto de los `.sql`, así
-que también atrapan lo que llegue por el dashboard de Supabase o un hotfix
-manual.
+Los tres primeros se apoyan en el catálogo de la base migrada, no en el texto de
+los `.sql`, así que también atrapan lo que llegue por el dashboard de Supabase o
+un hotfix manual.
 
-**Se verificó que pueden fallar**: se reintrodujeron los tres bugs en una
-migración temporal y los tres tests fallaron con mensajes accionables antes de
-borrarla. Es la lección de la sesión 3 aplicada — un gate que no se ha visto
-fallar no es un gate.
+#### Qué NO cubren
 
-### 6. CI
+Las guardas normalizan el cuerpo de cada función antes de buscar: quitan
+comentarios, literales entre comillas y las referencias ya calificadas con
+`public.`. Aun así quedan límites, y están anotados en el docstring del módulo:
+
+- Las funciones solo se detectan en sintaxis de llamada (`nombre(`), porque sus
+  nombres chocan con nombres de columna (`empresa_id` es función **y** columna
+  de casi todas las tablas).
+- Un nombre construido dinámicamente y ejecutado con `execute` no se ve.
+- El tercer test comprueba **solo lectura** y **solo** `anon` y `authenticated`.
+  Una policy de *escritura* con el mismo defecto no la atrapa.
+
+#### Se verificó que pueden fallar — dos veces
+
+Primero con los tres bugs reintroducidos enteros en una migración temporal: los
+tres tests fallaron con mensajes accionables. Es la lección de la sesión 3
+aplicada — un gate que no se ha visto fallar no es un gate.
+
+**Pero la primera versión de estas guardas estaba sobrevendida**, y lo destapó
+una auditoría adversarial del propio registro de sesión (2026-09-09). Tenía tres
+agujeros que la reintroducción total no podía revelar:
+
+1. Se apoyaba en `prosrc !~ 'public\.<nombre>'`, que eximía al par
+   (función, objeto) en cuanto la función mencionaba ese objeto calificado **una
+   sola vez** en cualquier parte del cuerpo. `submit_psicometrico` tenía dos
+   casts al mismo tipo: bastaba descalificar uno para volverse invisible. Y
+   `enforce_empresa_id_from_application`, que tras `0006` contiene
+   `public.applications`, habría quedado exenta **para siempre** justo del bug
+   que tuvo.
+2. Necesitaba una allowlist **por nombre de función** para los dos triggers de
+   `activity_log`, que nombran la tabla dentro del texto de su `raise`. Eximir
+   funciones enteras enmascara cualquier referencia real que se les añada
+   después. Al quitar los literales en la normalización, la allowlist sobra y se
+   eliminó.
+3. No escaneaba **funciones** en absoluto, solo relaciones y tipos. Una llamada
+   sin calificar a `public.empresa_id()` bajo `search_path` vacío revienta igual
+   que el bug §1, y el gate no la veía.
+
+Se reforzaron y se volvió a falsar, esta vez con regresiones **parciales**: un
+cast calificado y el otro no, un trigger con la tabla calificada en un sitio y
+desnuda en otro, y una llamada a función sin calificar. Las tres se detectan
+ahora; ninguna se detectaba antes. Se comprobó además que una función que solo
+nombra tablas dentro de un literal **no** produce falso positivo.
+
+En el mismo pase apareció un falso positivo real que conviene recordar:
+`aplicar_a_vacante` usa `candidatos.headline` y `applications.status` dentro de
+`on conflict do update set`. Ahí el nombre desnudo es el **alias de la tabla
+destino**, no una relación resuelta por `search_path`, y la función pasa sus
+tests con el path vacío. Marcarla habría llevado a "arreglar" SQL que funciona;
+la guarda ahora ignora la forma `nombre.columna`.
+
+### 6. Cambios en `test_rls.py` que el diff podría hacer parecer un debilitamiento
+
+Tres cambios en la suite que **no** relajan ninguna garantía, pero que leídos en
+frío en el diff lo parecen. Quedan aquí para que nadie los "revierta":
+
+- **Ocho aserciones de excepción cambiaron de clase.** Las funciones del esquema
+  rechazan input inválido con `raise ... using errcode = '22023'`, y asyncpg
+  mapea cada SQLSTATE a su propia clase — así que `pytest.raises(RaiseError)`
+  (que es `P0001`) no capturaba esos rechazos **aunque el rechazo fuera
+  correcto**. Se cambiaron a `InvalidParameterValueError` (alias `RejectedInput`
+  en el módulo) y, en los dos casos del trigger que congela columnas de
+  `profiles`, a `InsufficientPrivilegeError` (`42501`). Se arregló el test, no el
+  SQL: el errcode explícito es deliberado, porque PostgREST lo traduce a 400 y
+  un `P0001` genérico se confunde con un fallo interno.
+- **`_make_user()` se reescribió entero.** Insertaba en `profiles` a mano, lo
+  cual dejó de funcionar cuando `0004` hizo obligatoria la invitación: el propio
+  insert en `auth.users` dispara `handle_new_user()`, que aborta sin
+  `invite_token`. Ahora pasa por el flujo real (crea invitación → inserta en
+  `auth.users` con el token → el trigger crea el profile). Efecto secundario
+  bueno: cada fixture ejercita el camino de alta.
+- **Los parámetros de `sha256()` van por `::text::bytea`.** Con `$1::bytea` a
+  secas, asyncpg infiere `bytea` y exige un objeto `bytes`; el cast por `text`
+  reproduce exactamente lo que hace el SQL de producción (`p_token::bytea`).
+
+### 7. Un hueco de cobertura en el propio fix de `0006`
+
+`0006` §1 arregló los **dos** casts a `psicometrico_status` de
+`submit_psicometrico`, pero toda la suite llamaba a la función con
+`p_finish = false`. La rama `'completed'::public.psicometrico_status` —la mitad
+del fix— **no la ejecutaba nada**, así que se dio por buena sin haberse corrido
+nunca. Es el modo de fallo del repo, cometido justo al arreglarlo.
+
+Lo destapó la auditoría del 2026-09-09. Añadidos
+`test_submit_rpc_can_finish_the_test` (cierra un test y verifica `status`,
+`completed_at` y los Big5) y `test_submit_rpc_rejects_a_finished_test` (un test
+cerrado no se puede reabrir con el mismo token).
+
+### 8. El entorno de desarrollo seguía creando una base con los tres bugs
+
+Dos defectos en la ruta que el onboarding manda usar, ninguno de los cuales
+tocaba la suite de tests:
+
+- **`docker-compose.dev.yml` montaba las migraciones 0001→0005.** Enumera los
+  ficheros a mano —tiene que hacerlo, porque el shim de `auth` debe correr antes
+  que `0001` y el entrypoint ordena alfabéticamente— y se quedó en `0005` cuando
+  se añadió `0006`. El fixture de pytest hace *glob* del directorio, así que los
+  tests pasaban en verde mientras `docker compose up` creaba una base **con los
+  tres bugs dentro**: el candidato no podía enviar su psicométrico y
+  `select from empresas` sin sesión reventaba. Es el caso de libro del modo de
+  fallo del repo: el gate pasa por una vía que no es la que usa la gente. Ahora
+  lo vigila `test_dev_compose_mounts_every_migration`.
+- **El shim `00_supabase_shim.sql` arrastraba el mismo bug de `auth.uid()`**
+  que se corrigió en `conftest.py` (§4): el `nullif` después del cast a `jsonb`.
+  Había dos copias del stub y solo se arregló una — la que usan los tests, no la
+  que usa el entorno de desarrollo.
+
+### 9. CI
 
 El job de RLS apuntaba a `tests/security/test_rls.py`, así que las guardas
 nuevas habrían quedado fuera del gate. Ahora corre el directorio entero.
 
-### 7. Docstring de `runs.py`
+### 10. Docstring de `runs.py`
 
 Afirmaba que `runs` solo tenía policy `for select` y que un INSERT bajo
 `authenticated` fallaba. **0004 lo dejó obsoleto** y el test
 `test_worker_can_persist_run_status` lo confirma: con contexto de tenant,
 inserta y actualiza. Corregido, con la decisión pendiente documentada in situ.
+
+⚠️ Ojo con qué demuestra ese test: verifica el camino que el código **no** usa
+hoy (sesión `authenticated` con `set_tenant_context`). Que `runs.py` siga
+funcionando por su camino actual —sesión sin contexto de tenant— no lo cubre
+ningún test. Ver la decisión pendiente en § Cycle 1.
 
 ---
 
@@ -457,7 +616,7 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 | Branch protection | Diferida. Con `main` desprotegido, cualquier push va directo. |
 | `activity_log` | La cadena de hash (`prev_hash`/`hash`) no la calcula ni valida nada; es decorativa. Sin particionado ni purga. |
 | Recall de pgvector | `match_candidates` no filtra por `empresa_id` en el SQL y confía en RLS, que se aplica **después** del scan del índice. Con muchos tenants, un tenant chico puede recibir 0 resultados teniendo candidatos perfectos. |
-| Policies sin cláusula `TO` | Las 21 policies del esquema son `{public}`, así que se evalúan para todo rol, incluidos los que jamás podrían satisfacerlas. Solo una rompía (arreglada en `0006` §2, era la única que invocaba una función con EXECUTE restringido); las otras 20 son coste de planner y una mina para el futuro. Acotarlas a `authenticated` es higiene pendiente. |
+| Policies sin cláusula `TO` | Tras `0006`, **20 de las 21** policies del esquema siguen sin `TO`, así que se evalúan para todo rol, incluidos los que jamás podrían satisfacerlas. Solo una rompía —`empresas_platform_admin_all`, la única que invocaba una función con EXECUTE restringido— y ya lleva `to authenticated`. Las otras 20 son coste de planner y una mina para el futuro. Acotarlas es higiene pendiente. Nota sobre el alcance de la comprobación que sostiene el «solo una rompía»: fue **SELECT-only** y sobre `anon` y `authenticated`; una policy de escritura con el mismo defecto no se habría visto. |
 
 ---
 
