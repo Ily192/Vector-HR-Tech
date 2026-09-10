@@ -33,7 +33,7 @@ jobs:
           vercel-project-id: ${{ secrets[format('VERCEL_PROJECT_ID_{0}', matrix.secret_suffix)] }}
           working-directory: apps/${{ matrix.app }}
       - name: Comment URL
-        uses: thollander/actions-comment-pull-request@v2
+        uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             🚀 **${{ matrix.app }}** preview: ${{ steps.deploy.outputs.preview-url }}
