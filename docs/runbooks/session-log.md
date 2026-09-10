@@ -38,10 +38,10 @@ Lo que hace que valga la pena registrarlo: los ficheros se crearon **a mitad de
 sesión**, después de las comprobaciones de estado anteriores. Un árbol limpio
 verificado hace una hora no dice nada sobre el de ahora.
 
-### El push, que sigue sin hacerse
+### El push: cinco intentos, cinco motivos distintos
 
-Cuatro intentos, cuatro motivos distintos — y ninguno era el de la sesión
-anterior:
+Acabó saliendo, pero el recorrido merece quedar escrito porque ningún fallo
+repitió la causa del anterior:
 
 1. **Sesión 3:** el clasificador de permisos bloqueaba `git push`.
 2. **Sesión 4:** el token de `Ily192` no tenía el scope `workflow`, y los commits
@@ -54,13 +54,26 @@ anterior:
    abierta en el NAVEGADOR**, no como la cuenta activa de `gh`. La autorización
    acabó aplicándose a `ilyra-dev`, que ya tenía el scope.
 5. **Hoy, tercer intento:** con el PAT fine-grained de `var-local.txt`, un 403.
-   El token es de `Ily192` y tiene acceso al repo, pero solo de lectura:
-   `x-accepted-github-permissions: contents=read`.
+   El token era de `Ily192` y veía el repo, pero sin permiso de escritura. Ilyra
+   le dio `Contents: Read and write` y `Workflows: Read and write`, y el push
+   entró: `b4d41f2...6d61dcb`.
 
-Trampa que conviene no repetir: `GET /repos/{owner}/{repo}` devolvía
-`permissions.push: true`. En un PAT fine-grained ese campo refleja el rol del
-**usuario**, no lo que el token tiene concedido. Para saber lo que puede el token
-hay que mirar `x-accepted-github-permissions`.
+**Dos trampas de diagnóstico, una de ellas mía.**
+
+`GET /repos/{owner}/{repo}` devolvía `permissions.push: true` con un token que no
+podía escribir: ese campo refleja el rol del **usuario**, no lo concedido al
+token.
+
+Y al buscar una alternativa me apoyé en la cabecera
+`x-accepted-github-permissions`, que devolvía `contents=read`, y concluí que el
+token era de solo lectura. **Eso estaba mal**: esa cabecera dice qué permisos
+acepta el **endpoint** y es idéntica para cualquier token. La prueba es que
+después del push seguía diciendo exactamente lo mismo. Llegué a la conclusión
+correcta por el razonamiento equivocado, y estuve a punto de dejarlo escrito en
+el runbook como si fuera la fuente de verdad.
+
+No hay forma limpia de introspeccionar lo que un PAT fine-grained tiene
+concedido: **el único test fiable es intentar la operación y ver si da 403.**
 
 ### Otros cambios
 
