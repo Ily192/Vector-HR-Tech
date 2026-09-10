@@ -27,6 +27,15 @@ htmlcov/
 .env.*
 !.env.example
 
+# Secretos locales fuera del patron .env / .env.*
+#
+# `var-local.env` NO lo cubre `.env.*` (ese patron es ".env" + sufijo, no
+# "<nombre>.env"), y `var-local.txt` no lo cubria nada. Ambos contienen
+# credenciales y estaban a un `git add -A` de acabar en un repo publico.
+var-local.*
+*.token
+secrets.*
+
 # logs
 *.log
 npm-debug.log*
