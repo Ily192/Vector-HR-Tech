@@ -1,7 +1,7 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-09-09** (sesión 4 + auditoría del registro).
+> Última actualización: **2026-09-09** (sesión 5).
 
 ## TL;DR sesión 4 (2026-09-08)
 
@@ -29,6 +29,55 @@ estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
 > y la mitad del fix de `0006` §1 no la ejecutaba ningún test. Además, las
 > guardas estructurales estaban sobrevendidas y el comando de `gh auth refresh`
 > del runbook estaba roto. Todo corregido; el detalle en §§5-8.
+
+## Pendientes — vista rápida
+
+Ordenados por lo que desbloquea a lo demás. El detalle de cada uno está más
+abajo en su sección.
+
+### 🔴 Bloquea todo el Cycle 1
+
+| # | Pendiente | Quién | Estado |
+|---|---|---|---|
+| 1 | **Dar `Contents: write` + `Workflows: write` al token** de `var-local.txt` | Ilyra | Es el único paso que falta para el push |
+| 2 | **Push de `main` a GitHub** | Claude | Listo para ejecutar en cuanto (1) esté |
+| 3 | **Deploy en Vercel** (career-site + hrbp) | Ilyra | Bloqueado por (2) |
+
+### 🟠 Bloquea el backend
+
+| # | Pendiente | Notas |
+|---|---|---|
+| 4 | **Provisionar Supabase Cloud** y aplicar 0001..0006 | Incluye activar el hook de JWT, sin el cual todas las policies de HR deniegan |
+| 5 | **Secrets en GitHub Actions** | Doppler → repository secrets |
+| 6 | **Resolver `force row level security`** (`0004` §9) | Necesita saber si el owner tiene `BYPASSRLS` en Supabase real; el contenedor local no lo puede contestar |
+| 7 | **Elegir un solo camino de escritura para `runs`** | Recomendación: `set_tenant_context` + policy (ADR-004). Toca `app/workers/run_state.py` |
+| 8 | **Rate limiting / captcha en `aplicar_a_vacante()`** | Antes de exponer el formulario público |
+| 9 | **Destino de deploy del backend** | ADR-012 eligió Fly.io; no hay `fly.toml` ni step de `flyctl` |
+| 10 | **Backups y entorno de staging** | El RTO de 30 min no se sostiene hoy |
+
+### 🟡 Producto (Cycle 1)
+
+| # | Pendiente | Notas |
+|---|---|---|
+| 11 | **2.1** Formulario de aplicación en career-site | El SQL ya está (`0005`); falta Server Action + UI |
+| 12 | **2.3** Kanban HRBP con `@dnd-kit` + Realtime | Hoy `App.tsx` son 100 líneas con KPIs hardcodeados |
+| 13 | **2.2** Scaffold de candidate app | Rutas `/`, `/applications/:id`, `/test/:token`, `/profile` |
+| 14 | **2.4** Skill `chro-intake` (SKILL.md + golden set) | |
+| 15 | **2.5** Poblar `golden.jsonl` y conectar el evaluador al modelo | Necesita claves de LLM |
+| 16 | **2.7** E2E Playwright del flujo completo | Necesita la base |
+| 17 | **2.8** Loom demo de 5 min | |
+
+> **Sin decidir:** cuál de los ítems de producto se ataca primero. Se preguntó al
+> cierre de la sesión 4 y quedó sin respuesta.
+
+### 🟢 Higiene (no bloquea nada)
+
+- Acotar con `TO authenticated` las 20 policies que siguen sin cláusula `TO`.
+- Deuda técnica de la tabla del final: LGPD, cifrado de columna, feature flags,
+  Doppler, OpenTelemetry, branch protection, cadena de hash de `activity_log`,
+  recall de pgvector.
+
+---
 
 ## TL;DR sesión 3
 
@@ -126,21 +175,46 @@ era `ilyra-dev`, que no tiene acceso de escritura al repo) y `gh auth setup-git`
 para que git use el token de `gh` en vez de las credenciales de Git Credential
 Manager.
 
-Falta un paso interactivo que solo puede hacer el user (abre un flujo de código
-de dispositivo en el navegador):
+**Actualización 2026-09-09: la vía es el token, no `gh`.** Ilyra dejó un PAT
+fine-grained en `var-local.txt` (raíz del repo, ignorado por git) y pidió usarlo
+siempre para los push. El device flow de `gh` se descartó tras fallar dos veces.
 
-```bash
-gh auth status                    # confirmar que la cuenta ACTIVA es Ily192
-gh auth refresh -h github.com -s workflow
-git push --force-with-lease=main:b4d41f296bc4cd85e35e23959b33015226832b54 origin main
+**Lo único que falta: darle permisos de escritura a ese token.** Hoy es de solo
+lectura, verificado contra la API:
+
+```
+x-accepted-github-permissions: contents=read
 ```
 
-⚠️ **`gh auth refresh` NO acepta `-u/--user`** (verificado con `gh` 2.97.0:
-sus únicos flags son `-c`, `-h`, `--insecure-storage`, `-r`, `--reset-scopes`
-y `-s`). Opera siempre sobre la **cuenta activa**, y por eso el primer comando
-del bloque no es decorativo. La versión anterior de este runbook pedía
-`gh auth refresh -h github.com -u Ily192 -s workflow`, que falla al parsear los
-flags — el único comando del que cuelgan Vercel y todo el Cycle 1 estaba roto.
+En <https://github.com/settings/personal-access-tokens>, editar el token y poner
+en *Repository permissions*:
+
+| Permiso | Valor | Por qué |
+|---|---|---|
+| **Contents** | Read and write | para hacer push |
+| **Workflows** | Read and write | los commits tocan `.github/workflows/` |
+
+No hace falta regenerarlo, solo editarlo. Hecho eso, el push es:
+
+```bash
+export GITHUB_TOKEN=$(python -c "
+import pathlib,re
+t=pathlib.Path('var-local.txt').read_text(encoding='utf-8-sig').strip()
+m=re.search(r'GITHUB_TOKEN\s*=\s*(\S+)', t); print(m.group(1) if m else '')
+")
+git -c credential.helper= \
+    -c credential.helper='!f(){ echo username=x-access-token; echo password=$GITHUB_TOKEN; }; f' \
+    push --force-with-lease=main:b4d41f296bc4cd85e35e23959b33015226832b54 origin main
+```
+
+⚠️ **Dos trampas verificadas, para no repetirlas:**
+
+- `GET /repos/{owner}/{repo}` devuelve `permissions.push: true` aunque el token
+  no pueda escribir: ese campo refleja el rol del **usuario**, no lo concedido al
+  token. La fuente de verdad es `x-accepted-github-permissions`.
+- `gh auth refresh` **no acepta `-u/--user`** (gh 2.97.0) y su device flow
+  autoriza como la cuenta abierta en el **navegador**, no como la activa de `gh`.
+  Por ahí se perdió una sesión entera.
 
 Sin el código en GitHub, Vercel no puede importar el repo, así que el deploy
 sigue bloqueado detrás de esto.

@@ -4,6 +4,87 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-09-09 · Sesión 5 — Auditar el registro, y un token a punto de hacerse público
+
+**Duración:** media jornada · **Modo:** Auto · **Modelo:** Claude Opus 5
+
+### Auditoría del registro de la sesión 4
+
+El detalle está en la entrada del 2026-09-08, § "Auditoría del propio registro".
+Resumen: cuatro lentes independientes leyendo los documentos contra el código
+real, cada hallazgo con dos refutadores. 42 hallazgos en bruto, 6 verificados.
+Encontró **tres bugs reales que la sesión 4 no vio** —el compose de desarrollo
+montaba solo hasta `0005`, su shim arrastraba el bug de `auth.uid()` corregido
+solo en el arnés, y la mitad del fix de `0006` §1 no la ejecutaba ningún test— y
+dos sobreafirmaciones del propio registro.
+
+Commits: `e0acf05` (código) y `5b19f75` (docs).
+
+### El hallazgo de seguridad
+
+Al ir a usar el token de GitHub que Ilyra dejó en `var-local.txt`, resultó que
+**ese fichero y su gemelo `var-local.env` estaban sin trackear y sin ignorar**.
+
+El `.gitignore` tenía `.env` y `.env.*`, pero ese patrón es ".env" más sufijo, no
+"`<nombre>.env`", así que no cubría `var-local.env`; y a `var-local.txt` no lo
+cubría nada. Un solo `git add -A` los habría commiteado, y
+`Ily192/Vector-HR-Tech` es un repo **público**.
+
+Comprobado que nunca estuvieron en la historia (`git log --all -- var-local.*`
+vacío), así que no hubo fuga. Ignorados en `c4ced74`, junto con `*.token` y
+`secrets.*`.
+
+Lo que hace que valga la pena registrarlo: los ficheros se crearon **a mitad de
+sesión**, después de las comprobaciones de estado anteriores. Un árbol limpio
+verificado hace una hora no dice nada sobre el de ahora.
+
+### El push, que sigue sin hacerse
+
+Cuatro intentos, cuatro motivos distintos — y ninguno era el de la sesión
+anterior:
+
+1. **Sesión 3:** el clasificador de permisos bloqueaba `git push`.
+2. **Sesión 4:** el token de `Ily192` no tenía el scope `workflow`, y los commits
+   tocan `.github/workflows/`.
+3. **Hoy, primer intento:** el comando documentado para arreglarlo,
+   `gh auth refresh -h github.com -u Ily192 -s workflow`, **está roto**: `gh` no
+   acepta `-u/--user`. Lo detectó la auditoría, no una ejecución.
+4. **Hoy, segundo intento:** con el comando correcto, el device flow expiró
+   (`context deadline exceeded`). Causa: **autoriza como la cuenta que esté
+   abierta en el NAVEGADOR**, no como la cuenta activa de `gh`. La autorización
+   acabó aplicándose a `ilyra-dev`, que ya tenía el scope.
+5. **Hoy, tercer intento:** con el PAT fine-grained de `var-local.txt`, un 403.
+   El token es de `Ily192` y tiene acceso al repo, pero solo de lectura:
+   `x-accepted-github-permissions: contents=read`.
+
+Trampa que conviene no repetir: `GET /repos/{owner}/{repo}` devolvía
+`permissions.push: true`. En un PAT fine-grained ese campo refleja el rol del
+**usuario**, no lo que el token tiene concedido. Para saber lo que puede el token
+hay que mirar `x-accepted-github-permissions`.
+
+### Otros cambios
+
+- La cuenta `ilyra-dev` (de trabajo) se eliminó de `gh` a petición de Ilyra.
+  Solo tenía permiso de lectura sobre el repo. Se verificó que **nada de
+  Vortex-Ops llegó nunca a esa cuenta**: el único remoto configurado siempre fue
+  `Ily192/Vector-HR-Tech` y el reflog de remotos no tiene una sola entrada de
+  push.
+- Memoria de sesión actualizada: se borró la que afirmaba que Docker necesitaba
+  `wsl --install` (refutada en la sesión 4) y la del push por device flow;
+  ahora la vía por defecto es el token de `var-local.txt`.
+
+### Verificación final
+
+| Comando | Resultado |
+|---|---|
+| `pytest tests/security` (Postgres real) | 46/46 |
+| `pytest tests/unit --cov-fail-under=60` | 128 tests, cobertura 90% |
+| `ruff check` + `ruff format --check` | limpio |
+| `mypy app` (strict) | limpio |
+| `git check-ignore var-local.*` | ignorados ✓ |
+
+---
+
 ## 2026-09-08 · Sesión 4 — El bloqueante duro, resuelto (y lo que había detrás)
 
 **Duración:** media jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)
