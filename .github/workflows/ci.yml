@@ -98,7 +98,7 @@ jobs:
         service: [hr-engine]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -116,7 +116,7 @@ jobs:
         service: [hr-engine]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: services/${{ matrix.service }}
@@ -132,7 +132,7 @@ jobs:
         service: [hr-engine]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: services/${{ matrix.service }}
@@ -179,7 +179,7 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: services/${{ matrix.service }}
@@ -206,7 +206,7 @@ jobs:
       JWT_SECRET: test-secret-do-not-use
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: services/hr-engine
@@ -243,7 +243,7 @@ jobs:
     if: needs.changes.outputs.skills == 'true'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: evals
