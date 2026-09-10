@@ -73,6 +73,32 @@ hay que mirar `x-accepted-github-permissions`.
   `wsl --install` (refutada en la sesión 4) y la del push por device flow;
   ahora la vía por defecto es el token de `var-local.txt`.
 
+### Despliegue en Vercel
+
+Con el repo ya publicado, se crearon vía API los dos proyectos, enlazados al
+repo de GitHub (el namespace `Ily192` ya estaba conectado a la cuenta):
+`vortex-career-site` (root `apps/career-site`) y `vortex-hrbp` (root
+`apps/hrbp`).
+
+**El primer despliegue falló en ambos**, en el `ignoreStep`:
+
+```
+ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "turbo-ignore" not found
+```
+
+`turbo-ignore` es un paquete npm aparte, no un binario que traiga `turbo`, y no
+estaba en las dependencias. El `ignoreCommand` de los dos `vercel.json` no había
+podido funcionar jamás. Van cuatro sesiones seguidas encontrando lo mismo:
+configuración plausible que nadie ejecutó. Corregido a `npx --yes turbo-ignore@2`
+(`1a3f0b8`).
+
+Segundo intento: los dos en verde. Verificado que responden HTTP 200 con los
+títulos correctos y que las cabeceras de seguridad de sus `vercel.json` se
+aplican de verdad. Sin variables de entorno: ninguna de las dos apps depende de
+Supabase todavía.
+
+Al estar enlazados por Git, cada push a `main` despliega solo a partir de ahora.
+
 ### Verificación final
 
 | Comando | Resultado |
@@ -82,6 +108,9 @@ hay que mirar `x-accepted-github-permissions`.
 | `ruff check` + `ruff format --check` | limpio |
 | `mypy app` (strict) | limpio |
 | `git check-ignore var-local.*` | ignorados ✓ |
+| Push a `Ily192/Vector-HR-Tech` | ✅ `1a3f0b8`, 289 objetos, sin secretos |
+| <https://vortex-career-site.vercel.app> | HTTP 200 |
+| <https://vortex-hrbp.vercel.app> | HTTP 200 |
 
 ---
 

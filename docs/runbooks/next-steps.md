@@ -41,7 +41,7 @@ abajo en su sección.
 |---|---|---|---|
 | 1 | ~~Dar `Contents: write` + `Workflows: write` al token~~ | Ilyra | ✅ hecho 2026-09-09 |
 | 2 | ~~Push de `main` a GitHub~~ | Claude | ✅ hecho — `6d61dcb` publicado |
-| 3 | **Deploy en Vercel** (career-site + hrbp) | Ilyra | 🔓 **desbloqueado**: el repo ya se puede importar |
+| 3 | ~~Deploy en Vercel (career-site + hrbp)~~ | Claude | ✅ hecho 2026-09-09 — [career-site](https://vortex-career-site.vercel.app) · [hrbp](https://vortex-hrbp.vercel.app) |
 
 ### 🟠 Bloquea el backend
 
@@ -110,7 +110,7 @@ importante de este documento.
 | `force row level security` (0004 §9) | **Sigue sin decidirse** | Depende de si el owner del esquema tiene `BYPASSRLS`. En el contenedor local el owner es `vortex`, que es **superusuario** — y un superusuario bypasea RLS por serlo, no por el atributo. No dice nada sobre cómo Supabase configura su rol `postgres`. Solo se resuelve contra un proyecto Supabase real. |
 | Migraciones en Supabase Cloud | **No aplicadas** | Un Postgres plano con los stubs de `auth` no es Supabase: faltan el hook de JWT, las policies de Storage y los roles reales. Ver "Bloqueado por el user" #2. |
 | Flujo end-to-end HR | **Nunca ejecutado** | No hay proyecto Supabase, ni Redis corriendo, ni claves de LLM. |
-| Deploy en Vercel | **No hecho** | Ya no está bloqueado: el repo se publicó el 2026-09-09. Ver "Bloqueado por el user" #1. |
+| Deploy en Vercel | ✅ **Hecho** | `vortex-career-site` y `vortex-hrbp`, ambos enlazados al repo. Verificado HTTP 200 y cabeceras de seguridad aplicadas. |
 
 ### Cómo levantar la base de pruebas (2 minutos)
 
@@ -242,6 +242,41 @@ Una vez pusheado, en Vercel, un proyecto por app:
 
 **Las dos apps compilan y no dependen de Supabase todavía**, así que se pueden
 desplegar hoy sin backend ni base de datos.
+
+### 1-bis. Vercel — HECHO el 2026-09-09
+
+Dos proyectos creados vía API y enlazados a `Ily192/Vector-HR-Tech`
+(el namespace de GitHub ya estaba conectado a la cuenta de Vercel):
+
+| Proyecto | Root Directory | Framework | URL |
+|---|---|---|---|
+| `vortex-career-site` | `apps/career-site` | Next.js | <https://vortex-career-site.vercel.app> |
+| `vortex-hrbp` | `apps/hrbp` | Vite | <https://vortex-hrbp.vercel.app> |
+
+Verificado: `/`, `/vacantes` y el cockpit devuelven **HTTP 200** con los títulos
+correctos, y las cabeceras de seguridad de los `vercel.json`
+(`Strict-Transport-Security`, `X-Frame-Options`, `X-Content-Type-Options`,
+`Referrer-Policy`, y `Permissions-Policy` en hrbp) se aplican de verdad.
+
+**No se configuró ninguna variable de entorno**: las dos apps compilan y
+funcionan sin Supabase, tal y como decía este documento. Habrá que añadir las
+`NEXT_PUBLIC_*` y `VITE_*` cuando exista el proyecto Supabase (#2).
+
+⚠️ **El primer intento de despliegue falló en los dos proyectos**:
+
+```
+ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "turbo-ignore" not found
+```
+
+El `ignoreCommand` de ambos `vercel.json` llamaba a `pnpm turbo-ignore`, pero
+`turbo-ignore` es un paquete npm **aparte** y no estaba en las dependencias del
+monorepo. Esa config no habría funcionado nunca — el mismo patrón que este repo
+lleva cuatro sesiones persiguiendo. Corregido a `npx --yes turbo-ignore@2`
+(commit `1a3f0b8`), que es la forma documentada por Turborepo y no obliga a
+tocar el lockfile.
+
+Como los proyectos están enlazados por Git, **a partir de ahora cada push a
+`main` despliega solo**.
 
 ### 2. Provisionar Supabase Cloud
 
