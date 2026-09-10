@@ -39,9 +39,9 @@ abajo en su sección.
 
 | # | Pendiente | Quién | Estado |
 |---|---|---|---|
-| 1 | **Dar `Contents: write` + `Workflows: write` al token** de `var-local.txt` | Ilyra | Es el único paso que falta para el push |
-| 2 | **Push de `main` a GitHub** | Claude | Listo para ejecutar en cuanto (1) esté |
-| 3 | **Deploy en Vercel** (career-site + hrbp) | Ilyra | Bloqueado por (2) |
+| 1 | ~~Dar `Contents: write` + `Workflows: write` al token~~ | Ilyra | ✅ hecho 2026-09-09 |
+| 2 | ~~Push de `main` a GitHub~~ | Claude | ✅ hecho — `6d61dcb` publicado |
+| 3 | **Deploy en Vercel** (career-site + hrbp) | Ilyra | 🔓 **desbloqueado**: el repo ya se puede importar |
 
 ### 🟠 Bloquea el backend
 
@@ -110,7 +110,7 @@ importante de este documento.
 | `force row level security` (0004 §9) | **Sigue sin decidirse** | Depende de si el owner del esquema tiene `BYPASSRLS`. En el contenedor local el owner es `vortex`, que es **superusuario** — y un superusuario bypasea RLS por serlo, no por el atributo. No dice nada sobre cómo Supabase configura su rol `postgres`. Solo se resuelve contra un proyecto Supabase real. |
 | Migraciones en Supabase Cloud | **No aplicadas** | Un Postgres plano con los stubs de `auth` no es Supabase: faltan el hook de JWT, las policies de Storage y los roles reales. Ver "Bloqueado por el user" #2. |
 | Flujo end-to-end HR | **Nunca ejecutado** | No hay proyecto Supabase, ni Redis corriendo, ni claves de LLM. |
-| Deploy en Vercel | **No hecho** | Ver "Bloqueado por el user" #1. |
+| Deploy en Vercel | **No hecho** | Ya no está bloqueado: el repo se publicó el 2026-09-09. Ver "Bloqueado por el user" #1. |
 
 ### Cómo levantar la base de pruebas (2 minutos)
 
@@ -175,26 +175,25 @@ era `ilyra-dev`, que no tiene acceso de escritura al repo) y `gh auth setup-git`
 para que git use el token de `gh` en vez de las credenciales de Git Credential
 Manager.
 
-**Actualización 2026-09-09: la vía es el token, no `gh`.** Ilyra dejó un PAT
-fine-grained en `var-local.txt` (raíz del repo, ignorado por git) y pidió usarlo
-siempre para los push. El device flow de `gh` se descartó tras fallar dos veces.
+**✅ HECHO el 2026-09-09.** `main` está publicado en
+`Ily192/Vector-HR-Tech` (`b4d41f2...6d61dcb`, force-push). Verificado: local y
+remoto coinciden en `6d61dcb`, el tag `legacy/ai-studio-scaffold` sigue en su
+sitio, y de los 289 objetos publicados ninguno es un `var-local.*`, `.token`,
+`.pem` ni `.key`.
 
-**Lo único que falta: darle permisos de escritura a ese token.** Hoy es de solo
-lectura, verificado contra la API:
+**La vía es el token, no `gh`.** Ilyra dejó un PAT fine-grained en
+`var-local.txt` (raíz del repo, ignorado por git) y pidió usarlo siempre para los
+push. El device flow de `gh` se descartó tras fallar dos veces.
 
-```
-x-accepted-github-permissions: contents=read
-```
-
-En <https://github.com/settings/personal-access-tokens>, editar el token y poner
-en *Repository permissions*:
+El token necesita, en *Repository permissions* de
+<https://github.com/settings/personal-access-tokens>:
 
 | Permiso | Valor | Por qué |
 |---|---|---|
 | **Contents** | Read and write | para hacer push |
 | **Workflows** | Read and write | los commits tocan `.github/workflows/` |
 
-No hace falta regenerarlo, solo editarlo. Hecho eso, el push es:
+El push, con el token inyectado solo para ese comando:
 
 ```bash
 export GITHUB_TOKEN=$(python -c "
@@ -207,11 +206,17 @@ git -c credential.helper= \
     push --force-with-lease=main:b4d41f296bc4cd85e35e23959b33015226832b54 origin main
 ```
 
-⚠️ **Dos trampas verificadas, para no repetirlas:**
+⚠️ **Tres trampas verificadas, para no repetirlas:**
 
 - `GET /repos/{owner}/{repo}` devuelve `permissions.push: true` aunque el token
   no pueda escribir: ese campo refleja el rol del **usuario**, no lo concedido al
-  token. La fuente de verdad es `x-accepted-github-permissions`.
+  token.
+- **`x-accepted-github-permissions` tampoco sirve para eso.** Esa cabecera dice
+  qué permisos acepta el **endpoint**, y es la misma para cualquier token — así
+  que un `contents=read` ahí no significa que el token sea de solo lectura. Se
+  interpretó mal durante esta sesión. **No hay forma limpia de introspeccionar lo
+  que un PAT fine-grained tiene concedido: el test real es intentar la operación**
+  y mirar si da 403.
 - `gh auth refresh` **no acepta `-u/--user`** (gh 2.97.0) y su device flow
   autoriza como la cuenta abierta en el **navegador**, no como la activa de `gh`.
   Por ahí se perdió una sesión entera.
