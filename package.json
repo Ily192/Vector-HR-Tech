@@ -29,7 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
     "@changesets/cli": "^2.27.0",
-    "@commitlint/cli": "^19.4.0",
+    "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^19.4.0",
     "@size-limit/file": "^11.2.0",
     "husky": "^9.1.0",
