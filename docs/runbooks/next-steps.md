@@ -67,8 +67,15 @@ abajo en su sección.
 | 16 | **2.7** E2E Playwright del flujo completo | Necesita la base |
 | 17 | **2.8** Loom demo de 5 min | |
 
-> **Sin decidir:** cuál de los ítems de producto se ataca primero. Se preguntó al
-> cierre de la sesión 4 y quedó sin respuesta.
+> **Decidido (2026-09-09):** se empieza por **2.1** (formulario de aplicación),
+> después de Supabase.
+
+### 📌 Preguntas abiertas de Ilyra, a responder al abrir la próxima sesión
+
+- **¿Por qué están separadas las apps?** Por qué `career-site` (Next.js) y
+  `hrbp` (Vite SPA) son dos aplicaciones y dos despliegues distintos en vez de
+  una sola, qué decisión hay detrás y qué costaría unificarlas. La respuesta
+  toca ADR-010 y la estructura del monorepo.
 
 ### 🟢 Higiene (no bloquea nada)
 
