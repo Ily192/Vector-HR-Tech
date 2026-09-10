@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - working-directory: evals
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Run paranoid RLS suite against staging
@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
       - run: python scripts/dora_metrics.py > docs/runbooks/dora.md
       - uses: peter-evans/create-pull-request@v6
