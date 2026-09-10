@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@vortex/career-site",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "ignoreCommand": "cd ../.. && pnpm turbo-ignore @vortex/career-site",
+  "ignoreCommand": "cd ../.. && npx --yes turbo-ignore@2 @vortex/career-site",
   "outputDirectory": ".next",
   "regions": ["gru1"],
   "github": {

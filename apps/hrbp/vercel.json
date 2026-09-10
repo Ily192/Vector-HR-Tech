@@ -3,7 +3,7 @@
   "framework": "vite",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@vortex/hrbp",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "ignoreCommand": "cd ../.. && pnpm turbo-ignore @vortex/hrbp",
+  "ignoreCommand": "cd ../.. && npx --yes turbo-ignore@2 @vortex/hrbp",
   "outputDirectory": "dist",
   "regions": ["gru1"],
   "github": {
