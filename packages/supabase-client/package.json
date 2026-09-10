@@ -19,7 +19,7 @@
     "gen:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_REF --schema public > src/types/database.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.5.0",
+    "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.46.0",
     "@vortex/types": "workspace:*"
   },
