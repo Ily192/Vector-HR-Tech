@@ -1,7 +1,19 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-09-09** (sesión 5).
+> Última actualización: **2026-09-14** (sesión 6).
+
+## TL;DR sesión 6 (2026-09-14)
+
+Auditoría de todo lo construido contra las skills del proyecto: las dos de ingeniería de Ilyra (`official-docs-alignment`, `clean-architecture-refactor`) y las 35 del taller "skills claude crear SaaS". De ahí sale una **ruta por fases (F0-F4)**, que Ilyra aprobó para ejecutarse por prioridad, y un tablero de Trello donde **cada PR es una tarjeta**.
+
+Tres hallazgos cambiaron el orden de trabajo:
+
+1. **Una de cada dos evaluaciones se pierde en silencio.** El motor async de SQLAlchemy se comparte entre los `asyncio.run()` de cada tarea de Celery. Reproducido contra Postgres: fallan siempre las tareas 1 y 3 de cada 4; con `NullPool`, 12/12. No se reintenta y el run queda `pending` para siempre.
+2. **Los SKILL.md no los ejecuta nadie**, y la regla anti-sesgo del evaluador de CV nunca llega al modelo. El siguiente paso de un candidato (rechazar / psicométrico / entrevista) lo decide el LLM sin reglas.
+3. **Next 14 está en producción sin soporte de seguridad** desde el 26-oct-2025.
+
+Estado al cierre: skills convertidas (37/37 válidas, PR pendiente de abrir) y tablero de Trello **diseñado pero sin llenar**, por un problema de credenciales. Ver § "Ruta y pendientes".
 
 ## TL;DR sesión 4 (2026-09-08)
 
@@ -30,59 +42,54 @@ estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
 > guardas estructurales estaban sobrevendidas y el comando de `gh auth refresh`
 > del runbook estaba roto. Todo corregido; el detalle en §§5-8.
 
-## Pendientes — vista rápida
+## Ruta y pendientes (desde la sesión 6)
 
-Ordenados por lo que desbloquea a lo demás. El detalle de cada uno está más
-abajo en su sección.
+La lista de trabajo pasa al tablero de Trello **https://trello.com/b/Vxsv1fn7/vortexhr**, donde cada PR es una tarjeta que avanza de columna. Lo llena `scripts/trello_vortex.py` (rama `chore/trello-tablero`), que ya contiene las 57 tarjetas de abajo. Hasta que esté lleno, esta sección es la referencia.
 
-### 🔴 Bloquea todo el Cycle 1
+### 🚧 Bloqueos para retomar (lo primero de la sesión 7)
 
-| # | Pendiente | Quién | Estado |
+| # | Bloqueo | Quién | Cómo se resuelve |
 |---|---|---|---|
-| 1 | ~~Dar `Contents: write` + `Workflows: write` al token~~ | Ilyra | ✅ hecho 2026-09-09 |
-| 2 | ~~Push de `main` a GitHub~~ | Claude | ✅ hecho — `6d61dcb` publicado |
-| 3 | ~~Deploy en Vercel (career-site + hrbp)~~ | Claude | ✅ hecho 2026-09-09 — [career-site](https://vortex-career-site.vercel.app) · [hrbp](https://vortex-hrbp.vercel.app) |
+| 1 | **Credenciales de la API de Trello** | Ilyra | En `var-local.env` hay un `API_TOKEN_TRELLO` que es un *API token de Atlassian* (`ATATT…`, 192 caracteres, de id.atlassian.com). La API de Trello lo rechaza: 401 de las tres formas probadas. Hacen falta `TRELLO_KEY` (32 caracteres hex) y `TRELLO_TOKEN` (`ATTA…`, ~76 caracteres): https://trello.com/apps/admin → Power-Up → API key → enlace *Token* → Permitir. |
+| 2 | **Permiso de PRs en el token de GitHub** | Ilyra | Falta `Pull requests: Read and write`. Sin él, `gh pr create` responde `Resource not accessible by personal access token`. Se añade en la misma página que Contents y Workflows. |
+| 3 | Abrir los PRs de las ramas ya subidas | Claude | `chore/claude-skills`, `chore/trello-tablero` y `docs/sesion-6`, en cuanto exista el permiso del punto 2. |
 
-### 🟠 Bloquea el backend
+Con 1 y 2 resueltos: `python scripts/trello_vortex.py poblar`, adjuntar cada PR a su tarjeta y empezar por **[F0·1]**.
 
-| # | Pendiente | Notas |
-|---|---|---|
-| 4 | **Provisionar Supabase Cloud** y aplicar 0001..0006 | Incluye activar el hook de JWT, sin el cual todas las policies de HR deniegan |
-| 5 | **Secrets en GitHub Actions** | Doppler → repository secrets |
-| 6 | **Resolver `force row level security`** (`0004` §9) | Necesita saber si el owner tiene `BYPASSRLS` en Supabase real; el contenedor local no lo puede contestar |
-| 7 | **Elegir un solo camino de escritura para `runs`** | Recomendación: `set_tenant_context` + policy (ADR-004). Toca `app/workers/run_state.py` |
-| 8 | **Rate limiting / captcha en `aplicar_a_vacante()`** | Antes de exponer el formulario público |
-| 9 | **Destino de deploy del backend** | ADR-012 eligió Fly.io; no hay `fly.toml` ni step de `flyctl` |
-| 10 | **Backups y entorno de staging** | El RTO de 30 min no se sostiene hoy |
+### Metodología del tablero
 
-### 🟡 Producto (Cycle 1)
+Shape Up (ya declarado en `docs/02_METHODOLOGY.md`) con un flujo Kanban por PR. Columnas: 📌 Cómo usar · 🧊 Aparcado · 🗺️ Ruta · 🎯 Apostado · ⛰️ Descubriendo · 🔨 Construyendo · 👀 PR en revisión · ✅ Hecho. ⛰️ y 🔨 son la *hill chart* de Shape Up: entre las dos, máximo 2 tarjetas; en revisión, máximo 3.
 
-| # | Pendiente | Notas |
-|---|---|---|
-| 11 | **2.1** Formulario de aplicación en career-site | El SQL ya está (`0005`); falta Server Action + UI |
-| 12 | **2.3** Kanban HRBP con `@dnd-kit` + Realtime | Hoy `App.tsx` son 100 líneas con KPIs hardcodeados |
-| 13 | **2.2** Scaffold de candidate app | Rutas `/`, `/applications/:id`, `/test/:token`, `/profile` |
-| 14 | **2.4** Skill `chro-intake` (SKILL.md + golden set) | |
-| 15 | **2.5** Poblar `golden.jsonl` y conectar el evaluador al modelo | Necesita claves de LLM |
-| 16 | **2.7** E2E Playwright del flujo completo | Necesita la base |
-| 17 | **2.8** Loom demo de 5 min | |
+### La ruta, por prioridad
 
-> **Decidido (2026-09-09):** se empieza por **2.1** (formulario de aplicación),
-> después de Supabase.
+**F0 · Tapar lo silencioso** — se sale cuando el test de regresión del event loop está en verde y ningún siguiente paso se decide sin política.
 
-### 📌 Preguntas abiertas de Ilyra, a responder al abrir la próxima sesión
+| Tarjeta | Qué |
+|---|---|
+| F0·0 | Skills del taller y de ingeniería como Claude skills — **hecho, PR por abrir** |
+| F0·0b | Tablero de Trello como código — **rama subida, falta ejecutarlo contra el tablero** |
+| F0·1 | Motor sin pool (`NullPool`) para los workers de Celery + test de regresión |
+| F0·2 | Un run nunca se queda en `pending` si falla antes del claim |
+| F0·3 | El prompt sale del SKILL.md, con calibración y regla anti-sesgo |
+| F0·4 | Política determinista del siguiente paso según el score |
+| F0·5 | Contrato de `CvEvaluation` igual en Zod y Pydantic (hoy `candidate_id` ≠ `candidato_id`) |
+| F0·6 | Deriva docs↔código: ADR-008 cita `gemini-1.5-flash`, fallback inexistente, dependencias sin uso en hrbp |
+| F0·7 | El runbook de la base de pruebas usa un puerto propio y falla si no arranca |
 
-- **¿Por qué están separadas las apps?** Por qué `career-site` (Next.js) y
-  `hrbp` (Vite SPA) son dos aplicaciones y dos despliegues distintos en vez de
-  una sola, qué decisión hay detrás y qué costaría unificarlas. La respuesta
-  toca ADR-010 y la estructura del monorepo.
+**F1 · Clean Architecture** — el caso de uso `EvaluateCandidate` en capas Domain / Application / Infrastructure, como plantilla para el resto: dominio (F1·1), caso de uso (F1·2), adaptadores y worker fino (F1·3), sourcer (F1·4) y SKILL.md de producto alineados con el estándar Agent Skills (F1·5).
 
-### 🟢 Higiene (no bloquea nada)
+**F2 · Next 16 + Supabase + 2.1** — Next 14 → 16 con los codemods oficiales (rompe el `params` síncrono de `vacantes/[slug]`), Supabase Cloud con 0001..0006, secrets, hr-engine en Fly.io, formulario de aplicación, rate limit y captcha, y el E2E del DoD del Cycle 1.
 
-- Acotar con `TO authenticated` las 20 policies que siguen sin cláusula `TO`.
-- Deuda técnica de la tabla del final: LGPD, cifrado de columna, feature flags,
-  Doppler, OpenTelemetry, branch protection, cadena de hash de `activity_log`,
-  recall de pgvector.
+**F3 · Validación con Siete** — plan de validación con criterios de negocio, mapa de onboarding, backups y staging, consentimiento y retención (LGPD), 5 a 10 entrevistas de descubrimiento y la demo en Loom.
+
+**F4 · Decisiones de negocio** — ICP validado, unidad operativa de precio, regla de continuidad al agotarse el presupuesto, `force row level security` y un solo camino de escritura para `runs`.
+
+**Aparcado:** portal de candidato (evaluar fusionarlo con career-site), kanban HRBP, skill `chro-intake`, golden set, skills HR restantes, sales engine, Tailwind 4, las 20 policies sin `TO`, feature flags / Doppler / OTel / branch protection, recall de pgvector, cadena de hash de `activity_log` y cifrado de columna.
+
+### Respondido en la sesión 6
+
+- **¿Por qué están separadas las apps?** Por audiencia y forma de renderizar (`docs/03_ARCHITECTURE.md` §4.5): career-site es público y necesita SSR y SEO (Next); hrbp es un cockpit interno tras login (SPA con Vite). Esa separación tiene sentido. La discutible es la tercera app planificada, `candidate`: tiene la misma audiencia que career-site y su flujo empieza ahí, así que conviene meterla como rutas autenticadas de career-site.
+- **¿Cuál es el mejor cliente según el benchmark?** Consultoras de selección y RPO pequeñas y medianas de LATAM que reclutan para varias empresas cliente: el perfil de Siete. Es una **hipótesis con un solo caso, que además no paga**. Evidencia: los flujos n8n que corrían en Siete son los de una consultora que recluta para clientes; lo construido (sourcer, evaluador de CV, psicométrico) es su módulo ancla; y el multi-tenant por `empresas` y el pricing v2 ya la modelan. Se valida en F3·5 y F4·1.
 
 ---
 
