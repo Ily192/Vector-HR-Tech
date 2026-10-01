@@ -496,3 +496,33 @@ def test_celery_task_config_has_timeouts_and_limits() -> None:
     assert conf.broker_transport_options["visibility_timeout"] > conf.task_time_limit
     assert conf.task_default_rate_limit
     assert sourcer_mod.run.max_retries == 3
+
+
+@pytest.mark.asyncio
+async def test_si_el_claim_explota_el_run_queda_failed_no_pending(
+    monkeypatch: pytest.MonkeyPatch,
+    patched_world: dict[str, Any],
+) -> None:
+    """Mismo defecto que en cv_evaluator: el claim vivía fuera del try.
+
+    Su excepción se saltaba el except y la fila `runs` se quedaba en
+    `pending` para siempre, sin error y sin resultado.
+    """
+
+    async def claim_roto(**_kw: Any) -> runs_repo.RunClaim:
+        raise ConnectionError("postgres inalcanzable")
+
+    monkeypatch.setattr(run_state, "claim_run", claim_roto)
+
+    with pytest.raises(ConnectionError):
+        await sourcer_mod._run(
+            run_id="00000000-0000-0000-0000-000000000016",
+            empresa_id=EMPRESA_ID,
+            icp_text="ICP",
+            cost_cap_usd=0.05,
+        )
+
+    finish = patched_world["finish"][-1]
+    assert finish["status"] == runs_repo.STATUS_FAILED
+    assert "ConnectionError" in finish["error_message"]
+    assert finish["cost_usd"] == 0.0
