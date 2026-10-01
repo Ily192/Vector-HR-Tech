@@ -73,3 +73,11 @@ docker-compose.override.yml
 
 # TS build artifacts
 *.tsbuildinfo
+
+# Material fuente de skills: PDFs, zips y rars del taller "skills claude crear
+# SaaS", sin licencia de redistribucion, y las notas originales de las skills
+# de ingenieria. Las versiones usables viven en .claude/skills/ (las del
+# proyecto, se commitean) y en ~/.claude/skills/ (las del taller, personales).
+# Anclada a la raiz: sin la barra inicial tambien ignoraba .claude/skills/ y
+# .agents/skills/, que son justo las que si se commitean.
+/skills/
