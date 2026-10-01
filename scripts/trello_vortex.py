@@ -1,4 +1,4 @@
-"""Tablero Trello de Vortex Ops: llenarlo y operar las tarjetas a medida que avanzan los PRs.
+"""Tablero Trello de Vortex Ops en Scrumban: llenarlo y operarlo a medida que avanzan los PRs.
 
 Uso (desde la raiz del repo):
   python scripts/trello_vortex.py poblar     llena el tablero (tiene que estar sin tarjetas)
@@ -32,7 +32,7 @@ except Exception:
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 API = "https://api.trello.com/1"
-GH = "https://github.com/Ily192/Vector-HR-Tech/commit/"
+GH = "https://github.com/Ily192/Vector-HR-Tech"
 
 
 # ─────────────────────────── credenciales y HTTP ───────────────────────────
@@ -55,8 +55,8 @@ ENV = _env()
 KEY, TOKEN = ENV.get("TRELLO_KEY"), ENV.get("TRELLO_TOKEN")
 BOARD_REF = ENV.get("TRELLO_BOARD", "Vxsv1fn7")
 BOARD_DESC = (
-    "Desarrollo de Vortex Ops (Vector HR Tech). Shape Up + flujo Kanban por PR: "
-    "cada tarjeta es un PR. Las reglas están en la lista 📌."
+    "Desarrollo de Vortex Ops (Vector HR Tech). Scrumban: flujo Kanban con límites de "
+    "trabajo en curso + sprints de dos semanas. Cada tarjeta es un PR. Reglas en la lista 📌."
 )
 
 
@@ -76,7 +76,11 @@ def _multipart(fields: dict, files: dict) -> tuple[bytes, str]:
 
 def api(method: str, path: str, params: dict | None = None, files: dict | None = None):
     if not KEY or not TOKEN:
-        raise SystemExit("Faltan TRELLO_KEY y/o TRELLO_TOKEN en var-local.env")
+        raise SystemExit(
+            "Faltan TRELLO_KEY y/o TRELLO_TOKEN en var-local.env.\n"
+            "No sirve un API token de Atlassian (ATATT...): la API de Trello necesita\n"
+            "la key del Power-Up (32 caracteres) y su token (ATTA..., ~76 caracteres)."
+        )
     params = {k: v for k, v in (params or {}).items() if v is not None}
     url = f"{API}{path}?{urlencode({'key': KEY, 'token': TOKEN})}"
     headers = {"Accept": "application/json"}
@@ -114,36 +118,43 @@ def d(texto: str) -> str:
 
 
 def commits(*shas: str) -> str:
-    return "**Commits:**\n" + "\n".join(f"- [`{s}`]({GH}{s})" for s in shas)
+    return "**Commits:** " + " · ".join(f"[`{s}`]({GH}/commit/{s})" for s in shas)
 
 
 # ─────────────────────────────── el tablero ───────────────────────────────
 
 LISTAS = [
     "📌 Cómo usar este tablero",
-    "🧊 Aparcado · sin apuesta",
-    "🗺️ Ruta · próximas fases",
-    "🎯 Apostado · fase actual",
-    "⛰️ Descubriendo (WIP 2 con Construyendo)",
-    "🔨 Construyendo (WIP 2 con Descubriendo)",
+    "🗃️ Backlog (lo que falta)",
+    "🎯 Listo para sprint",
+    "🏃 Sprint 1 · 1-14 oct",
+    "🔨 En curso (WIP 2)",
     "👀 PR en revisión (WIP 3)",
+    "🧪 Verificación",
     "✅ Hecho",
+    "📜 Histórico (antes del tablero)",
 ]
-GUIA, APARCADO, RUTA, APOSTADO, DESCUBRIENDO, CONSTRUYENDO, REVISION, HECHO = LISTAS
+GUIA, BACKLOG, LISTO, SPRINT, CURSO, REVISION, VERIF, HECHO, HIST_L = LISTAS
 
 ETIQUETAS = [
-    ("F0 · Tapar lo silencioso", "red"),
-    ("F1 · Clean Architecture", "orange"),
-    ("F2 · Next 16 + Supabase + 2.1", "yellow"),
-    ("F3 · Validación con Siete", "green"),
-    ("F4 · Decisiones de negocio", "blue"),
-    ("🔒 Seguridad / compliance", "purple"),
-    ("💼 Negocio", "lime"),
-    ("🧾 Deuda técnica", "pink"),
-    ("📜 Histórico", "sky"),
-    ("🚫 Bloqueado", "black"),
+    # Proyectos: cada landing, web o servicio es un proyecto aparte
+    ("🌐 career-site (web pública)", "sky"),
+    ("🖥️ hrbp (cockpit)", "lime"),
+    ("👤 candidate (portal)", "pink"),
+    ("⚙️ hr-engine (backend)", "blue"),
+    ("🗄️ datos · Supabase", "purple"),
+    ("🤖 agentes · skills", "orange"),
+    ("🛠️ plataforma · CI/CD", "black"),
+    # Transversales
+    ("🔒 Seguridad / compliance", "red"),
+    ("💼 Negocio", "green"),
+    ("🧾 Deuda técnica", "yellow"),
+    ("🚫 Bloqueado", "red"),
+    ("S2 · 15-28 oct", "sky"),
+    ("S3 · 29 oct-11 nov", "lime"),
 ]
-F0, F1, F2, F3, F4, SEG, NEG, DEUDA, HIST, BLOQ = (e[0] for e in ETIQUETAS)
+(CAREER, HRBP, CANDIDATE, ENGINE, DATOS, AGENTES, PLAT,
+ SEG, NEG, DEUDA, BLOQ, S2, S3) = (e[0] for e in ETIQUETAS)
 
 CA = "Criterios de aceptación"
 
@@ -151,39 +162,56 @@ TARJETAS: list[dict] = [
     # ── Guía ──────────────────────────────────────────────────────────────
     {
         "lista": GUIA,
-        "nombre": "Cómo funciona este tablero",
+        "nombre": "Cómo funciona este tablero (Scrumban)",
         "desc": d("""
-            ## Metodología: Shape Up + flujo Kanban por PR
+            ## Scrumban = flujo Kanban + cadencia de sprints
 
-            El proyecto ya trabaja con **Shape Up adaptado** (`docs/02_METHODOLOGY.md`): se *apuesta* por un bloque de trabajo con apetito definido, sin backlog infinito y con enfriamiento entre bloques. Este tablero le suma un **flujo Kanban**: cada PR se mueve de izquierda a derecha, con límites de trabajo en curso.
+            Del **Kanban**: el trabajo se tira (no se empuja), hay límites de trabajo en curso y las tarjetas avanzan de izquierda a derecha.
+            Del **Scrum**: hay un sprint de dos semanas con un objetivo, y una revisión al cerrarlo.
 
-            Las fases de la ruta (F0-F4) son las apuestas. **Cada tarjeta es un PR.**
+            Encaja con lo que el proyecto ya declara en `docs/02_METHODOLOGY.md` (ciclos de dos semanas, trunk-based, un dev) sin las ceremonias de Scrum completo.
 
-            ## Columnas y cuándo se entra
+            ## Columnas
 
-            | Columna | Qué significa | Para entrar |
-            |---|---|---|
-            | 🧊 Aparcado | Ideas y deuda sin apuesta | — |
-            | 🗺️ Ruta | PRs de fases futuras, por prioridad | Tener fase asignada |
-            | 🎯 Apostado | La fase en curso. Arriba = lo siguiente | Empezó la fase |
-            | ⛰️ Descubriendo | Subiendo la colina: aún hay incógnitas | Definition of Ready |
-            | 🔨 Construyendo | Bajando la colina: ya se sabe qué hacer | Enfoque decidido |
-            | 👀 PR en revisión | PR abierto: comentarios y capturas aquí | PR adjunto a la tarjeta |
-            | ✅ Hecho | Mergeado, desplegado y verificado | Definition of Done |
-
-            ⛰️ y 🔨 son la *hill chart* de Shape Up: una tarjeta que lleva días sin bajar la colina es la señal para recortar alcance.
-
-            ## Límites de trabajo en curso
-
-            - ⛰️ + 🔨: **máximo 2** tarjetas a la vez.
-            - 👀 PR en revisión: **máximo 3**. Si está lleno, se revisa antes de empezar algo nuevo.
+            | Columna | Qué contiene |
+            |---|---|
+            | 🗃️ Backlog | Todo lo que falta, ordenado: arriba lo más prioritario |
+            | 🎯 Listo para sprint | Cumple la Definition of Ready; entra en el próximo sprint |
+            | 🏃 Sprint | Lo comprometido para estas dos semanas |
+            | 🔨 En curso | Lo que se está haciendo ahora. **Máximo 2** |
+            | 👀 PR en revisión | PR abierto: comentarios y capturas aquí. **Máximo 3** |
+            | 🧪 Verificación | Mergeado pero sin comprobar en el entorno real |
+            | ✅ Hecho | Verificado funcionando |
+            | 📜 Histórico | Lo que ya estaba hecho antes de existir el tablero |
 
             ## Reglas
 
             - **Una tarjeta = un PR.** El título de la tarjeta es el título del PR (Conventional Commits).
-            - El enlace al PR va como adjunto; los comentarios y capturas de la revisión, en la tarjeta.
-            - Una tarjeta bloqueada lleva 🚫 Bloqueado y un comentario con el motivo. No vuelve hacia atrás.
-            - Nada pasa a ✅ Hecho sin su checklist de criterios completo.
+            - **Se tira, no se empuja:** solo se saca una tarjeta nueva del sprint cuando se libera un hueco en 🔨.
+            - **Nada entra a 🏃 sin DoR**, y nada sale a ✅ sin DoD ni sin verificar.
+            - Una tarjeta parada lleva 🚫 Bloqueado y un comentario con el motivo y de quién depende.
+            - Cuando 🎯 se queda con menos de 3 tarjetas, toca repasar el backlog.
+
+            ## Cada landing y cada web son un proyecto aparte
+
+            Las etiquetas de color identifican el proyecto: career-site, hrbp, candidate, hr-engine, datos, agentes y plataforma. Una tarjeta puede tocar dos (por ejemplo, el E2E toca career-site y hr-engine).
+        """),
+    },
+    {
+        "lista": GUIA,
+        "nombre": "🏃 Sprints y objetivos",
+        "desc": d("""
+            Sprints de dos semanas. El objetivo es una frase, no una lista: si al cerrar el sprint no se puede decir que se cumplió, el sprint no se cumplió.
+
+            | Sprint | Fechas | Objetivo |
+            |---|---|---|
+            | **S1** | 1-14 oct | Ninguna evaluación se pierde en silencio, y el tablero refleja la realidad del proyecto |
+            | **S2** | 15-28 oct | `EvaluateCandidate` en capas como plantilla, y career-site fuera de una versión sin soporte |
+            | **S3** | 29 oct-11 nov | El DoD del Cycle 1 de punta a punta: subir CV → score visible en menos de 2 minutos |
+
+            Después de S3 vienen la validación con Siete y las decisiones de negocio (ICP, unidad de precio), que están en el backlog.
+
+            **Cierre de sprint:** mover a ✅ lo verificado, devolver al backlog lo que no se hizo (no se arrastra en silencio) y anotar en `docs/runbooks/session-log.md` qué se aprendió.
         """),
     },
     {
@@ -199,7 +227,7 @@ TARJETAS: list[dict] = [
             - **Evidencia** — capturas, salida de tests, preview.
             - **Enlaces** — PR, commits, docs.
 
-            Etiquetas: la fase (F0-F4) y, si aplica, 🔒 Seguridad / 💼 Negocio / 🧾 Deuda técnica.
+            Etiquetas: el proyecto que toca y, si aplica, 🔒 Seguridad · 💼 Negocio · 🧾 Deuda técnica · 🚫 Bloqueado.
         """),
     },
     {
@@ -207,36 +235,22 @@ TARJETAS: list[dict] = [
         "nombre": "Definition of Ready y Definition of Done",
         "desc": "Resumen de `docs/11_QUALITY_GATES.md`. El detalle por tipo de cambio (DB, skill, UI, seguridad, CI) está ahí.",
         "checklists": {
-            "DoR — antes de mover a ⛰️ Descubriendo": [
+            "DoR — para entrar al sprint": [
                 "Problema y evidencia escritos en la tarjeta",
                 "Enfoque en 3-5 líneas",
                 "Riesgos identificados",
                 "Criterios de aceptación verificables",
+                "Proyecto etiquetado",
             ],
-            "DoD — antes de mover a ✅ Hecho": [
+            "DoD — para pasar a ✅ Hecho": [
                 "Lint y typecheck en verde",
                 "Tests pasan y la cobertura no baja",
                 "PR con descripción completa (y capturas si toca UI)",
                 "Revisado (humano o agente de code review)",
                 "Docs y next-steps actualizados",
-                "Desplegado y verificado",
+                "Desplegado y comprobado en el entorno real",
             ],
         },
-    },
-    {
-        "lista": GUIA,
-        "nombre": "🗺️ Ruta y fases",
-        "desc": d("""
-            Orden acordado el 2026-09-14: **por prioridad**. Sale de la auditoría del proyecto contra sus skills.
-
-            | Fase | Objetivo | Se sale cuando |
-            |---|---|---|
-            | F0 · Tapar lo silencioso | Corregir lo que falla sin avisar | Test de regresión del event loop en verde y ningún siguiente paso decidido sin política |
-            | F1 · Clean Architecture | EvaluateCandidate en capas, como plantilla | Caso de uso probado con adaptadores falsos y worker fino |
-            | F2 · Next 16 + Supabase + 2.1 | Cerrar el DoD del Cycle 1 sobre suelo firme | Subir CV en career-site → score visible en < 2 min, de punta a punta |
-            | F3 · Validación con Siete | Uso real con criterios escritos | Criterios de éxito cumplidos o aprendizajes documentados |
-            | F4 · Decisiones de negocio | Segmento, precio y continuidad antes de ensanchar | ICP validado y unidad de precio decidida |
-        """),
     },
     {
         "lista": GUIA,
@@ -244,63 +258,54 @@ TARJETAS: list[dict] = [
         "labels": [NEG],
         "checklists": {
             "Por decidir": [
-                "Segmento principal — hipótesis: consultoras de selección / RPO tipo Siete (validar en F3-F4)",
+                "Segmento principal — hipótesis: consultoras de selección / RPO tipo Siete",
                 "Unidad operativa de precio (vacantes activas o candidatos evaluados; nunca tokens)",
                 "Regla de continuidad cuando se agota el presupuesto",
                 "force row level security: ¿el owner tiene BYPASSRLS en Supabase?",
                 "Un solo camino de escritura para runs",
                 "¿Portal de candidato dentro de career-site en vez de una tercera app?",
                 "Plan de Supabase: free sin PITR o Pro con backups",
+                "¿Entran al tablero las otras landings y webs (Krono, Aura, Vivi, Katalog, CRM-Cloo)?",
             ]
         },
     },
-    # ── En curso ahora mismo ──────────────────────────────────────────────
+    # ── Sprint 1 ──────────────────────────────────────────────────────────
     {
-        "lista": REVISION,
-        "nombre": "[F0·0] chore(skills): skills del taller y de ingeniería como Claude skills",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] 🚫 Desbloquear: credenciales de la API de Trello",
+        "labels": [PLAT, BLOQ],
         "desc": d("""
-            **Qué hace.**
-            - Formaliza `official-docs-alignment` y `clean-architecture-refactor` como Claude skills del proyecto en `.claude/skills/`, con frontmatter válido.
-            - Las 35 skills del taller quedan como skills **personales** en `~/.claude/skills/`, fuera del repo: son material del taller sin licencia de redistribución y el repo es público. Único cambio: el `description` entrecomillado, porque el YAML original era inválido.
-            - La carpeta fuente `/skills/` sale de git.
+            **Depende de Ilyra.** En `var-local.env` hay un `API_TOKEN_TRELLO` que es un *API token de Atlassian* (`ATATT…`, 192 caracteres, de id.atlassian.com). La API de Trello lo rechaza con 401 de las tres formas probadas.
 
-            **Evidencia.** 37/37 pasan `skills-ref validate`, el validador oficial de Agent Skills. Antes: 0/37.
+            Hacen falta dos valores distintos, de https://trello.com/apps/admin → Power-Up:
+            - `TRELLO_KEY`: 32 caracteres.
+            - `TRELLO_TOKEN`: empieza por `ATTA`, unos 76 caracteres (enlace *Token* → Permitir).
+
+            Sin esto, este tablero no se puede actualizar desde el repo.
         """),
-        "checklists": {CA: [
-            "37/37 skills válidas",
-            "Las skills del proyecto aparecen en una sesión nueva de Claude Code",
-            "La carpeta fuente no entra en git",
-        ]},
+        "checklists": {CA: ["TRELLO_KEY y TRELLO_TOKEN en var-local.env", "`poblar` y `estado` funcionan"]},
     },
     {
-        "lista": CONSTRUYENDO,
-        "nombre": "[F0·0b] chore(pm): tablero de Trello como código",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] 🚫 Desbloquear: permiso de Pull requests en el token de GitHub",
+        "labels": [PLAT, BLOQ],
         "desc": d("""
-            `scripts/trello_vortex.py` llena este tablero y lo opera: `estado`, `mover`, `comentar` y `adjuntar`. Lee las credenciales de `var-local.env` y nunca las imprime.
+            **Depende de Ilyra.** Al PAT fine-grained le falta `Pull requests: Read and write`. Sin él, `gh pr create` responde `Resource not accessible by personal access token (createPullRequest)` — comprobado el 14-sep y de nuevo el 1-oct.
 
-            La rama `chore/trello-tablero` está subida como respaldo. El PR se abre cuando haya llenado el tablero de verdad: la primera ejecución es su prueba.
+            Se añade en https://github.com/settings/personal-access-tokens, donde ya tiene Contents y Workflows. Tres ramas están subidas esperando su PR.
         """),
-        "checklists": {CA: [
-            "El tablero se llenó completo con el script",
-            "mover, comentar y adjuntar probados sobre una tarjeta real",
-            "Ninguna credencial en el repo ni en la salida",
-        ]},
+        "checklists": {CA: ["El token abre PRs", "Abiertos los PR de las tres ramas pendientes"]},
     },
-    # ── F0 · Apostado (orden = prioridad) ─────────────────────────────────
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·1] fix(hr-engine): motor sin pool para los workers de Celery",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] fix(hr-engine): motor sin pool para los workers de Celery",
+        "labels": [ENGINE],
         "desc": d("""
-            **Problema.** El motor async de SQLAlchemy se crea una vez al importar (`app/database.py:37`) y cada tarea de Celery abre un event loop nuevo con `asyncio.run`. Las conexiones del pool quedan atadas al loop anterior: **una de cada dos tareas falla** con `RuntimeError: Event loop is closed`.
+            **Problema.** El motor async de SQLAlchemy se crea al importar (`app/database.py:37`) y cada tarea de Celery abre un event loop nuevo con `asyncio.run`. Las conexiones del pool quedan atadas al loop anterior: **una de cada dos tareas falla** con `RuntimeError: Event loop is closed`.
 
-            **Evidencia.** Reproducido el 2026-09-14 con el `db_session()` real contra Postgres: 3 corridas de 4 tareas, fallan siempre la 1 y la 3. Con `NullPool`, 12/12. La documentación oficial de SQLAlchemy lo advierte (*Using multiple asyncio event loops*).
+            **Evidencia.** Reproducido contra Postgres con el `db_session()` real: 3 corridas de 4 tareas, fallan siempre la 1 y la 3. Con `NullPool`, 12/12. Lo advierte la documentación oficial de SQLAlchemy (*Using multiple asyncio event loops*).
 
             **Enfoque.** Motor dedicado con `NullPool` para los workers; la API conserva el motor con pool. La reproducción se convierte en test de regresión.
-
-            **Riesgos.** Una conexión nueva por tarea: despreciable frente a la latencia del LLM.
         """),
         "checklists": {CA: [
             "Test de regresión que falla sin el fix y pasa con él",
@@ -310,13 +315,13 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·2] fix(hr-engine): un run nunca se queda en pending si falla antes del claim",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] fix(hr-engine): un run nunca se queda en pending si falla antes del claim",
+        "labels": [ENGINE],
         "desc": d("""
-            **Problema.** En `workers/cv_evaluator.py:163`, `claim_run` está fuera del `try`. Si falla ahí —como pasa con el bug del event loop— el run no se marca `failed`: queda `pending` para siempre y la aplicación sin evaluar, sin rastro en los datos. Además `RuntimeError` no cuenta como transitorio, así que Celery no reintenta.
+            **Problema.** En `workers/cv_evaluator.py:163`, `claim_run` está fuera del `try`. Si falla ahí, el run no se marca `failed`: queda `pending` para siempre y la aplicación sin evaluar, sin rastro. Además `RuntimeError` no cuenta como transitorio, así que Celery no reintenta.
 
-            **Enfoque.** Todo lo que ocurre después de registrar el run pasa por el manejo de errores que lo marca `failed`. Revisar qué errores son transitorios. Mismo patrón en `sourcer`.
+            **Enfoque.** Todo lo posterior a registrar el run pasa por el manejo de errores que lo marca `failed`. Revisar la clasificación de errores transitorios. Mismo patrón en `sourcer`.
         """),
         "checklists": {CA: [
             "Un fallo en el claim deja el run en failed con mensaje",
@@ -325,9 +330,9 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·3] fix(cv-evaluator): el prompt sale del SKILL.md, con calibración y regla anti-sesgo",
-        "labels": [F0, SEG],
+        "lista": SPRINT,
+        "nombre": "[S1] fix(cv-evaluator): el prompt sale del SKILL.md, con calibración y regla anti-sesgo",
+        "labels": [AGENTES, ENGINE, SEG],
         "desc": d("""
             **Problema.** Ningún runtime lee los SKILL.md. El prompt real está escrito a mano en `clients/scoring.py:69` y **no incluye** la calibración del score ni la regla *"ignorá edad, género, nacionalidad"* del SKILL.md. En un producto de HR es riesgo de compliance.
 
@@ -340,13 +345,13 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·4] feat(hr-engine): política determinista del siguiente paso según el score",
-        "labels": [F0, SEG],
+        "lista": SPRINT,
+        "nombre": "[S1] feat(hr-engine): política determinista del siguiente paso según el score",
+        "labels": [ENGINE, SEG],
         "desc": d("""
             **Problema.** `recommended_next_step` (rechazar / psicométrico / entrevista) lo elige el modelo sin reglas, y nada comprueba que cuadre con el score: un 8.5 con "rechazar" se acepta. Es una decisión sobre una persona en manos de un LLM sin instrucciones.
 
-            **Enfoque.** `NextStepPolicy` en dominio: < 4 rechazar, 4-6 psicométrico, ≥ 7 entrevista (umbrales del SKILL.md). El modelo aporta score y razonamiento; la política decide. Es el primer ladrillo de la capa de dominio de F1.
+            **Enfoque.** `NextStepPolicy` en dominio: < 4 rechazar, 4-6 psicométrico, ≥ 7 entrevista. El modelo aporta score y razonamiento; la política decide. Primer ladrillo de la capa de dominio del sprint 2.
         """),
         "checklists": {CA: [
             "Política con tests en los bordes (3.99 · 4 · 6.99 · 7)",
@@ -355,31 +360,43 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·5] fix(types): contrato de CvEvaluation igual en Zod y Pydantic",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] fix(types): contrato de CvEvaluation igual en Zod y Pydantic",
+        "labels": [PLAT],
         "desc": d("""
             **Problema.** `scoring.py` dice que "espejea" `packages/types/src/hr.ts`, pero no hay test y no coinciden: Zod usa `candidate_id` y el worker `candidato_id`; `rationale` exige mínimo 1 en Zod y 10 en Pydantic.
 
-            **Enfoque.** Una sola definición (o generación desde JSON Schema) y un test de contrato que compare los dos lados.
+            **Enfoque.** Una sola definición (o generación desde JSON Schema) y un test de contrato.
+        """),
+        "checklists": {CA: ["Mismos nombres y restricciones en los dos lados", "Test de contrato en CI"]},
+    },
+    {
+        "lista": SPRINT,
+        "nombre": "[S1] chore(deps): triaje de los 16 PRs de Dependabot",
+        "labels": [PLAT, DEUDA],
+        "desc": d("""
+            Dependabot abrió 16 PRs el 10-sep y siguen abiertos. Hay que decidir uno por uno: mergear, agrupar o cerrar.
+
+            Ojo con dos: **next 14.2.35 → 16.3.4** (es la tarjeta de career-site del sprint 2, no se mergea a ciegas) y el grupo de **react**, que arrastra React 19. El resto (actions, tooling, types, postcss, commitlint, changesets, size-limit, lucide, supabase/ssr, python 3.14) son más mecánicos.
+
+            El CI tiene que estar en verde en cada uno antes de mergear.
         """),
         "checklists": {CA: [
-            "Mismos nombres y restricciones en los dos lados",
-            "Test de contrato en CI",
+            "Cada PR: mergeado, agrupado o cerrado con razón",
+            "next y react quedan ligados a sus tarjetas de producto",
+            "CI en verde tras el merge",
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·6] docs: deriva entre documentación y código",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] docs: deriva entre documentación y código",
+        "labels": [PLAT],
         "desc": d("""
-            **Problema.** Lo declarado no es lo ejecutado:
+            Lo declarado no es lo ejecutado:
             - ADR-008 y los SKILL.md citan `gemini-1.5-flash` (retirado) y precios viejos; el código usa `gemini-2.5-flash`.
             - El fallback a `gpt-4o-mini` que declaran las skills no existe, ni `app/providers/` de ADR-008.
             - `workers/run_state.py:4` dice que `runs` solo tiene policy de lectura (0004 lo corrigió).
             - 3 de las 4 dependencias de datos de hrbp no se importan en ningún sitio.
-
-            **Enfoque.** Caso por caso: o el documento describe lo que hay, o se implementa lo que declara.
         """),
         "checklists": {CA: [
             "ADR-008 y SKILL.md con el modelo y precios vigentes",
@@ -389,13 +406,11 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": APOSTADO,
-        "nombre": "[F0·7] docs(runbook): la base de pruebas usa un puerto propio y falla si no arranca",
-        "labels": [F0],
+        "lista": SPRINT,
+        "nombre": "[S1] docs(runbook): la base de pruebas usa un puerto propio y falla si no arranca",
+        "labels": [PLAT],
         "desc": d("""
-            **Problema.** El bloque del runbook usa el 5432, que ocupa `backend-db-1` de otro proyecto. Si `docker run` falla, el bloque sigue y pytest intenta conectar a otra base. La guarda `_assert_disposable` solo mira el nombre de la base.
-
-            **Enfoque.** Puerto dedicado (55432), comprobación explícita de que el contenedor arrancó, y `DATABASE_URL` coherente en el runbook.
+            El bloque del runbook usa el 5432, que ocupa `backend-db-1` de otro proyecto. Si `docker run` falla, el bloque sigue y pytest intenta conectar a otra base. La guarda `_assert_disposable` solo mira el nombre de la base.
         """),
         "checklists": {CA: [
             "El bloque aborta si el contenedor no arranca",
@@ -403,69 +418,54 @@ TARJETAS: list[dict] = [
             "Probado dos veces seguidas en esta máquina",
         ]},
     },
-    # ── F1 · Ruta ─────────────────────────────────────────────────────────
+    # ── En curso / revisión ───────────────────────────────────────────────
     {
-        "lista": RUTA,
-        "nombre": "[F1·1] refactor(hr-engine): capa de dominio de la evaluación",
-        "labels": [F1],
-        "desc": "Entidades (`Candidato`, `Vacante`, `FitScore`), `NextStepPolicy` (viene de F0·4) y puertos: `CandidateRepository`, `EmbeddingProvider`, `ScoringProvider`, `CostBudget`. Sin imports de SQLAlchemy, Celery ni SDKs.",
-        "checklists": {CA: [
-            "Domain sin imports de infraestructura, verificado por test",
-            "Tests unitarios puros del dominio",
-        ]},
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F1·2] refactor(hr-engine): caso de uso EvaluateCandidate",
-        "labels": [F1],
-        "desc": "Orquesta la evaluación a través de los puertos: embeddings si faltan, scoring, política, persistencia y costo. Se prueba con adaptadores falsos, sin base ni red.",
-        "checklists": {CA: [
-            "Caso de uso cubierto con adaptadores falsos",
-            "Mismo resultado que el worker actual en los tests existentes",
-        ]},
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F1·3] refactor(hr-engine): adaptadores de infraestructura y worker fino",
-        "labels": [F1],
-        "desc": "Repositorio SQLAlchemy (incluye el SQL crudo que hoy vive en el worker), adaptadores Gemini y OpenAI, y la tarea de Celery como adaptador de entrada que solo traduce. La API deja de importar el worker: encola a través de un puerto.",
-        "checklists": {CA: [
-            "Worker de menos de 50 líneas",
-            "Sin SQL fuera de los repositorios",
-            "La API no importa el worker",
-            "Tests unitarios y de seguridad en verde",
-        ]},
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F1·4] refactor(hr-engine): sourcer sobre la misma plantilla",
-        "labels": [F1],
-        "desc": "Aplicar a `sourcer` la estructura de F1·1 a F1·3. Si la plantilla no encaja, se ajusta aquí y no antes.",
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F1·5] chore(skills): SKILL.md de producto alineados con el estándar Agent Skills",
-        "labels": [F1],
+        "lista": CURSO,
+        "nombre": "[S1] chore(pm): tablero de Trello como código",
+        "labels": [PLAT],
         "desc": d("""
-            **Problema.** Las skills de Vortex usan 8 campos fuera del estándar (`version`, `owner`, `domain`, `inputs`, `outputs`, `models`, `cost_cap_usd`, `tags`) y el validador oficial las rechaza. `skills-sdk` no tiene consumidores. ADR-006 promete `evals/`, `SKILL.md.tmpl` y `README.md` por skill, y no existen.
+            `scripts/trello_vortex.py` llena este tablero y lo opera: `estado`, `mover`, `comentar` y `adjuntar`. Lee las credenciales de `var-local.env` y nunca las imprime.
 
-            **Enfoque.** Campos propios en `metadata` o en un sidecar `agents/vortex.yaml` (como ya existe `agents/openai.yaml`). Actualizar ADR-006 y el SDK.
+            Rama `chore/trello-tablero` subida. La primera ejecución contra la API es su prueba.
         """),
         "checklists": {CA: [
-            "skills-ref validate en verde para las skills de producto",
-            "ADR-006 actualizado",
-            "skills-sdk valida el formato nuevo",
+            "El tablero se llenó completo con el script",
+            "mover, comentar y adjuntar probados sobre una tarjeta real",
+            "Ninguna credencial en el repo ni en la salida",
         ]},
     },
-    # ── F2 · Ruta ─────────────────────────────────────────────────────────
     {
-        "lista": RUTA,
-        "nombre": "[F2·1] chore(career-site): Next 14 → 16 y React 19",
-        "labels": [F2, SEG],
+        "lista": REVISION,
+        "nombre": "[S1] chore(skills): skills del taller y de ingeniería como Claude skills",
+        "labels": [AGENTES, BLOQ],
         "desc": d("""
-            **Problema.** Next 14 está sin soporte de seguridad desde el 26-oct-2025 y career-site es público. Next 15 pierde soporte el 21-oct-2026: se va directo a 16.
+            Las dos skills de ingeniería pasan a `.claude/skills/` del proyecto con frontmatter válido; las 35 del taller quedan como skills personales en `~/.claude/skills/`, fuera del repo (material sin licencia de redistribución, y el repo es público). La carpeta fuente `/skills/` sale de git.
 
-            **Enfoque.** Codemods oficiales (`upgrade latest` y `next-async-request-api`). Punto de ruptura conocido: el `params` síncrono de `vacantes/[slug]/page.tsx:24`.
+            **Evidencia:** 37/37 pasan `skills-ref validate`. Antes: 0/37.
+
+            🚫 Rama `chore/claude-skills` subida (`843e32e`); **el PR no se puede abrir** hasta que el token tenga permiso de Pull requests.
+        """),
+        "checklists": {CA: ["37/37 skills válidas", "PR abierto y revisado", "La carpeta fuente no entra en git"]},
+    },
+    {
+        "lista": REVISION,
+        "nombre": "[S1] docs(runbooks): sesión 6 — auditoría contra las skills y ruta por fases",
+        "labels": [PLAT, BLOQ],
+        "desc": d("""
+            Registro de la sesión 6 y `next-steps` reorganizado: bloqueos, metodología y la ruta por fases. Responde por qué están separadas las apps y cuál es el mejor cliente según el benchmark.
+
+            🚫 Rama `docs/sesion-6` subida (`fb30036`); el PR espera el permiso de Pull requests.
+        """),
+    },
+    # ── Listo para sprint (S2) ────────────────────────────────────────────
+    {
+        "lista": LISTO,
+        "nombre": "[S2] chore(career-site): Next 14 → 16 y React 19",
+        "labels": [CAREER, SEG, S2],
+        "desc": d("""
+            **Problema.** Next 14 está sin soporte de seguridad desde el 26-oct-2025 y career-site es público. Next 15 lo pierde el 21-oct-2026: se va directo a 16.
+
+            **Enfoque.** Codemods oficiales (`upgrade latest` y `next-async-request-api`). Punto de ruptura conocido: el `params` síncrono de `vacantes/[slug]/page.tsx:24`. Dependabot ya abrió el PR del bump; esta tarjeta es la que lo valida de verdad.
         """),
         "checklists": {CA: [
             "Build y tests en verde",
@@ -475,15 +475,56 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·2] chore(infra): Supabase Cloud con las migraciones 0001..0006",
-        "labels": [F2],
+        "lista": LISTO,
+        "nombre": "[S2] refactor(hr-engine): capa de dominio de la evaluación",
+        "labels": [ENGINE, S2],
+        "desc": "Entidades (`Candidato`, `Vacante`, `FitScore`), `NextStepPolicy` (viene del sprint 1) y puertos: `CandidateRepository`, `EmbeddingProvider`, `ScoringProvider`, `CostBudget`. Sin imports de SQLAlchemy, Celery ni SDKs.",
+        "checklists": {CA: ["Domain sin imports de infraestructura, verificado por test", "Tests unitarios puros del dominio"]},
+    },
+    {
+        "lista": LISTO,
+        "nombre": "[S2] refactor(hr-engine): caso de uso EvaluateCandidate",
+        "labels": [ENGINE, S2],
+        "desc": "Orquesta la evaluación a través de los puertos: embeddings si faltan, scoring, política, persistencia y costo. Se prueba con adaptadores falsos, sin base ni red.",
+        "checklists": {CA: ["Caso de uso cubierto con adaptadores falsos", "Mismo resultado que el worker actual en los tests existentes"]},
+    },
+    {
+        "lista": LISTO,
+        "nombre": "[S2] refactor(hr-engine): adaptadores de infraestructura y worker fino",
+        "labels": [ENGINE, S2],
+        "desc": "Repositorio SQLAlchemy (incluye el SQL crudo que hoy vive en el worker), adaptadores Gemini y OpenAI, y la tarea de Celery como adaptador que solo traduce. La API deja de importar el worker.",
+        "checklists": {CA: [
+            "Worker de menos de 50 líneas",
+            "Sin SQL fuera de los repositorios",
+            "La API no importa el worker",
+            "Tests unitarios y de seguridad en verde",
+        ]},
+    },
+    # ── Backlog ───────────────────────────────────────────────────────────
+    {
+        "lista": BACKLOG,
+        "nombre": "[S2] refactor(hr-engine): sourcer sobre la misma plantilla",
+        "labels": [ENGINE, S2],
+        "desc": "Aplicar a `sourcer` la estructura del caso de uso ancla. Si la plantilla no encaja, se ajusta aquí y no antes.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "[S2] chore(skills): SKILL.md de producto alineados con el estándar Agent Skills",
+        "labels": [AGENTES, S2],
+        "desc": d("""
+            Las skills de Vortex usan 8 campos fuera del estándar y el validador oficial las rechaza. `skills-sdk` no tiene consumidores, y ADR-006 promete `evals/`, `SKILL.md.tmpl` y `README.md` por skill que no existen.
+
+            Campos propios a `metadata` o a un sidecar `agents/vortex.yaml`, como ya existe `agents/openai.yaml`.
+        """),
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "[S3] chore(infra): Supabase Cloud con las migraciones 0001..0006",
+        "labels": [DATOS, S3],
         "desc": d("""
             Proyecto en `sa-east-1`, extensión `vector`, `supabase db push`, hook de JWT activado y primer admin de plataforma.
 
-            **Conexión.** La directa es solo IPv6 salvo que se pague el add-on de IPv4. Con el pooler en modo transacción, asyncpg necesita `statement_cache_size=0`.
-
-            De paso: contestar si el owner tiene `BYPASSRLS` (decide F4·4).
+            **Conexión:** la directa es solo IPv6 salvo add-on de pago; con el pooler en modo transacción, asyncpg necesita `statement_cache_size=0`. De paso, contestar si el owner tiene `BYPASSRLS`.
         """),
         "checklists": {CA: [
             "Migraciones aplicadas sin error",
@@ -493,22 +534,22 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·3] chore(infra): secrets en GitHub Actions y variables en Vercel",
-        "labels": [F2],
-        "desc": "Las variables `NEXT_PUBLIC_*` y `VITE_*` en Vercel, y los secrets del CI (Supabase, proveedores de IA, Vercel, Sentry, Codecov).",
+        "lista": BACKLOG,
+        "nombre": "[S3] chore(infra): secrets en GitHub Actions y variables en Vercel",
+        "labels": [PLAT, S3],
+        "desc": "Las `NEXT_PUBLIC_*` y `VITE_*` en Vercel, y los secrets del CI (Supabase, proveedores de IA, Vercel, Sentry, Codecov).",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·4] chore(infra): hr-engine desplegado en Fly.io",
-        "labels": [F2],
-        "desc": "ADR-012 eligió Fly.io y no hay `fly.toml` ni step de `flyctl` en ningún workflow. Sin backend desplegado no hay DoD de punta a punta.",
+        "lista": BACKLOG,
+        "nombre": "[S3] chore(infra): hr-engine desplegado en Fly.io",
+        "labels": [ENGINE, S3],
+        "desc": "ADR-012 eligió Fly.io y no hay `fly.toml` ni step de `flyctl`. Sin backend desplegado no hay DoD de punta a punta.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·5] feat(career-site): formulario de aplicación con subida de CV (2.1)",
-        "labels": [F2],
-        "desc": "Server Action + bucket `cvs` + RPC `aplicar_a_vacante` (el SQL ya está en 0005). Los datos de vacantes pasan por un puerto `VacantesRepository` en vez de los mocks actuales.",
+        "lista": BACKLOG,
+        "nombre": "[S3] feat(career-site): formulario de aplicación con subida de CV",
+        "labels": [CAREER, S3],
+        "desc": "Server Action + bucket `cvs` + RPC `aplicar_a_vacante` (el SQL ya está en 0005). Las vacantes pasan por un puerto `VacantesRepository` en vez de los mocks actuales.",
         "checklists": {CA: [
             "El candidato aplica y la application queda creada",
             "El CV queda en el bucket bajo la ruta de su empresa",
@@ -517,156 +558,206 @@ TARJETAS: list[dict] = [
         ]},
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·6] feat(career-site): rate limit y captcha en aplicar_a_vacante",
-        "labels": [F2, SEG],
-        "desc": "Antes de exponer el formulario público: la RPC es invocable por `anon` y hoy no tiene ninguna capa anti-abuso.",
+        "lista": BACKLOG,
+        "nombre": "[S3] feat(career-site): rate limit y captcha en aplicar_a_vacante",
+        "labels": [CAREER, SEG, S3],
+        "desc": "Antes de exponer el formulario público: la RPC es invocable por `anon` y no tiene ninguna capa anti-abuso.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F2·7] test(e2e): subir CV → score visible en menos de 2 minutos",
-        "labels": [F2],
+        "lista": BACKLOG,
+        "nombre": "[S3] test(e2e): subir CV → score visible en menos de 2 minutos",
+        "labels": [CAREER, ENGINE, S3],
         "desc": "El DoD del Cycle 1 como test de Playwright sobre el entorno desplegado.",
     },
-    # ── F3 · Ruta ─────────────────────────────────────────────────────────
     {
-        "lista": RUTA,
-        "nombre": "[F3·1] negocio: plan de validación con Siete",
-        "labels": [F3, NEG],
+        "lista": BACKLOG,
+        "nombre": "negocio: plan de validación con Siete",
+        "labels": [NEG],
         "desc": "Skill `plan-de-validacion`. Criterios de éxito escritos en términos de negocio antes de empezar (el DoD actual es técnico) y quién participa de cada lado.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F3·2] negocio: mapa de onboarding de Siete y primer valor",
-        "labels": [F3, NEG],
-        "desc": "Skills `mapa-de-onboarding` y `estrategia-de-despliegue`: el estado actual, las fotos intermedias y en cuál ocurre el primer valor tangible. Despliegue beta con usuarios capaces, no encendido total.",
+        "lista": BACKLOG,
+        "nombre": "negocio: mapa de onboarding de Siete y primer valor",
+        "labels": [NEG],
+        "desc": "Skills `mapa-de-onboarding` y `estrategia-de-despliegue`: estado actual, fotos intermedias y en cuál ocurre el primer valor tangible. Despliegue beta, no encendido total.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F3·3] chore(infra): backups y staging antes de datos reales",
-        "labels": [F3],
-        "desc": "Hoy se promueve de CI directo a producción y la única estrategia de backups (PITR) es del plan Pro. Con candidatos reales no se puede operar así.",
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F3·4] feat(compliance): consentimiento y retención mínimos (LGPD / Habeas Data)",
-        "labels": [F3, SEG],
-        "desc": "Antes de procesar candidatos reales: consentimiento, retención por tipo de dato, exportación y borrado. El esquema hoy no tiene nada de eso (`docs/08` lo promete).",
-    },
-    {
-        "lista": RUTA,
-        "nombre": "[F3·5] negocio: 5 a 10 entrevistas de descubrimiento con consultoras tipo Siete",
-        "labels": [F3, NEG],
+        "lista": BACKLOG,
+        "nombre": "negocio: 5 a 10 entrevistas de descubrimiento con consultoras tipo Siete",
+        "labels": [NEG],
         "desc": "Skills `icp-y-senales` (ruta hipótesis) y `guion-de-descubrimiento`. Con cero clientes que hayan pagado, el ICP se descubre en conversaciones antes de invertir en pauta o en más módulos.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F3·6] docs: demo en Loom de 5 minutos (2.8)",
-        "labels": [F3],
-        "desc": "Grabar el flujo real de punta a punta una vez cerrado F2.",
-    },
-    # ── F4 · Ruta ─────────────────────────────────────────────────────────
-    {
-        "lista": RUTA,
-        "nombre": "[F4·1] negocio: ICP validado y segmento principal",
-        "labels": [F4, NEG],
-        "desc": "Hipótesis actual: consultoras de selección y RPO pequeñas y medianas en LATAM que reclutan para varias empresas cliente — el perfil de Siete. Se valida con F3·5.",
+        "lista": BACKLOG,
+        "nombre": "negocio: ICP validado y segmento principal",
+        "labels": [NEG],
+        "desc": "Hipótesis: consultoras de selección y RPO pequeñas y medianas de LATAM que reclutan para varias empresas cliente — el perfil de Siete.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F4·2] negocio: unidad operativa de precio y paquetes",
-        "labels": [F4, NEG],
-        "desc": "Skill `pricing-de-ia`. El pricing v2 cuenta \"jobs HR/mes\" y \"empresas\" por plan: afinar a una unidad que el cliente entienda (vacantes activas o candidatos evaluados), con bolsa y excedente. Nunca tokens.",
+        "lista": BACKLOG,
+        "nombre": "negocio: unidad operativa de precio y paquetes",
+        "labels": [NEG],
+        "desc": "Skill `pricing-de-ia`. El pricing v2 cuenta \"jobs HR/mes\" y \"empresas\": afinar a una unidad que el cliente entienda (vacantes activas o candidatos evaluados), con bolsa y excedente. Nunca tokens.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F4·3] feat(hr-engine): regla de continuidad cuando se agota el presupuesto",
-        "labels": [F4],
-        "desc": "Hoy `CostCapExceededError` corta la ejecución en seco: es el \"bloqueo de proceso\" que `pricing-de-ia` prohíbe. Antes de los presupuestos por tenant: degradar a un modelo más barato o diferir, sin detener el proceso del cliente.",
+        "lista": BACKLOG,
+        "nombre": "chore(infra): backups y staging antes de datos reales",
+        "labels": [DATOS],
+        "desc": "Hoy se promueve de CI directo a producción y la única estrategia de backups (PITR) es del plan Pro. Con candidatos reales no se puede operar así.",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F4·4] fix(db): decidir force row level security",
-        "labels": [F4, SEG],
-        "desc": "Depende de la respuesta sobre `BYPASSRLS` de F2·2. Ver `0004` §9.",
+        "lista": BACKLOG,
+        "nombre": "feat(compliance): consentimiento y retención mínimos (LGPD / Habeas Data)",
+        "labels": [DATOS, SEG],
+        "desc": "Antes de procesar candidatos reales: consentimiento, retención por tipo de dato, exportación y borrado. El esquema no tiene nada de eso (`docs/08` lo promete).",
     },
     {
-        "lista": RUTA,
-        "nombre": "[F4·5] refactor(hr-engine): un solo camino de escritura para runs",
-        "labels": [F4],
-        "desc": "Hoy conviven la sesión sin contexto de tenant y la policy `runs_tenant_write`. ADR-004 pide la segunda (defensa en profundidad).",
+        "lista": BACKLOG,
+        "nombre": "feat(hr-engine): regla de continuidad cuando se agota el presupuesto",
+        "labels": [ENGINE],
+        "desc": "Hoy `CostCapExceededError` corta en seco: es el \"bloqueo de proceso\" que prohíbe `pricing-de-ia`. Degradar a un modelo más barato o diferir, sin detener el proceso del cliente.",
     },
-    # ── Aparcado ──────────────────────────────────────────────────────────
-    *[
-        {"lista": APARCADO, "nombre": n, "labels": [DEUDA], "desc": desc}
-        for n, desc in [
-            ("2.2 · Portal de candidato — evaluar fusionarlo con career-site", "Misma audiencia y su flujo empieza en career-site (aplicar → estado → test): una app menos."),
-            ("2.3 · Kanban HRBP con @dnd-kit y Realtime", "Hoy App.tsx son KPIs escritos a mano."),
-            ("2.4 · Skill chro-intake", "SKILL.md + golden set."),
-            ("2.5 · Golden set con ≥ 10 CVs reales y evaluador conectado al modelo", "Hoy hay 8 casos y `_run_cv_evaluator()` lanza excepción a propósito."),
-            ("Skills HR restantes: psicométrico, entrevistador, onboarder", "El charter promete 6 skills HR y existen 2."),
-            ("Sales engine multi-tenant", "Las 11 skills de prospección del taller son, en la práctica, su especificación."),
-            ("Tailwind 3 → 4 (configuración CSS-first)", "El preset JS habría que cargarlo con `@config`."),
-            ("Acotar con TO authenticated las 20 policies restantes", "Solo una rompía (0006 §2). Las otras son coste de planner y una mina a futuro."),
-            ("Feature flags, Doppler, OpenTelemetry y branch protection", "Referenciados en la documentación y sin integrar."),
-            ("Recall de pgvector: filtrar por empresa_id en el SQL", "RLS se aplica después del scan del índice."),
-            ("activity_log: cadena de hash real, particionado y purga", "Hoy la cadena de hash es decorativa."),
-            ("Cifrado de columna: raw_answers y transcript", "`docs/08` dice que deberían ir cifrados."),
-        ]
-    ],
-    # ── Hecho (antes del tablero) ─────────────────────────────────────────
     {
-        "lista": HECHO,
+        "lista": BACKLOG,
+        "nombre": "fix(db): decidir force row level security",
+        "labels": [DATOS, SEG],
+        "desc": "Depende de la respuesta sobre `BYPASSRLS` al provisionar Supabase. Ver `0004` §9.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "refactor(hr-engine): un solo camino de escritura para runs",
+        "labels": [ENGINE],
+        "desc": "Hoy conviven la sesión sin contexto de tenant y la policy `runs_tenant_write`. ADR-004 pide la segunda.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "docs: demo en Loom de 5 minutos",
+        "labels": [PLAT],
+        "desc": "Grabar el flujo real de punta a punta cuando el DoD del Cycle 1 esté cerrado.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat(candidate): portal del candidato — evaluar fusionarlo con career-site",
+        "labels": [CANDIDATE],
+        "desc": "Rutas `/`, `/applications/:id`, `/test/:token`, `/profile`. Misma audiencia que career-site y su flujo empieza ahí: conviene meterlo como rutas autenticadas de career-site en vez de una tercera app.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat(hrbp): kanban de vacantes con @dnd-kit y Realtime",
+        "labels": [HRBP],
+        "desc": "Hoy `App.tsx` son 100 líneas con KPIs escritos a mano y tres dependencias de datos sin usar.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat(agentes): skill chro-intake",
+        "labels": [AGENTES],
+        "desc": "SKILL.md + golden set. El charter promete 6 skills HR y existen 2.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat(agentes): golden set con ≥ 10 CVs reales y evaluador conectado al modelo",
+        "labels": [AGENTES],
+        "desc": "Hoy hay 8 casos y `_run_cv_evaluator()` lanza excepción a propósito.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat(agentes): skills HR restantes — psicométrico, entrevistador, onboarder",
+        "labels": [AGENTES],
+        "desc": "Las tres que faltan para las 6 del charter.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "feat: sales engine multi-tenant",
+        "labels": [PLAT],
+        "desc": "Las 11 skills de prospección del taller son, en la práctica, su especificación.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "chore(career-site, hrbp): Tailwind 3 → 4 (configuración CSS-first)",
+        "labels": [CAREER, HRBP, DEUDA],
+        "desc": "El preset JS habría que cargarlo con `@config`.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "fix(db): acotar con TO authenticated las 20 policies restantes",
+        "labels": [DATOS, DEUDA],
+        "desc": "Solo una rompía (0006 §2). Las otras son coste de planner y una mina a futuro.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "chore(plataforma): feature flags, Doppler, OpenTelemetry y branch protection",
+        "labels": [PLAT, DEUDA],
+        "desc": "Referenciados en la documentación y sin integrar.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "fix(db): recall de pgvector — filtrar por empresa_id en el SQL",
+        "labels": [DATOS, DEUDA],
+        "desc": "RLS se aplica después del scan del índice: un tenant chico puede recibir 0 resultados teniendo candidatos perfectos.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "fix(db): activity_log — cadena de hash real, particionado y purga",
+        "labels": [DATOS, DEUDA],
+        "desc": "Hoy la cadena de hash no la calcula ni valida nada: es decorativa.",
+    },
+    {
+        "lista": BACKLOG,
+        "nombre": "fix(db): cifrado de columna en raw_answers y transcript",
+        "labels": [DATOS, SEG, DEUDA],
+        "desc": "`docs/08` dice que deberían ir cifrados y están en claro.",
+    },
+    # ── Histórico ─────────────────────────────────────────────────────────
+    {
+        "lista": HIST_L,
         "nombre": "Sesión 5 · career-site y hrbp desplegados en Vercel",
-        "labels": [HIST],
+        "labels": [CAREER, HRBP],
         "desc": d("""
             Dos proyectos enlazados al repo; cada push a `main` despliega solo.
             - https://vortex-career-site.vercel.app
             - https://vortex-hrbp.vercel.app
-
-            El primer intento falló por un `ignoreCommand` que llamaba a un binario inexistente.
         """) + "\n\n" + commits("1a3f0b8", "416e843"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 5 · Repo publicado en GitHub",
-        "labels": [HIST],
+        "labels": [PLAT],
         "desc": "Force-push de `main` a `Ily192/Vector-HR-Tech`; el scaffold anterior quedó en el tag `legacy/ai-studio-scaffold`. Verificado: ningún secreto entre los objetos publicados.\n\n" + commits("6d61dcb", "617e5b4"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 5 · Token de GitHub fuera de git",
-        "labels": [HIST, SEG],
+        "labels": [PLAT, SEG],
         "desc": "`var-local.txt` y `var-local.env` estaban sin trackear y sin ignorar en un repo público.\n\n" + commits("c4ced74"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 5 · Auditoría del registro: compose de dev, shim y cobertura",
-        "labels": [HIST],
+        "labels": [DATOS, PLAT],
         "desc": "El compose de desarrollo montaba solo hasta 0005, su shim arrastraba el bug de `auth.uid()` y la mitad del fix de 0006 no la ejecutaba ningún test.\n\n" + commits("e0acf05", "5b19f75"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 4 · RLS contra Postgres real: tres bugs de esquema (0006)",
-        "labels": [HIST, SEG],
+        "labels": [DATOS, SEG],
         "desc": "Primera ejecución real de las migraciones y de los tests de RLS. El test psicométrico estaba muerto por dos bugs en serie.\n\n" + commits("bf76adb", "36fa30e"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 3 · hr-engine arranca, se autentica y persiste los runs",
-        "labels": [HIST],
+        "labels": [ENGINE],
         "desc": commits("b046cf3"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 3 · Escaladas multi-tenant cerradas y gates que pueden fallar",
-        "labels": [HIST, SEG],
+        "labels": [DATOS, SEG],
         "desc": "Tres vías por las que un anónimo tomaba control de un tenant (0004, 0005), tests de seguridad y un CI que ya puede fallar.\n\n" + commits("caacc49", "42d42f9"),
     },
     {
-        "lista": HECHO,
+        "lista": HIST_L,
         "nombre": "Sesión 3 · El monorepo compila por primera vez + lockfiles",
-        "labels": [HIST],
+        "labels": [PLAT],
         "desc": commits("4474f9b"),
     },
 ]
@@ -683,14 +774,11 @@ def poblar() -> None:
     if ya:
         raise SystemExit(f"El tablero ya tiene {len(ya)} tarjetas; no lo toco. Revísalo con `estado`.")
 
-    # Las listas que traiga el tablero están vacías (se acaba de comprobar): se archivan,
-    # no se borran, así que se pueden recuperar desde el menú del tablero.
     archivadas = 0
     for lst in api("GET", f"/boards/{bid}/lists", {"filter": "open", "fields": "name"}):
         api("PUT", f"/lists/{lst['id']}/closed", {"value": "true"})
         archivadas += 1
 
-    # Las etiquetas de colores sin nombre que trae Trello por defecto se reutilizan.
     sin_nombre: dict[str, str] = {}
     for lab in api("GET", f"/boards/{bid}/labels", {"fields": "name,color"}):
         if not lab.get("name") and lab.get("color"):
@@ -728,7 +816,7 @@ def poblar() -> None:
 
     print(f"Tablero lleno: {board['url']}")
     print(f"  listas archivadas: {archivadas} · etiquetas reutilizadas: {reutilizadas}")
-    print(f"  {len(LISTAS)} listas · {len(ETIQUETAS)} etiquetas · {len(TARJETAS)} tarjetas · {n_items} items de checklist")
+    print(f"  {len(LISTAS)} listas · {len(ETIQUETAS)} etiquetas · {len(TARJETAS)} tarjetas · {n_items} items")
 
 
 def _buscar_tarjeta(bid: str, texto: str) -> dict:
