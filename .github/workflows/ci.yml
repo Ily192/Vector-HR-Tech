@@ -148,8 +148,9 @@ jobs:
   integration-py:
     name: Integration tests (Python + Postgres + Redis)
     runs-on: ubuntu-latest
-    # Skip hasta que existan tests de integración reales (cycle 1 entregable).
-    if: false
+    # Estuvo en `if: false` hasta la sesión 7, esperando tests de integración
+    # reales. El primero es tests/integration/test_event_loops.py, la regresión
+    # del motor sin pool para los workers, así que el job ya tiene trabajo.
     services:
       postgres:
         image: pgvector/pgvector:pg15

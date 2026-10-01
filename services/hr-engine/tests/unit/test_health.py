@@ -85,7 +85,7 @@ def test_dependency_check_swallows_errors_and_reports_down(
         async def __aexit__(self, *_a: object) -> None:
             return None
 
-    monkeypatch.setattr(health, "db_session", lambda: _BrokenSession())
+    monkeypatch.setattr(health, "api_session", lambda: _BrokenSession())
 
     import asyncio
 
