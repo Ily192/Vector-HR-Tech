@@ -4,6 +4,63 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-09-14 · Sesión 6 — Auditoría contra las skills, ruta por fases y tablero
+
+**Duración:** una jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)
+
+### Cómo empezó
+
+Ilyra dejó en la raíz del repo una carpeta `skills/` con dos tipos de material: sus dos skills de ingeniería (alinear con la documentación oficial antes de tocar código; refactorizar hacia Clean Architecture) y las 35 skills del taller "skills claude crear SaaS" (prospección, cierre, customer success). Pidió auditar todo lo hecho con esa vara y proponer una ruta clara para seguir construyendo.
+
+### La auditoría
+
+Tres lentes: Clean Architecture sobre el código, documentación oficial sobre el stack (consultada en la web, como exige la propia skill) y las skills de negocio sobre el producto. Se ejecutó todo lo que se podía verificar.
+
+**Lo que más pesa:**
+
+- **Una de cada dos evaluaciones se pierde en silencio.** `app/database.py` crea el motor async a nivel de módulo y cada tarea de Celery lo usa desde un `asyncio.run()` nuevo. Reproducido con el `db_session()` real contra Postgres: en 3 corridas de 4 tareas fallan siempre la 1 y la 3 (`Event loop is closed`); con `NullPool`, 12/12. El error no cuenta como transitorio y `claim_run` está fuera del `try`, así que no hay reintento y el run queda `pending` para siempre.
+- **Los SKILL.md son decorativos.** Ningún runtime los lee y `skills-sdk` no tiene consumidores. El prompt real está escrito a mano en `scoring.py`, sin la calibración del score ni la regla anti-sesgo del SKILL.md. El siguiente paso de un candidato lo elige el LLM sin reglas, y nada comprueba que cuadre con el score.
+- **Next 14 en producción sin soporte** desde el 26-oct-2025. Next 15 lo pierde el 21-oct-2026, así que se va directo a 16.
+- **0 de 37 skills pasaban el validador oficial de Agent Skills**: las 35 del taller por YAML roto, y las 2 de producto por usar campos fuera del estándar.
+- **Otra vez, deriva entre lo declarado y lo ejecutado**: ADR-008 y los SKILL.md citan un modelo retirado; el fallback declarado no existe; el contrato Zod↔Pydantic que se decía "espejo" no coincide; y hay tres dependencias de hrbp sin usar.
+
+**Lo que se descartó al verificarlo:** la noticia de que OpenAI había retirado `gpt-4o` de la API. El aviso oficial solo retira el snapshot `2024-05-13` y `chatgpt-4o-latest`.
+
+**Por el lado de negocio**, con las skills del taller: la taxonomía clasifica el reclutamiento como proceso horizontal; con cero clientes que hayan pagado, el ICP y el precio son hipótesis; y el cost cap que corta la ejecución en seco es el "bloqueo de proceso" que prohíbe `pricing-de-ia`.
+
+### Decisiones de Ilyra
+
+1. **Ruta por prioridad**: F0 (tapar lo silencioso) → F1 (Clean Architecture en el caso de uso ancla) → F2 (Next 16 + Supabase + 2.1) → F3 (validación con Siete) → F4 (decisiones de negocio). Reordena lo acordado en la sesión 5, que ponía Supabase y 2.1 primero: 2.1 alimenta justo el worker que pierde la mitad de las evaluaciones.
+2. **Las skills del taller también pasan a Claude skills**, no solo las de ingeniería.
+3. **El desarrollo se lleva en Trello**, un PR por tarjeta, "tal cual metodología de desarrollo con un PM".
+
+### Skills
+
+Las 2 de ingeniería quedaron en `.claude/skills/` del proyecto. Las 35 del taller, como skills personales en `~/.claude/skills/`, fuera del repo porque no traen licencia de redistribución. El único cambio sobre el original fue entrecomillar el `description`. **37/37 válidas** con `skills-ref`. La carpeta fuente `/skills/` sale de git.
+
+Rama `chore/claude-skills` (`843e32e`); Vercel generó los previews en verde. **El PR no se pudo abrir**: al token de GitHub le falta el permiso de PRs.
+
+### El mejor cliente
+
+Con el benchmark de `Portal-HR/01_BENCHMARK_v1.md`, la arquitectura v2 y los flujos n8n que corrían en Siete, la respuesta es: **consultoras de selección y RPO pequeñas y medianas de LATAM que reclutan para varias empresas cliente**. Es una hipótesis con un solo caso, que no paga; se valida en F3. El benchmark solo compara contra jugadores enterprise de EE. UU., y el competidor real de este segmento son sus propias automatizaciones (Sheets, Gmail, Trello, n8n).
+
+### El tablero
+
+Metodología: Shape Up, que el proyecto ya declara y que descarta el Kanban puro, con un flujo Kanban por PR; las columnas del medio son la *hill chart*. El tablero entero es código: `scripts/trello_vortex.py` crea 8 columnas, 10 etiquetas y 57 tarjetas (guía, F0-F4 por prioridad, aparcado e histórico de las sesiones 3-5 con enlaces a sus commits), y después las mueve, comenta y adjunta. Se autocomprobó sin llamar a la API: sin errores.
+
+**Sigue sin llenar.** Ilyra creó el tablero (https://trello.com/b/Vxsv1fn7/vortexhr, privado) y puso un token en `var-local.env`, pero es un **API token de Atlassian** (`ATATT…`), no uno de la API de Trello. Se comprobó sin mostrarlo: Trello responde 401 de las tres formas posibles.
+
+### Errores propios que vale la pena registrar
+
+- En la auditoría dije que **no había unidad de precio definida en ningún doc**. Era cierto para el repo, pero `Portal-HR/02_ARCHITECTURE_v2.md` sí esboza una: cupos de "jobs HR/mes" y de "empresas" por plan. Corregido en la misma sesión.
+- **La regla `skills/` sin barra** ignoraba también `.claude/skills/` y `.agents/skills/`. Se detectó con `git check-ignore` antes de commitear y quedó anclada como `/skills/`.
+
+### Para retomar
+
+Ver `docs/runbooks/next-steps.md` § "Ruta y pendientes": primero las credenciales de Trello y el permiso de PRs; después `poblar`, abrir los tres PRs y empezar por [F0·1].
+
+---
+
 ## 2026-09-09 · Sesión 5 — Auditar el registro, y un token a punto de hacerse público
 
 **Duración:** media jornada · **Modo:** Auto · **Modelo:** Claude Opus 5
