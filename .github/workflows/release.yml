@@ -45,6 +45,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: services/${{ matrix.service }}
+          # Solo hr-engine lo usa: sus SKILL.md de producto (ver su Dockerfile).
+          build-contexts: ${{ matrix.service == 'hr-engine' && 'skills=.agents/skills' || '' }}
           push: true
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}

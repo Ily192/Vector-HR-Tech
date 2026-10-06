@@ -1,6 +1,6 @@
 ---
 name: sourcer
-version: 0.1.0
+version: 0.1.1
 description: Encuentra y rankea candidatos según el ICP del HRBP. Devuelve top-N con score 0-10, rationale y gaps.
 owner: Vortex Ops · HR engine
 domain: hr
@@ -18,8 +18,9 @@ outputs:
   - gaps (lista)
   - source
 models:
-  default: gemini-1.5-flash
-  fallback: gpt-4o-mini
+  # Tiene que coincidir con DEFAULT_SCORING_MODEL del hr-engine. Sin fallback:
+  # el código no tiene ninguno. Lo vigila services/hr-engine/tests/unit/test_skills.py.
+  default: gemini-2.5-flash
 cost_cap_usd: 0.05
 tags:
   - hr
@@ -75,6 +76,7 @@ class CandidateScored(BaseModel):
    - Bumeran: 1 req/1s, max 200/run.
 5. **Idempotencia:** mismo input + mismo timestamp de día → mismo output (cache 24h).
 6. **Compliance:** datos de fuentes públicas solo se persisten si el tenant tiene base legal (consentimiento o interés legítimo declarado).
+7. **Puntuación de cada candidato:** usa las reglas del SKILL.md de `cv-evaluator` —calibración del score y regla anti-sesgo—, que es exactamente lo que recibe el modelo. No se repiten aquí para que no puedan divergir.
 
 ## Few-shot examples
 
@@ -105,9 +107,11 @@ sources: ["internal"]
 
 - Input tokens promedio: ~2,500 (vacante + ICP + 50 perfiles top-K).
 - Output tokens promedio: ~800 (50 candidatos × 16 tokens).
-- Costo Gemini 1.5 Flash: ~$0.0007/run.
+- Costo: ~$0.0007/run, estimado con Gemini 1.5 Flash, ya retirado. Pendiente de re-medir con 2.5 Flash.
 - Costo embedding inicial: ~$0.0001 si vacante no embeddida.
 
 ## Changelog
 
+- **0.1.1 (2026-10-05):** modelo `gemini-1.5-flash` (retirado) → `gemini-2.5-flash`, fuera el
+  fallback que el código no tiene, y la regla 7: la puntuación usa las reglas de `cv-evaluator`.
 - **0.1.0 (2026-05-08):** initial skill, internal source only.

@@ -101,6 +101,12 @@ class Settings(BaseSettings):
     gemini_timeout_seconds: float = 60.0
     llm_max_attempts: int = 3
 
+    # ─── Skills ──────────────────────────────────────────
+    # Directorio con los SKILL.md de producto (`<dir>/<skill>/SKILL.md`), que
+    # son las instrucciones que recibe el modelo (ver app/skills.py). Vacío =
+    # el `.agents/skills` de la raíz del monorepo. La imagen fija /app/skills.
+    skills_dir: str = ""
+
     # ─── Control plane ───────────────────────────────────
     paperclip_url: str = "http://localhost:4000"
     paperclip_api_key: str = ""
