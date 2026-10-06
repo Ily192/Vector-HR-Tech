@@ -1,4 +1,7 @@
 version: 2
+# cooldown: Dependabot espera 7 días antes de proponer una versión recién
+# publicada, que es cuando suelen detectarse los paquetes comprometidos. Solo
+# aplica a actualizaciones de versión: las de seguridad no esperan.
 updates:
   - package-ecosystem: "npm"
     directory: "/"
@@ -19,11 +22,14 @@ updates:
         patterns: ["react", "react-dom", "@types/react*"]
     commit-message:
       prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "pip"
     directory: "/services/hr-engine"
     schedule: { interval: "weekly", day: "monday" }
     commit-message: { prefix: "chore(hr-engine deps)" }
+    cooldown: { default-days: 7 }
 
   # sales-engine se scaffoldea en Cycle 3. Mientras el directorio solo tenga
   # un README, apuntar dependabot ahi produce un error permanente.
@@ -36,8 +42,10 @@ updates:
     directory: "/"
     schedule: { interval: "weekly", day: "monday" }
     commit-message: { prefix: "chore(actions)" }
+    cooldown: { default-days: 7 }
 
   - package-ecosystem: "docker"
     directory: "/services/hr-engine"
     schedule: { interval: "weekly", day: "monday" }
     commit-message: { prefix: "chore(docker hr-engine)" }
+    cooldown: { default-days: 7 }

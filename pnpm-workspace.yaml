@@ -1,3 +1,8 @@
+# blockExoticSubdeps, minimumReleaseAge y trustPolicy (lo que pide Semgrep) solo
+# existen desde pnpm 10.16-10.26, y este repo usa pnpm 9.7.0 (packageManager):
+# escritos aquí, pnpm 9 los ignoraría en silencio y parecería que protegen.
+# Se activan al subir a pnpm 10; hay tarjeta en el tablero.
+# nosemgrep: pnpm-block-exotic-sub-dependencies, pnpm-minimum-release-age, pnpm-trust-policy
 packages:
   - "apps/*"
   - "packages/*"
