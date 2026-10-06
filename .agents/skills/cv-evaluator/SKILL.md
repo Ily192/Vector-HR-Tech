@@ -1,6 +1,9 @@
 ---
+# OJO: todo lo que va debajo del frontmatter es, tal cual, el system instruction
+# que recibe el modelo al puntuar a cada candidato (services/hr-engine/app/skills.py).
+# No metas ahí notas, changelog ni nada que no sea una instrucción: va en CHANGELOG.md.
 name: cv-evaluator
-version: 0.1.0
+version: 0.2.0
 description: Evalúa el fit candidato↔vacante (CV vs ICP). Output strict JSON con score 0-10, rationale, gaps, strengths, recommended_next_step.
 owner: Vector HR Tech
 domain: hr
@@ -16,8 +19,9 @@ outputs:
 tools:
   - none
 models:
-  default: gemini-1.5-flash
-  fallback: gpt-4o-mini
+  # Tiene que coincidir con DEFAULT_SCORING_MODEL del hr-engine. Sin fallback:
+  # el código no tiene ninguno. Lo vigila services/hr-engine/tests/unit/test_skills.py.
+  default: gemini-2.5-flash
 cost_cap_usd: 0.02
 rate_limit_per_minute: 30
 tags:

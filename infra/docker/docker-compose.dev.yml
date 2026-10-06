@@ -62,6 +62,9 @@ services:
     build:
       context: ../../services/hr-engine
       dockerfile: Dockerfile
+      # Los SKILL.md de producto entran como contexto con nombre (ver el Dockerfile).
+      additional_contexts:
+        skills: ../../.agents/skills
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -83,6 +86,9 @@ services:
     build:
       context: ../../services/hr-engine
       dockerfile: Dockerfile
+      # Los SKILL.md de producto entran como contexto con nombre (ver el Dockerfile).
+      additional_contexts:
+        skills: ../../.agents/skills
     restart: unless-stopped
     # El Dockerfile arranca la API por default; el worker es el mismo image con
     # otro comando. Este override es el que faltaba en el compose.

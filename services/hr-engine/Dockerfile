@@ -33,6 +33,15 @@ WORKDIR /app
 # non-root user
 RUN useradd -r -u 1000 -m vortex
 COPY --from=builder --chown=vortex:vortex /app /app
+
+# Los SKILL.md de producto: su cuerpo es el system instruction que recibe el
+# modelo (app/skills.py). Viven fuera de este contexto, en .agents/skills de la
+# raíz del monorepo, y entran como contexto con nombre: el compose lo pasa con
+# `additional_contexts` y CI con `build-contexts`. Un build sin él falla aquí
+# —con un error de pull de una imagen `skills` que no existe— en vez de dar una
+# imagen cuyo worker no sabe con qué reglas puntuar.
+COPY --from=skills --chown=vortex:vortex . /app/skills
+ENV SKILLS_DIR=/app/skills
 USER vortex
 
 EXPOSE 8000

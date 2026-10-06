@@ -10,6 +10,10 @@ Resiliencia:
 - Retries sobre las excepciones reales (`google.genai.errors.ServerError`,
   `ClientError` 429, timeouts httpx) vía `app.clients.errors`.
 
+Instrucciones: el system instruction es el cuerpo del SKILL.md de
+`cv-evaluator`, cargado por `app.skills`. Antes era un texto escrito aquí a
+mano que había perdido la calibración del score y la regla anti-sesgo.
+
 Privacidad: los logs de este módulo NO llevan PII. El prompt contiene el CV de
 una persona real, así que nunca logueamos `response.text` crudo ni el nombre
 del candidato; usamos un hash corto (`candidate_ref`) que permite correlacionar
@@ -36,6 +40,7 @@ from tenacity import (
 from app.clients.errors import is_retryable_llm_error, log_retry_attempt
 from app.config import settings
 from app.monitoring import hash_pii, logger
+from app.skills import load_skill
 
 #: Pricing USD por 1M tokens. Fuente: Google AI pricing (2026-09).
 _PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
@@ -66,12 +71,14 @@ class ScoringResult:
     model: str
 
 
-_SYSTEM_INSTRUCTION = (
-    "Sos un evaluador HR senior. Evalúa el fit candidato↔vacante con "
-    "rigor. Salida ESTRICTA en JSON matching el schema. No inventes "
-    "experiencia que no está en el CV. Sé conciso (rationale ≤ 300 "
-    "palabras). Idioma: español neutro LATAM."
-)
+#: Las reglas de puntuación —calibración del score, regla anti-sesgo, no
+#: inventar experiencia— viven en el SKILL.md de cv-evaluator. Son las mismas
+#: para el sourcer, que puntúa a cada candidato con esta misma función.
+SCORING_SKILL = "cv-evaluator"
+
+
+def _system_instruction() -> str:
+    return load_skill(SCORING_SKILL).instructions
 
 
 @lru_cache(maxsize=1)
@@ -96,7 +103,7 @@ def reset_client_cache() -> None:
 
 def _generation_config() -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
-        system_instruction=_SYSTEM_INSTRUCTION,
+        system_instruction=_system_instruction(),
         response_mime_type="application/json",
         temperature=0.2,
         top_p=0.95,
