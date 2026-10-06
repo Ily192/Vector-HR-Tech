@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 
 from app.config import settings
-from app.database import db_session
+from app.database import api_session
 from app.monitoring import logger
 
 router = APIRouter()
@@ -38,7 +38,7 @@ async def liveness() -> dict[str, str]:
 
 async def _check_postgres() -> bool:
     try:
-        async with asyncio.timeout(_PING_TIMEOUT_SECONDS), db_session() as db:
+        async with asyncio.timeout(_PING_TIMEOUT_SECONDS), api_session() as db:
             await db.execute(text("select 1"))
         return True
     except Exception as exc:
