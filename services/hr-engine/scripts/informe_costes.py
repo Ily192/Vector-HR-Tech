@@ -66,7 +66,9 @@ async def main(dias: int) -> None:
         if not filas:
             print("Sin ejecuciones completadas en ese periodo.")
             return
-        print(f"{'skill':16} {'runs':>5} {'total':>10} {'media':>10} {'p50':>10} {'p95':>10} {'máx':>10}")
+        print(
+            f"{'skill':16} {'runs':>5} {'total':>10} {'media':>10} {'p50':>10} {'p95':>10} {'máx':>10}"
+        )
         for f in filas:
             print(
                 f"{f['agent_skill']:16} {f['runs']:>5} {_usd(f['total']):>10} {_usd(f['media']):>10} "
@@ -74,7 +76,9 @@ async def main(dias: int) -> None:
             )
         print("\nPor paso (media por run):")
         for f in await conn.fetch(_POR_PASO, dias):
-            print(f"  {f['agent_skill']:16} {f['paso']:22} {_usd(f['media']):>10}  ({f['runs']} runs)")
+            print(
+                f"  {f['agent_skill']:16} {f['paso']:22} {_usd(f['media']):>10}  ({f['runs']} runs)"
+            )
         print("\nPor modelo:")
         for f in await conn.fetch(_POR_MODELO, dias):
             print(f"  {f['modelo']:22} {f['runs']:>5} runs   media {_usd(f['media'])}")
