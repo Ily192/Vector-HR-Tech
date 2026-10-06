@@ -115,6 +115,9 @@ async def get_run(db: AsyncSession, run_id: UUID | str) -> RunRow | None:
     row = (
         (
             await db.execute(
+                # Interpola _SELECT_COLUMNS, una constante de este módulo; los valores
+                # van como parámetros (:id, :empresa_id...). Falso positivo de auditoría.
+                # nosemgrep: avoid-sqlalchemy-text
                 text(f"select {_SELECT_COLUMNS} from runs where id = :id"),
                 {"id": str(run_id)},
             )
@@ -212,6 +215,9 @@ async def claim_run(
     claimed = (
         (
             await db.execute(
+                # Interpola _SELECT_COLUMNS, una constante de este módulo; los valores
+                # van como parámetros (:id, :empresa_id...). Falso positivo de auditoría.
+                # nosemgrep: avoid-sqlalchemy-text
                 text(
                     f"""
                 update runs
