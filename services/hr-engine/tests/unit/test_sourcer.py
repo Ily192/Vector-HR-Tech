@@ -202,7 +202,9 @@ async def test_run_with_vacante_id_persists_applications(
     # El estado del run se persiste de verdad (antes era un UPDATE a 0 filas).
     finish = patched_world["finish"][-1]
     assert finish["status"] == runs_repo.STATUS_COMPLETED
-    assert finish["payload"] == {"candidates_found": 3, "capped": False}
+    assert finish["payload"]["candidates_found"] == 3
+    assert finish["payload"]["capped"] is False
+    assert finish["payload"]["cost_breakdown"]  # el gasto real queda desglosado
     assert finish["cost_usd"] > 0
 
 
@@ -302,6 +304,7 @@ async def test_run_respects_cost_cap(
     patched_world: dict[str, Any],
 ) -> None:
     """Si el cap es muy bajo, el sourcer corta antes y marca capped=True."""
+    monkeypatch.setattr(sourcer_mod.settings, "enforce_run_cost_cap", True)
 
     async def expensive_score(candidate: dict[str, Any], icp_text: str) -> ScoringResult:
         result = _make_scoring_result(6.0)
@@ -362,6 +365,8 @@ async def test_expensive_embedding_caps_before_scoring(
     monkeypatch: pytest.MonkeyPatch,
     patched_world: dict[str, Any],
 ) -> None:
+    monkeypatch.setattr(sourcer_mod.settings, "enforce_run_cost_cap", True)
+
     async def pricey_embed(_text: str, *, model: str | None = None) -> EmbeddingResult:
         return _make_embedding_result(cost=1.0)
 

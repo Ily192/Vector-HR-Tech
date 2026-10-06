@@ -34,6 +34,7 @@ from celery import Task
 from app.clients.embeddings import embed_text
 from app.clients.errors import is_transient_error
 from app.clients.scoring import score_candidate_fit
+from app.config import settings
 from app.database import db_session
 from app.monitoring import bind_log_context, clear_log_context, logger
 from app.repositories import hr as hr_repo
@@ -219,7 +220,7 @@ async def _run(
     # del except y la fila se quedaba en `pending` para siempre, sin rastro.
     # Por eso el tracker se crea antes: si el claim revienta, el except lo
     # necesita. El cap definitivo lo baja el claim unas líneas más abajo.
-    cost_tracker = CostTracker(cap_usd=cost_cap_usd)
+    cost_tracker = CostTracker(cap_usd=cost_cap_usd, enforce=settings.enforce_run_cost_cap)
 
     try:
         claim = await run_state.claim_run(
@@ -281,7 +282,12 @@ async def _run(
             run_id=run_id,
             status=runs_repo.STATUS_COMPLETED,
             cost_usd=cost_tracker.spent_usd,
-            payload={"candidates_found": len(top), "capped": capped},
+            payload={
+                "candidates_found": len(top),
+                "capped": capped,
+                # Para medir el coste real por paso (embeddings vs. scoring).
+                "cost_breakdown": {k: round(v, 6) for k, v in cost_tracker.breakdown.items()},
+            },
         )
     except Exception as exc:
         # El cost cap excedido (o cualquier otra excepción) ahora deja rastro:
