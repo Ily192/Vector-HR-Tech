@@ -121,3 +121,41 @@ def client() -> Iterator[TestClient]:
 def empresa_id() -> UUID:
     """UUID único por test — aísla la key del rate limiter por tenant."""
     return uuid4()
+
+
+class FakeRedis:
+    """Redis mínimo en memoria para el circuit breaker (sin TTL real)."""
+
+    def __init__(self) -> None:
+        self.datos: dict[str, Any] = {}
+        self.ttl: dict[str, int] = {}
+
+    def exists(self, *claves: str) -> int:
+        return sum(1 for c in claves if c in self.datos)
+
+    def delete(self, *claves: str) -> int:
+        return sum(1 for c in claves if self.datos.pop(c, None) is not None)
+
+    def incr(self, clave: str) -> int:
+        self.datos[clave] = int(self.datos.get(clave, 0)) + 1
+        return self.datos[clave]
+
+    def expire(self, clave: str, segundos: int) -> bool:
+        self.ttl[clave] = segundos
+        return True
+
+    def set(self, clave: str, valor: Any, ex: int | None = None) -> bool:
+        self.datos[clave] = valor
+        if ex is not None:
+            self.ttl[clave] = ex
+        return True
+
+
+@pytest.fixture(autouse=True)
+def fake_redis(monkeypatch: pytest.MonkeyPatch) -> FakeRedis:
+    """Ningún test unitario habla con un Redis real (ni espera sus timeouts)."""
+    from app.clients import circuit_breaker
+
+    fake = FakeRedis()
+    monkeypatch.setattr(circuit_breaker, "_redis", lambda: fake)
+    return fake
