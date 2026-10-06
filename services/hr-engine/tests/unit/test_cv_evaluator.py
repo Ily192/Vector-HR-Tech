@@ -256,3 +256,71 @@ async def test_cost_cap_exceeded_marks_run_failed(
     assert finish["status"] == runs_repo.STATUS_FAILED
     assert "CostCapExceededError" in finish["error_message"]
     assert finish["cost_usd"] == pytest.approx(1.0)
+
+
+@pytest.mark.asyncio
+async def test_si_el_claim_explota_el_run_queda_failed_no_pending(
+    monkeypatch: pytest.MonkeyPatch,
+    patched: dict[str, Any],
+) -> None:
+    """El claim estaba FUERA del try, así que su excepción se saltaba el except.
+
+    La fila `runs` se quedaba en `pending` para siempre: ni resultado, ni
+    error, ni forma de saber que esa evaluación no iba a llegar nunca.
+    """
+
+    async def claim_roto(**_kw: Any) -> runs_repo.RunClaim:
+        raise ConnectionError("postgres inalcanzable")
+
+    monkeypatch.setattr(run_state, "claim_run", claim_roto)
+
+    with pytest.raises(ConnectionError):
+        await cve_mod._run(
+            run_id=RUN_ID,
+            empresa_id=EMPRESA_ID,
+            vacante_id=VACANTE_ID,
+            candidato_id=CANDIDATO_ID,
+        )
+
+    finish = patched["finish"][-1]
+    assert finish["status"] == runs_repo.STATUS_FAILED
+    assert "ConnectionError" in finish["error_message"]
+    assert finish["cost_usd"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_si_tambien_falla_el_registro_sale_el_error_original(
+    monkeypatch: pytest.MonkeyPatch,
+    patched: dict[str, Any],
+) -> None:
+    """Registrar el fallo no puede tapar la causa.
+
+    Si Postgres está caído, el `finish_run` del except falla igual que el
+    claim. Lo que tiene que llegar al log de Celery es el error de verdad, no
+    el de la contabilidad.
+    """
+
+    intentos: list[dict[str, Any]] = []
+
+    async def claim_roto(**_kw: Any) -> runs_repo.RunClaim:
+        raise ConnectionError("postgres inalcanzable")
+
+    async def finish_roto(**kwargs: Any) -> None:
+        intentos.append(kwargs)
+        raise runs_repo.RunNotFoundError("la fila no existe")
+
+    monkeypatch.setattr(run_state, "claim_run", claim_roto)
+    monkeypatch.setattr(run_state, "finish_run", finish_roto)
+
+    with pytest.raises(ConnectionError):
+        await cve_mod._run(
+            run_id=RUN_ID,
+            empresa_id=EMPRESA_ID,
+            vacante_id=VACANTE_ID,
+            candidato_id=CANDIDATO_ID,
+        )
+
+    # Se intentó registrar el fallo (antes ni se intentaba) y aun así el error
+    # que sale es el original, no el de la contabilidad.
+    assert len(intentos) == 1
+    assert intentos[0]["status"] == runs_repo.STATUS_FAILED

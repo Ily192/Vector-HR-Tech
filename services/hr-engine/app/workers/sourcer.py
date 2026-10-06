@@ -214,27 +214,32 @@ async def _run(
         raise ValueError("empresa_id es requerido")
     vacante_uuid = _validate_uuid(vacante_id, "vacante_id")
 
-    claim = await run_state.claim_run(
-        run_id=run_id,
-        empresa_id=empresa_uuid,
-        agent_skill=AGENT_SKILL,
-        cost_cap_usd=cost_cap_usd,
-    )
-    if claim.outcome is not runs_repo.ClaimOutcome.CLAIMED:
-        log.warning("sourcer.run.skipped", outcome=str(claim.outcome))
-        clear_log_context()
-        return _deduplicated_result(
-            run_id=run_id,
-            empresa_id=empresa_uuid,
-            vacante_id=vacante_uuid,
-            run=claim.run,
-        )
-
-    # El cap efectivo nunca supera el que quedó grabado al encolar.
-    effective_cap = min(cost_cap_usd, claim.run.cost_cap_usd or cost_cap_usd)
-    cost_tracker = CostTracker(cap_usd=effective_cap)
+    # El claim va DENTRO del try. Si falla —Postgres caído, timeout— el run
+    # tiene que quedar `failed`: estando fuera, la excepción pasaba por encima
+    # del except y la fila se quedaba en `pending` para siempre, sin rastro.
+    # Por eso el tracker se crea antes: si el claim revienta, el except lo
+    # necesita. El cap definitivo lo baja el claim unas líneas más abajo.
+    cost_tracker = CostTracker(cap_usd=cost_cap_usd)
 
     try:
+        claim = await run_state.claim_run(
+            run_id=run_id,
+            empresa_id=empresa_uuid,
+            agent_skill=AGENT_SKILL,
+            cost_cap_usd=cost_cap_usd,
+        )
+        if claim.outcome is not runs_repo.ClaimOutcome.CLAIMED:
+            log.warning("sourcer.run.skipped", outcome=str(claim.outcome))
+            return _deduplicated_result(
+                run_id=run_id,
+                empresa_id=empresa_uuid,
+                vacante_id=vacante_uuid,
+                run=claim.run,
+            )
+
+        # El cap efectivo nunca supera el que quedó grabado al encolar.
+        cost_tracker.cap_usd = min(cost_cap_usd, claim.run.cost_cap_usd or cost_cap_usd)
+
         async with db_session() as db:
             await set_tenant_context(db, empresa_uuid, role="HR")
 
@@ -286,11 +291,10 @@ async def _run(
             error_type=type(exc).__name__,
             cost_usd=round(cost_tracker.spent_usd, 6),
         )
-        await run_state.finish_run(
+        await run_state.record_failure(
             run_id=run_id,
-            status=runs_repo.STATUS_FAILED,
+            exc=exc,
             cost_usd=cost_tracker.spent_usd,
-            error_message=run_state.truncate_error(exc),
         )
         raise
     finally:

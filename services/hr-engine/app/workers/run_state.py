@@ -19,6 +19,7 @@ from uuid import UUID
 
 from app.config import settings
 from app.database import db_session
+from app.monitoring import logger
 from app.repositories import runs as runs_repo
 
 #: Margen sobre el time limit antes de considerar un run `running` como colgado.
@@ -69,6 +70,30 @@ async def finish_run(
             error_message=error_message,
         )
         await db.commit()
+
+
+async def record_failure(*, run_id: str, exc: BaseException, cost_usd: float) -> None:
+    """Deja el run en `failed` sin tapar la excepción original.
+
+    El caller re-lanza `exc`, que es la causa real. Si el registro en sí falla
+    —Postgres caído, run inexistente, sesión sin permisos— se loguea y se
+    traga: una excepción lanzada desde un `except` sustituye a la original y
+    con ella se pierde el diagnóstico.
+    """
+    try:
+        await finish_run(
+            run_id=run_id,
+            status=runs_repo.STATUS_FAILED,
+            cost_usd=cost_usd,
+            error_message=truncate_error(exc),
+        )
+    except Exception as registro_exc:
+        logger.error(
+            "run.failure_not_recorded",
+            run_id=run_id,
+            error_type=type(registro_exc).__name__,
+            original_error_type=type(exc).__name__,
+        )
 
 
 def retry_countdown(retries: int, *, base: int = 5, cap: int = 60) -> int:
