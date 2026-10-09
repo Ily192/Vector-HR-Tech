@@ -43,6 +43,8 @@ dev = [
     "mypy>=1.13.0",
     "ruff>=0.7.0",
     "celery-types>=0.22.0",
+    # Tipos de PyYAML para mypy (app/skills.py importa yaml).
+    "types-pyyaml>=6.0",
 ]
 
 [build-system]
