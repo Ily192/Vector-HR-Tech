@@ -221,6 +221,8 @@ async def test_cost_cap_exceeded_marks_run_failed(
 ) -> None:
     """CostCapExceededError ahora deja `status='failed'` + `error_message`."""
 
+    monkeypatch.setattr(cve_mod.settings, "enforce_run_cost_cap", True)
+
     async def vacante_sin_embedding(_db: object, _id: object) -> hr_repo.VacanteRow:
         return hr_repo.VacanteRow(
             id=UUID(VACANTE_ID),
@@ -324,3 +326,52 @@ async def test_si_tambien_falla_el_registro_sale_el_error_original(
     # que sale es el original, no el de la contabilidad.
     assert len(intentos) == 1
     assert intentos[0]["status"] == runs_repo.STATUS_FAILED
+
+
+@pytest.mark.asyncio
+async def test_sin_tope_el_gasto_se_mide_pero_no_corta(
+    monkeypatch: pytest.MonkeyPatch,
+    patched: dict[str, Any],
+) -> None:
+    """Fase de medición (2026-10): el cap está apagado por defecto.
+
+    Un embedding de 1 USD con cap de 0.05 antes cortaba la ejecución; ahora
+    termina y deja el gasto real desglosado en el run para poder medirlo.
+    """
+    assert cve_mod.settings.enforce_run_cost_cap is False
+
+    async def vacante_sin_embedding(_db: object, _id: object) -> hr_repo.VacanteRow:
+        return hr_repo.VacanteRow(
+            id=UUID(VACANTE_ID),
+            empresa_id=UUID(EMPRESA_ID),
+            title="t",
+            jd="jd",
+            icp_text="icp",
+            icp_embedding=None,
+            status="open",
+        )
+
+    async def pricey_embed(_text: str, *, model: str | None = None) -> EmbeddingResult:
+        return EmbeddingResult(
+            vector=[0.0] * 1536,
+            token_count=10,
+            cost_usd=1.0,
+            model="text-embedding-3-small",
+        )
+
+    monkeypatch.setattr(hr_repo, "get_vacante", vacante_sin_embedding)
+    monkeypatch.setattr(cve_mod, "embed_text", pricey_embed)
+
+    result = await cve_mod._run(
+        run_id=RUN_ID,
+        empresa_id=EMPRESA_ID,
+        vacante_id=VACANTE_ID,
+        candidato_id=CANDIDATO_ID,
+        cost_cap_usd=0.05,
+    )
+
+    finish = patched["finish"][-1]
+    assert finish["status"] == runs_repo.STATUS_COMPLETED
+    assert finish["cost_usd"] == pytest.approx(result["cost_usd"])
+    assert finish["payload"]["cost_breakdown"]["embedding_icp"] == pytest.approx(1.0)
+    assert finish["payload"]["model"] == "gemini-2.5-flash"
