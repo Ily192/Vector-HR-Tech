@@ -257,13 +257,26 @@ jobs:
         with: { python-version: "${{ env.PYTHON_VERSION }}" }
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with: { version: "0.12.11" }
-      - working-directory: evals
+      # NO BLOQUEANTE por ahora (decisión de Ilyra, 2026-10-09): la suite golden
+      # tiene 0 casos y el runner trata una suite vacía como fallo, así que este
+      # paso fallaba en todo PR que tocara un SKILL.md. Sigue corriendo y su
+      # resultado se ve; solo deja de tumbar el job. Volver a bloqueante (quitar
+      # continue-on-error) en cuanto exista el golden set: tarjeta en el tablero.
+      - id: evals
+        continue-on-error: true
+        working-directory: evals
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           uv sync
           uv run python runner.py --suite golden --suite regression --fail-below-threshold
+      - name: Avisar si las evals no pasaron
+        if: steps.evals.outcome == 'failure'
+        run: |
+          echo "::warning title=Skill evals no bloqueantes::Las evals fallaron (probablemente la suite golden sigue vacía). No bloquea el PR, pero no hay evidencia de calidad de los SKILL.md."
+          echo "### ⚠️ Skill evals: fallaron, pero no bloquean" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mientras no exista el golden set, este job no mide la calidad de los SKILL.md." >> "$GITHUB_STEP_SUMMARY"
 
   # ──────────────────── Security ────────────────────
   semgrep:
