@@ -13,7 +13,7 @@ Reglas:
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import AliasChoices, Field, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Valores placeholder que jamás pueden llegar a producción.
@@ -137,6 +137,15 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.env == "production"
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _log_level_sin_mayusculas(cls, value: object) -> object:
+        """`LOG_LEVEL=DEBUG` es la forma habitual de escribirlo (y la del compose de dev).
+
+        Sin esto el Literal en minúsculas lo rechazaba y el servicio no arrancaba.
+        """
+        return value.strip().lower() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def _validate_production_hardening(self) -> "Settings":
