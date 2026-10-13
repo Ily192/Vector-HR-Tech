@@ -136,3 +136,14 @@ def test_un_skill_mal_formado_falla(skills_en_tmp: Path, contenido: str, error: 
     (directorio / "SKILL.md").write_text(contenido, encoding="utf-8")
     with pytest.raises(skills.SkillError, match=error):
         skills.load_skill("cv-evaluator")
+
+
+@pytest.mark.asyncio
+async def test_evaluacion_a_ciegas_el_nombre_no_llega_al_modelo(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Un nombre insinúa género u origen y no dice nada del encaje con el puesto."""
+    llamada = await _lo_que_recibe_el_modelo(monkeypatch)
+    assert "Ana Dev" not in llamada["contents"]
+    assert "full_name" not in llamada["contents"]
+    assert "Senior Python" in llamada["contents"]

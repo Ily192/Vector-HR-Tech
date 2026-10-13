@@ -375,3 +375,67 @@ async def test_sin_tope_el_gasto_se_mide_pero_no_corta(
     assert finish["cost_usd"] == pytest.approx(result["cost_usd"])
     assert finish["payload"]["cost_breakdown"]["embedding_icp"] == pytest.approx(1.0)
     assert finish["payload"]["model"] == "gemini-2.5-flash"
+
+
+@pytest.mark.asyncio
+async def test_evaluacion_a_ciegas_sin_nombre_en_el_texto_del_modelo(
+    monkeypatch: pytest.MonkeyPatch,
+    patched: dict[str, Any],
+) -> None:
+    """Antes el nombre iba dentro del `summary` que se puntúa y del texto del embedding."""
+    recibido: dict[str, Any] = {}
+
+    class _DbSinEmbedding(_FakeDb):
+        async def execute(self, *_a: object, **_kw: object) -> Any:
+            class _Result:
+                def mappings(self) -> Any:
+                    return self
+
+                def first(self) -> dict[str, str | None]:
+                    return {
+                        "full_name": "Ana Dev",
+                        "headline": "Senior Python",
+                        "summary": "10 años con Python",
+                        "emb": None,
+                    }
+
+            return _Result()
+
+    @asynccontextmanager
+    async def db_sin_embedding() -> AsyncIterator[_FakeDb]:
+        yield _DbSinEmbedding()
+
+    async def embed_que_graba(text: str, *, model: str | None = None) -> EmbeddingResult:
+        recibido["embedding"] = text
+        return EmbeddingResult(vector=[0.0] * 1536, token_count=1, cost_usd=0.0, model="m")
+
+    async def score_que_graba(candidate: dict[str, Any], _icp: str) -> ScoringResult:
+        recibido["candidato"] = candidate
+        return ScoringResult(
+            response=CandidateFitResponse(
+                score=7.0,
+                rationale="Encaje sólido con Python",
+                gaps=[],
+                strengths=[],
+                recommended_next_step="entrevista",
+            ),
+            input_tokens=1,
+            output_tokens=1,
+            cost_usd=0.0,
+            model="m",
+        )
+
+    monkeypatch.setattr(cve_mod, "db_session", db_sin_embedding)
+    monkeypatch.setattr(cve_mod, "embed_text", embed_que_graba)
+    monkeypatch.setattr(cve_mod, "score_candidate_fit", score_que_graba)
+
+    await cve_mod._run(
+        run_id=RUN_ID,
+        empresa_id=EMPRESA_ID,
+        vacante_id=VACANTE_ID,
+        candidato_id=CANDIDATO_ID,
+    )
+
+    assert "Ana Dev" not in recibido["embedding"]
+    assert "Ana Dev" not in (recibido["candidato"]["summary"] or "")
+    assert recibido["candidato"]["headline"] == "Senior Python"
