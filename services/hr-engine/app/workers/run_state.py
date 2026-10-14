@@ -1,10 +1,11 @@
 """Ciclo de vida de la fila `runs` desde los workers.
 
 Todas las operaciones abren su PROPIA sesión, deliberadamente sin
-`set_tenant_context`: la tabla `runs` solo tiene política RLS `for select`, así
-que bajo el rol `authenticated` un INSERT falla y un UPDATE matchea 0 filas
-(exactamente el bug que hacía que `update_run_status` fuera un no-op).
-El aislamiento por tenant se mantiene comparando el `empresa_id` del run-token
+`set_tenant_context`. Origen: la tabla `runs` solo tenía política RLS
+`for select`, así que bajo el rol `authenticated` un INSERT fallaba y un UPDATE
+matcheaba 0 filas (el bug que hacía de `update_run_status` un no-op). La
+migración 0004 añadió `runs_tenant_write`, pero el worker sigue sin fijar el
+tenant y el aislamiento se mantiene comparando el `empresa_id` del run-token
 contra la fila (`claim_run` filtra por `empresa_id`).
 
 Sesión aparte también significa transacción aparte: si la transacción de

@@ -91,7 +91,7 @@ Empieza por **[docs/00_README.md](docs/00_README.md)**. El plan completo está e
 | Backend | FastAPI · SQLAlchemy 2 async · Alembic · Celery · Redis |
 | Control plane | Paperclip (Node.js + Postgres) |
 | Agent plane | OpenClaw (TS ESM strict) + gstack SKILL.md |
-| AI | OpenAI gpt-4o + gpt-4o-mini · Google Gemini 1.5 · text-embedding-3-small |
+| AI | Google Gemini 2.5 Flash (scoring) · OpenAI gpt-5-mini (respaldo) · text-embedding-3-small · ver [ADR-008](docs/adr/008-llm-routing-policy.md) |
 | DB | Supabase (Postgres 15 + pgvector + RLS) |
 | Auth | Supabase Auth + JWT + Paperclip run-tokens |
 | Observability | OpenTelemetry · Sentry · Grafana · Better Stack logs |
