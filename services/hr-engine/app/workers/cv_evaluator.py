@@ -59,8 +59,15 @@ class CvEvaluatorResult(TypedDict):
     deduplicated: bool
 
 
-async def _get_candidato_text(db: AsyncSession, candidato_id: UUID) -> tuple[str, str | None]:
-    """Devuelve (texto_para_embedding, summary_para_scoring)."""
+class _Candidato(TypedDict):
+    full_name: str
+    headline: str | None
+    summary: str | None
+    emb: str | None
+
+
+async def _get_candidato(db: AsyncSession, candidato_id: UUID) -> _Candidato:
+    """Lee el candidato bajo RLS. Falla si no existe o es de otro tenant."""
     row = (
         (
             await db.execute(
@@ -79,8 +86,18 @@ async def _get_candidato_text(db: AsyncSession, candidato_id: UUID) -> tuple[str
     )
     if not row:
         raise ValueError(f"candidato {candidato_id} no existe (o RLS lo oculta)")
-    parts = [row["full_name"], row["headline"] or "", row["summary"] or ""]
-    return "\n".join(p for p in parts if p), row["emb"]
+    return {
+        "full_name": row["full_name"],
+        "headline": row["headline"],
+        "summary": row["summary"],
+        "emb": row["emb"],
+    }
+
+
+def _texto_para_embedding(candidato: _Candidato) -> str:
+    """Sin el nombre: el vector decide a quién encuentra el sourcer, y el nombre no
+    dice nada del perfil (sí puede arrastrar sesgo de género u origen)."""
+    return "\n".join(p for p in (candidato["headline"], candidato["summary"]) if p)
 
 
 async def _ensure_candidato_embedding(
@@ -222,10 +239,12 @@ async def _run(
                     "cv_evaluator.embedding_aplazado", cual="icp", error_type=type(exc).__name__
                 )
 
-            cand_text, cand_emb = await _get_candidato_text(db, candidato_uuid)
-            if not cand_emb:
+            candidato = await _get_candidato(db, candidato_uuid)
+            if not candidato["emb"]:
                 try:
-                    await _ensure_candidato_embedding(db, candidato_uuid, cand_text, cost_tracker)
+                    await _ensure_candidato_embedding(
+                        db, candidato_uuid, _texto_para_embedding(candidato), cost_tracker
+                    )
                 except Exception as exc:
                     if not _embedding_aplazable(exc):
                         raise
@@ -238,9 +257,10 @@ async def _run(
             cost_tracker.assert_under_cap()
             scoring = await score_candidate_fit(
                 {
-                    "full_name": cand_text.splitlines()[0] if cand_text else None,
-                    "headline": None,
-                    "summary": cand_text,
+                    # Solo para el hash de los logs: el prompt va sin nombre.
+                    "full_name": candidato["full_name"],
+                    "headline": candidato["headline"],
+                    "summary": candidato["summary"],
                 },
                 icp_source,
             )

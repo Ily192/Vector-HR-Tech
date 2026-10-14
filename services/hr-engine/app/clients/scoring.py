@@ -136,11 +136,15 @@ def _cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
 
 
 def _build_prompt(candidate: dict[str, Any], icp_text: str) -> str:
-    """Prompt con candidato + ICP. Schema embebido para que Gemini lo siga."""
+    """Prompt con candidato + ICP. Schema embebido para que Gemini lo siga.
+
+    Evaluación a ciegas: el nombre NO entra al prompt. Un nombre insinúa género,
+    origen o edad y no dice nada del encaje con el puesto. `full_name` solo se
+    usa fuera del modelo (el hash de los logs).
+    """
     schema_hint = json.dumps(CandidateFitResponse.model_json_schema(), ensure_ascii=False)
     candidate_block = json.dumps(
         {
-            "full_name": candidate.get("full_name"),
             "headline": candidate.get("headline"),
             "summary": candidate.get("summary"),
         },
