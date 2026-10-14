@@ -31,9 +31,9 @@ from uuid import UUID
 
 from celery import Task
 
-from app.clients.embeddings import embed_text
-from app.clients.errors import is_transient_error
-from app.clients.scoring import score_candidate_fit
+from app.clients.embeddings import EmbeddingResult, embed_text
+from app.clients.errors import is_retryable_llm_error, is_transient_error
+from app.clients.scoring import LLMUnavailableError, score_candidate_fit
 from app.config import settings
 from app.database import db_session
 from app.monitoring import bind_log_context, clear_log_context, logger
@@ -79,6 +79,17 @@ def _validate_uuid(value: str | None, name: str) -> UUID | None:
         raise ValueError(f"{name} no es un UUID válido: {value}") from exc
 
 
+async def _embed_o_aplazar(texto: str) -> EmbeddingResult:
+    """Sin embedding del ICP no hay búsqueda vectorial: si el proveedor está caído,
+    la ejecución se aplaza (LLMUnavailableError) en vez de fallar."""
+    try:
+        return await embed_text(texto)
+    except Exception as exc:
+        if is_retryable_llm_error(exc):
+            raise LLMUnavailableError("proveedor de embeddings no disponible") from exc
+        raise
+
+
 async def _resolve_icp(
     db: Any,
     *,
@@ -99,7 +110,7 @@ async def _resolve_icp(
         if vacante.icp_embedding:
             return vacante.icp_embedding, icp_source
         cost_tracker.assert_under_cap()
-        emb = await embed_text(icp_source)
+        emb = await _embed_o_aplazar(icp_source)
         cost_tracker.add(emb.cost_usd, "embedding_icp")
         await hr_repo.update_vacante_embedding(db, vacante_id, emb.vector)
         return emb.vector, icp_source
@@ -107,7 +118,7 @@ async def _resolve_icp(
     if not icp_text:
         raise ValueError("vacante_id o icp_text es requerido")
     cost_tracker.assert_under_cap()
-    emb = await embed_text(icp_text)
+    emb = await _embed_o_aplazar(icp_text)
     cost_tracker.add(emb.cost_usd, "embedding_icp")
     return emb.vector, icp_text
 
@@ -290,6 +301,10 @@ async def _run(
             },
         )
     except Exception as exc:
+        if isinstance(exc, LLMUnavailableError):
+            # No es un fallo: la tarea de Celery la aplaza (ver `run`).
+            exc.cost_usd = cost_tracker.spent_usd
+            raise
         # El cost cap excedido (o cualquier otra excepción) ahora deja rastro:
         # antes `error_message` existía y nunca se le pasaba nada.
         log.error(
@@ -347,6 +362,7 @@ def run(
     target: int = 50,
     sources: list[str] | None = None,
     cost_cap_usd: float = 0.05,
+    aplazamientos: int = 0,
 ) -> SourcerResult:
     """Celery wrapper. Llama `_run` async y devuelve dict JSON-serializable."""
     try:
@@ -361,6 +377,32 @@ def run(
                 cost_cap_usd=cost_cap_usd,
             ),
         )
+    except LLMUnavailableError as exc:
+        espera = run_state.siguiente_aplazamiento(aplazamientos)
+        if espera is None:
+            logger.error("sourcer.run.manual_review", run_id=run_id, aplazamientos=aplazamientos)
+            asyncio.run(
+                run_state.send_to_manual_review(run_id=run_id, exc=exc, cost_usd=exc.cost_usd)
+            )
+            raise
+        asyncio.run(
+            run_state.defer_run(
+                run_id=run_id, exc=exc, cost_usd=exc.cost_usd, aplazamiento=aplazamientos + 1
+            )
+        )
+        logger.warning(
+            "sourcer.run.aplazada",
+            run_id=run_id,
+            en_segundos=espera,
+            aplazamiento=aplazamientos + 1,
+        )
+        raise self.retry(
+            exc=exc,
+            countdown=espera,
+            kwargs={**(self.request.kwargs or {}), "aplazamientos": aplazamientos + 1},
+            # Los aplazamientos no gastan el cupo de reintentos transitorios.
+            max_retries=(self.request.retries or 0) + 1,
+        ) from exc
     except Exception as exc:
         retries = self.request.retries or 0
         if is_transient_error(exc) and retries < (self.max_retries or 0):

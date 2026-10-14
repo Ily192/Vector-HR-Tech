@@ -24,11 +24,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Any, Literal
 
 from google import genai
 from google.genai import types
+from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from tenacity import (
     retry,
@@ -37,7 +37,9 @@ from tenacity import (
     wait_exponential_jitter,
 )
 
+from app.clients.circuit_breaker import CircuitBreaker
 from app.clients.errors import is_retryable_llm_error, log_retry_attempt
+from app.clients.por_loop import por_event_loop
 from app.config import settings
 from app.monitoring import hash_pii, logger
 from app.skills import load_skill
@@ -48,6 +50,8 @@ _PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
+    # Respaldo. Fuente: OpenAI pricing, standard tier (2026-10).
+    "gpt-5-mini": (0.25, 2.00),
 }
 _DEFAULT_PRICING = (0.30, 2.50)
 
@@ -81,7 +85,7 @@ def _system_instruction() -> str:
     return load_skill(SCORING_SKILL).instructions
 
 
-@lru_cache(maxsize=1)
+@por_event_loop
 def _get_client() -> genai.Client:
     if not settings.google_api_key:
         raise RuntimeError(
@@ -96,9 +100,24 @@ def _get_client() -> genai.Client:
     )
 
 
+@por_event_loop
+def _get_openai_client() -> AsyncOpenAI:
+    if not settings.openai_api_key:
+        raise RuntimeError(
+            "OPENAI_API_KEY no configurada — no hay modelo de respaldo para el scoring."
+        )
+    # max_retries=0: los reintentos los hace tenacity, igual que con Gemini.
+    return AsyncOpenAI(
+        api_key=settings.openai_api_key,
+        timeout=settings.openai_timeout_seconds,
+        max_retries=0,
+    )
+
+
 def reset_client_cache() -> None:
-    """Invalida el cliente cacheado (tests / rotación de key)."""
+    """Invalida los clientes cacheados (tests / rotación de key)."""
     _get_client.cache_clear()
+    _get_openai_client.cache_clear()
 
 
 def _generation_config() -> types.GenerateContentConfig:
@@ -142,8 +161,8 @@ def _build_prompt(candidate: dict[str, Any], icp_text: str) -> str:
     retry=retry_if_exception(is_retryable_llm_error),
     before_sleep=log_retry_attempt,
 )
-async def score_candidate_fit(candidate: dict[str, Any], icp_text: str) -> ScoringResult:
-    """Llama Gemini Flash para puntuar el fit candidato↔ICP."""
+async def _score_con_gemini(candidate: dict[str, Any], icp_text: str) -> ScoringResult:
+    """Proveedor principal: Gemini, con salida JSON."""
     client = _get_client()
     model_name = settings.default_scoring_model
     prompt = _build_prompt(candidate, icp_text)
@@ -190,3 +209,124 @@ async def score_candidate_fit(candidate: dict[str, Any], icp_text: str) -> Scori
         cost_usd=cost,
         model=model_name,
     )
+
+
+class _RespuestaOpenAI(BaseModel):
+    """Esquema que se le manda a OpenAI.
+
+    El modo estricto de Structured Outputs no admite todas las restricciones de
+    JSON Schema (p. ej. `minLength`), así que aquí van sin ellas; la respuesta se
+    valida después contra `CandidateFitResponse`, igual que la de Gemini.
+    """
+
+    score: float
+    rationale: str
+    gaps: list[str]
+    strengths: list[str]
+    recommended_next_step: Literal["psicometrico", "entrevista", "rechazar"]
+
+
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(settings.llm_max_attempts),
+    wait=wait_exponential_jitter(initial=0.5, max=8),
+    retry=retry_if_exception(is_retryable_llm_error),
+    before_sleep=log_retry_attempt,
+)
+async def _score_con_openai(candidate: dict[str, Any], icp_text: str) -> ScoringResult:
+    """Respaldo: OpenAI con las MISMAS instrucciones (el SKILL.md) y el mismo esquema.
+
+    Responses API + `parse(text_format=...)`, la vía recomendada por la guía
+    oficial de Structured Outputs.
+    """
+    client = _get_openai_client()
+    model_name = settings.fallback_scoring_model
+    response = await client.responses.parse(
+        model=model_name,
+        instructions=_system_instruction(),
+        input=_build_prompt(candidate, icp_text),
+        text_format=_RespuestaOpenAI,
+    )
+    if response.output_parsed is None:
+        raise ValueError("scoring: OpenAI no devolvió una respuesta parseable")
+    parsed = CandidateFitResponse.model_validate(response.output_parsed.model_dump())
+    usage = response.usage
+    input_tokens = usage.input_tokens if usage else 0
+    output_tokens = usage.output_tokens if usage else 0
+    return ScoringResult(
+        response=parsed,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=_cost_usd(model_name, input_tokens, output_tokens),
+        model=model_name,
+    )
+
+
+class LLMUnavailableError(RuntimeError):
+    """Ningún proveedor pudo puntuar por un problema de DISPONIBILIDAD.
+
+    Caída, timeouts, 429/5xx o circuito abierto. Es la señal para que el worker
+    aplace la evaluación en vez de darla por fallida (ver workers/run_state.py).
+    """
+
+    #: Lo gastado en la ejecución antes de rendirse (lo rellena el worker).
+    cost_usd: float = 0.0
+
+
+#: Orden de preferencia. Cada uno con su breaker.
+_PROVEEDORES = (
+    ("gemini", _score_con_gemini),
+    ("openai", _score_con_openai),
+)
+
+
+def _breaker(proveedor: str) -> CircuitBreaker:
+    return CircuitBreaker(proveedor)
+
+
+async def score_candidate_fit(candidate: dict[str, Any], icp_text: str) -> ScoringResult:
+    """Puntúa el fit candidato↔ICP con el primer proveedor disponible.
+
+    - Circuito abierto → se salta ese proveedor sin llamarlo.
+    - Error de disponibilidad (tras sus reintentos) → cuenta para el breaker y se
+      prueba el siguiente.
+    - Otro error (respuesta inválida, 400) → no cuenta para el breaker, pero
+      también se prueba el siguiente: lo que falla es ese modelo, no el servicio.
+    - Si todos fallan por disponibilidad → `LLMUnavailableError` (se aplaza). Si
+      alguno falló por otra cosa, se relanza ese error: es un fallo real.
+    """
+    candidate_ref = hash_pii(candidate.get("full_name"))
+    otro_error: Exception | None = None
+    for proveedor, puntuar in _PROVEEDORES:
+        breaker = _breaker(proveedor)
+        if breaker.abierto():
+            logger.warning(
+                "scoring.proveedor_saltado", proveedor=proveedor, motivo="circuito abierto"
+            )
+            continue
+        try:
+            resultado = await puntuar(candidate, icp_text)
+        except Exception as exc:
+            # RuntimeError = proveedor sin configurar (falta la key): se salta, pero
+            # no es una caída, así que no cuenta para su breaker.
+            sin_configurar = isinstance(exc, RuntimeError)
+            disponibilidad = is_retryable_llm_error(exc) or sin_configurar
+            if is_retryable_llm_error(exc):
+                breaker.registrar_fallo()
+            elif not sin_configurar:
+                otro_error = exc
+            logger.warning(
+                "scoring.proveedor_fallo",
+                proveedor=proveedor,
+                candidate_ref=candidate_ref,
+                error_type=type(exc).__name__,
+                disponibilidad=disponibilidad,
+            )
+            continue
+        breaker.registrar_exito()
+        if proveedor != _PROVEEDORES[0][0]:
+            logger.warning("scoring.respaldo_usado", proveedor=proveedor, model=resultado.model)
+        return resultado
+    if otro_error is not None:
+        raise otro_error
+    raise LLMUnavailableError("ningún proveedor de LLM disponible para puntuar")

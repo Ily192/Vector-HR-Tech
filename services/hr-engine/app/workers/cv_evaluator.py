@@ -28,8 +28,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.embeddings import embed_text
-from app.clients.errors import is_transient_error
-from app.clients.scoring import score_candidate_fit
+from app.clients.errors import is_retryable_llm_error, is_transient_error
+from app.clients.scoring import LLMUnavailableError, score_candidate_fit
 from app.config import settings
 from app.database import db_session
 from app.monitoring import bind_log_context, clear_log_context, logger
@@ -106,6 +106,16 @@ async def _ensure_candidato_embedding(
             "emb": "[" + ",".join(f"{v:.7f}" for v in emb.vector) + "]",
         },
     )
+
+
+def _embedding_aplazable(exc: BaseException) -> bool:
+    """Caída del proveedor de embeddings (o sin configurar): se puede seguir sin él.
+
+    El tope de gasto también es RuntimeError, pero ese sí tiene que cortar.
+    """
+    if isinstance(exc, CostCapExceededError):
+        return False
+    return is_retryable_llm_error(exc) or isinstance(exc, RuntimeError)
 
 
 def _deduplicated_result(
@@ -196,15 +206,34 @@ async def _run(
                 raise ValueError(f"vacante {vacante_uuid} no existe (o RLS la oculta)")
             icp_source = vacante.icp_text or vacante.jd
 
-            if not vacante.icp_embedding:
-                cost_tracker.assert_under_cap()
-                emb = await embed_text(icp_source)
-                cost_tracker.add(emb.cost_usd, "embedding_icp")
-                await hr_repo.update_vacante_embedding(db, vacante_uuid, emb.vector)
+            # Los embeddings sirven para la búsqueda vectorial del sourcer, no para
+            # esta puntuación. Si su proveedor está caído, se puntúa igual y el
+            # embedding se completa en otra ejecución.
+            try:
+                if not vacante.icp_embedding:
+                    cost_tracker.assert_under_cap()
+                    emb = await embed_text(icp_source)
+                    cost_tracker.add(emb.cost_usd, "embedding_icp")
+                    await hr_repo.update_vacante_embedding(db, vacante_uuid, emb.vector)
+            except Exception as exc:
+                if not _embedding_aplazable(exc):
+                    raise
+                log.warning(
+                    "cv_evaluator.embedding_aplazado", cual="icp", error_type=type(exc).__name__
+                )
 
             cand_text, cand_emb = await _get_candidato_text(db, candidato_uuid)
             if not cand_emb:
-                await _ensure_candidato_embedding(db, candidato_uuid, cand_text, cost_tracker)
+                try:
+                    await _ensure_candidato_embedding(db, candidato_uuid, cand_text, cost_tracker)
+                except Exception as exc:
+                    if not _embedding_aplazable(exc):
+                        raise
+                    log.warning(
+                        "cv_evaluator.embedding_aplazado",
+                        cual="candidato",
+                        error_type=type(exc).__name__,
+                    )
 
             cost_tracker.assert_under_cap()
             scoring = await score_candidate_fit(
@@ -242,6 +271,10 @@ async def _run(
             },
         )
     except Exception as exc:
+        if isinstance(exc, LLMUnavailableError):
+            # No es un fallo: la tarea de Celery la aplaza (ver `run`).
+            exc.cost_usd = cost_tracker.spent_usd
+            raise
         log.error(
             "cv_evaluator.run.failed",
             error_type=type(exc).__name__,
@@ -295,6 +328,7 @@ def run(
     vacante_id: str,
     candidato_id: str,
     cost_cap_usd: float = 0.05,
+    aplazamientos: int = 0,
 ) -> CvEvaluatorResult:
     try:
         return asyncio.run(
@@ -306,6 +340,34 @@ def run(
                 cost_cap_usd=cost_cap_usd,
             ),
         )
+    except LLMUnavailableError as exc:
+        espera = run_state.siguiente_aplazamiento(aplazamientos)
+        if espera is None:
+            logger.error(
+                "cv_evaluator.run.manual_review", run_id=run_id, aplazamientos=aplazamientos
+            )
+            asyncio.run(
+                run_state.send_to_manual_review(run_id=run_id, exc=exc, cost_usd=exc.cost_usd)
+            )
+            raise
+        asyncio.run(
+            run_state.defer_run(
+                run_id=run_id, exc=exc, cost_usd=exc.cost_usd, aplazamiento=aplazamientos + 1
+            )
+        )
+        logger.warning(
+            "cv_evaluator.run.aplazada",
+            run_id=run_id,
+            en_segundos=espera,
+            aplazamiento=aplazamientos + 1,
+        )
+        raise self.retry(
+            exc=exc,
+            countdown=espera,
+            kwargs={**(self.request.kwargs or {}), "aplazamientos": aplazamientos + 1},
+            # Los aplazamientos no gastan el cupo de reintentos transitorios.
+            max_retries=(self.request.retries or 0) + 1,
+        ) from exc
     except Exception as exc:
         retries = self.request.retries or 0
         if is_transient_error(exc) and retries < (self.max_retries or 0):

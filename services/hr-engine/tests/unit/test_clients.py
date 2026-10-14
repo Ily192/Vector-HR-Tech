@@ -201,7 +201,7 @@ async def test_score_candidate_fit_parses_and_prices(monkeypatch: pytest.MonkeyP
     client = _fake_genai_client([_genai_response(_VALID_SCORING_JSON)])
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
 
-    result = await scoring_mod.score_candidate_fit(
+    result = await scoring_mod._score_con_gemini(
         {"full_name": "Ana Dev", "headline": "Senior", "summary": "10 años"},
         "ICP Python",
     )
@@ -224,7 +224,7 @@ async def test_score_candidate_fit_retries_gemini_429(monkeypatch: pytest.Monkey
     )
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
 
-    result = await scoring_mod.score_candidate_fit({"full_name": "Ana"}, "ICP")
+    result = await scoring_mod._score_con_gemini({"full_name": "Ana"}, "ICP")
     assert result.response.score == 8.0
     assert len(client.aio.models.calls) == 2
 
@@ -240,7 +240,7 @@ async def test_invalid_json_log_does_not_leak_pii(
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
 
     with caplog.at_level("WARNING"), pytest.raises(Exception, match="valid"):
-        await scoring_mod.score_candidate_fit(
+        await scoring_mod._score_con_gemini(
             {"full_name": "Ana Dev", "summary": cv_text},
             "ICP",
         )
@@ -258,7 +258,7 @@ async def test_empty_gemini_response_raises(monkeypatch: pytest.MonkeyPatch) -> 
     client = _fake_genai_client([_genai_response("")])
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
     with pytest.raises(ValueError, match="vacía"):
-        await scoring_mod.score_candidate_fit({"full_name": "Ana"}, "ICP")
+        await scoring_mod._score_con_gemini({"full_name": "Ana"}, "ICP")
 
 
 def test_scoring_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:

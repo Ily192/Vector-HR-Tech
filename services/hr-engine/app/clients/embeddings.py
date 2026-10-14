@@ -15,7 +15,6 @@ Resiliencia:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import lru_cache
 
 from openai import AsyncOpenAI
 from tenacity import (
@@ -26,6 +25,7 @@ from tenacity import (
 )
 
 from app.clients.errors import is_retryable_llm_error, log_retry_attempt
+from app.clients.por_loop import por_event_loop
 from app.config import settings
 from app.monitoring import logger
 
@@ -44,7 +44,8 @@ class EmbeddingResult:
     model: str
 
 
-@lru_cache(maxsize=1)
+# Uno por event loop: ver app/clients/por_loop.py.
+@por_event_loop
 def _get_client() -> AsyncOpenAI:
     if not settings.openai_api_key:
         raise RuntimeError(

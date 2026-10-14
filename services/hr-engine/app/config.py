@@ -93,6 +93,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     google_api_key: str = ""
     default_scoring_model: str = "gemini-2.5-flash"
+    # Respaldo de otro proveedor si Gemini cae o tiene el circuito abierto. gpt-5-mini
+    # (0.25/2.00 USD por 1M) es lo más parecido en precio a gemini-2.5-flash (0.30/2.50).
+    fallback_scoring_model: str = "gpt-5-mini"
+    # Circuit breaker por proveedor (app/clients/circuit_breaker.py).
+    llm_breaker_umbral: int = 5
+    llm_breaker_ventana_s: int = 60
+    llm_breaker_enfriamiento_s: int = 120
     reasoning_model: str = "gpt-4o"
     embedding_model: str = "text-embedding-3-small"
     # Timeouts por request al proveedor (segundos). El default del SDK de
