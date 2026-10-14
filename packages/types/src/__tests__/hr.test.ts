@@ -215,7 +215,7 @@ describe("ApplicationSchema", () => {
 
 describe("CvEvaluationSchema", () => {
   const base = {
-    candidate_id: UUID_A,
+    candidato_id: UUID_A,
     vacante_id: UUID_B,
     score: 8,
     rationale: "Match fuerte en FastAPI y multi-tenant.",
@@ -230,8 +230,9 @@ describe("CvEvaluationSchema", () => {
     expect(parsed.recommended_next_step).toBe("entrevista");
   });
 
-  it("exige rationale no vacío", () => {
+  it("exige rationale de al menos 10 caracteres, como Pydantic", () => {
     expect(CvEvaluationSchema.safeParse({ ...base, rationale: "" }).success).toBe(false);
+    expect(CvEvaluationSchema.safeParse({ ...base, rationale: "corto" }).success).toBe(false);
   });
 
   it("restringe recommended_next_step al enum del SKILL.md", () => {

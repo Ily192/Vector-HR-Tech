@@ -14,7 +14,7 @@ Pipeline:
   5. Upsert application status='evaluated' + persiste costo/estado en `runs`.
 
 Output strict schema: `app.clients.scoring.CandidateFitResponse` que mirror-ea
-`packages/types/src/hr.ts::CvEvaluationSchema`.
+`packages/types/src/hr.ts::CvEvaluationSchema` (contrato: `app.clients.scoring.CvEvaluation`).
 """
 
 from __future__ import annotations

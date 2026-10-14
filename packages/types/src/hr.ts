@@ -63,12 +63,16 @@ export const ApplicationSchema = z.object({
 });
 export type Application = z.infer<typeof ApplicationSchema>;
 
-/** Output of `cv-evaluator` skill — strict schema for Pydantic mirror */
+/**
+ * Salida del skill `cv-evaluator`. Su espejo en Pydantic es
+ * `services/hr-engine/app/clients/scoring.py::CvEvaluation`; los dos se prueban
+ * contra `contracts/cv-evaluation.json`.
+ */
 export const CvEvaluationSchema = z.object({
-  candidate_id: z.string().uuid(),
+  candidato_id: z.string().uuid(),
   vacante_id: z.string().uuid(),
   score: z.number().min(0).max(10),
-  rationale: z.string().min(1),
+  rationale: z.string().min(10),
   gaps: z.array(z.string()),
   strengths: z.array(z.string()),
   recommended_next_step: z.enum(["psicometrico", "entrevista", "rechazar"]),
