@@ -1,0 +1,46 @@
+{
+  "$comment": "Contrato de la salida de cv-evaluator. Lo validan los dos lados: Zod (packages/types/src/hr.ts) y Pydantic (services/hr-engine/app/clients/scoring.py::CvEvaluation). Si cambias un campo o un límite aquí, cambia los dos esquemas.",
+  "campos": [
+    "candidato_id",
+    "vacante_id",
+    "score",
+    "rationale",
+    "gaps",
+    "strengths",
+    "recommended_next_step"
+  ],
+  "validos": [
+    {
+      "candidato_id": "00000000-0000-4000-8000-0000000000bb",
+      "vacante_id": "00000000-0000-4000-8000-0000000000aa",
+      "score": 8,
+      "rationale": "Match fuerte en FastAPI y multi-tenant.",
+      "gaps": ["sin experiencia en Kubernetes"],
+      "strengths": ["async SQLAlchemy", "observabilidad"],
+      "recommended_next_step": "entrevista"
+    },
+    {
+      "candidato_id": "00000000-0000-4000-8000-0000000000bc",
+      "vacante_id": "00000000-0000-4000-8000-0000000000aa",
+      "score": 0,
+      "rationale": "No cumple ningún requisito del ICP.",
+      "gaps": [],
+      "strengths": [],
+      "recommended_next_step": "rechazar"
+    }
+  ],
+  "invalidos": [
+    { "motivo": "rationale de menos de 10 caracteres", "cambio": { "rationale": "corto" } },
+    { "motivo": "score mayor que 10", "cambio": { "score": 11 } },
+    { "motivo": "score negativo", "cambio": { "score": -1 } },
+    { "motivo": "siguiente paso fuera del enum", "cambio": { "recommended_next_step": "hire" } },
+    { "motivo": "candidato_id que no es UUID", "cambio": { "candidato_id": "ana" } },
+    { "motivo": "falta gaps", "quitar": "gaps" },
+    { "motivo": "falta strengths", "quitar": "strengths" },
+    {
+      "motivo": "nombre viejo candidate_id en lugar de candidato_id",
+      "quitar": "candidato_id",
+      "cambio": { "candidate_id": "00000000-0000-4000-8000-0000000000bb" }
+    }
+  ]
+}

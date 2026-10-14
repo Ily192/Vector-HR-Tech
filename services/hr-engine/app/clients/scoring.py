@@ -25,11 +25,12 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any, Literal
+from uuid import UUID
 
 from google import genai
 from google.genai import types
 from openai import AsyncOpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from tenacity import (
     retry,
     retry_if_exception,
@@ -64,6 +65,19 @@ class CandidateFitResponse(BaseModel):
     gaps: list[str]
     strengths: list[str]
     recommended_next_step: Literal["psicometrico", "entrevista", "rechazar"]
+
+
+class CvEvaluation(CandidateFitResponse):
+    """Salida de cv-evaluator con sus ids: espejo de `packages/types/src/hr.ts::CvEvaluationSchema`.
+
+    Los dos esquemas se prueban contra `packages/types/contracts/cv-evaluation.json`;
+    antes "espejeaban" solo de palabra (Zod usaba `candidate_id` y `rationale` ≥ 1).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    candidato_id: UUID
+    vacante_id: UUID
 
 
 @dataclass(slots=True, frozen=True)
