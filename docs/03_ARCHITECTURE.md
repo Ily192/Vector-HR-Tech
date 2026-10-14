@@ -42,7 +42,7 @@
 ┌────────────────── Frontends ────────────────────┐
 │                                                  │
 │  career-site         candidate         hrbp      │
-│  (Next.js 14)       (Vite SPA)      (Vite SPA)   │
+│  (Next.js 16)       (Vite SPA)      (Vite SPA)   │
 │        │                 │                │       │
 └────────┼─────────────────┼────────────────┼──────┘
          │                 │                │
@@ -137,10 +137,10 @@
 
 | App | Framework | Deploy | Función |
 |---|---|---|---|
-| `career-site` | Next.js 14 (RSC + ISR) | Vercel | Landing pública, vacantes, SEO |
-| `candidate` | Vite + React 18 SPA | Vercel | Portal del candidato (CV upload, tests, status) |
-| `hrbp` | Vite + React 18 SPA | Vercel / Coolify | Cockpit del HR Business Partner |
-| `orgchart` | Next.js 14 | Vercel | Visualización del Paperclip org chart en vivo |
+| `career-site` | Next.js 16 (RSC + ISR) | Vercel | Landing pública, vacantes, SEO |
+| `candidate` | Vite + React 19 SPA | Vercel | Portal del candidato (CV upload, tests, status) |
+| `hrbp` | Vite + React 19 SPA | Vercel / Coolify | Cockpit del HR Business Partner |
+| `orgchart` | Next.js 16 | Vercel | Visualización del Paperclip org chart en vivo |
 
 ## 5. Modelo de datos (núcleo)
 

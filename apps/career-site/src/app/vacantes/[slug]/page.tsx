@@ -21,8 +21,14 @@ const VACANTES_MOCK: Record<
   },
 };
 
-export default function VacanteDetail({ params }: { params: { slug: string } }) {
-  const v = VACANTES_MOCK[params.slug];
+// Desde Next 15 `params` llega como Promise, y Next 16 retiró el acceso síncrono.
+export default async function VacanteDetail({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const v = VACANTES_MOCK[slug];
   if (!v) notFound();
 
   return (

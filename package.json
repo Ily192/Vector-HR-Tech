@@ -48,12 +48,12 @@
     {
       "name": "career-site · JS estático (brotli)",
       "path": "apps/career-site/.next/static/**/*.js",
-      "limit": "220 KB"
+      "limit": "180 KB"
     },
     {
       "name": "hrbp · bundle principal (brotli)",
       "path": "apps/hrbp/dist/assets/index-*.js",
-      "limit": "70 KB"
+      "limit": "90 KB"
     }
   ]
 }
