@@ -159,6 +159,14 @@ domain: hr
     ).toThrow(ZodError);
   });
 
+  it("acepta cost_cap_usd: null (sin tope, fase de medición)", () => {
+    const { frontmatter } = parseSkillMarkdown(
+      skillMd(`${FRONTMATTER_VALIDO.trim()}
+cost_cap_usd: null`),
+    );
+    expect(frontmatter.cost_cap_usd).toBeNull();
+  });
+
   it("lanza si rate_limit_per_minute no es entero positivo", () => {
     expect(() =>
       parseSkillMarkdown(skillMd(`${FRONTMATTER_VALIDO.trim()}\nrate_limit_per_minute: 2.5`)),

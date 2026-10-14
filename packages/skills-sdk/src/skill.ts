@@ -27,7 +27,8 @@ export const SkillFrontmatterSchema = z.object({
       fallback: z.string().optional(),
     })
     .optional(),
-  cost_cap_usd: z.number().positive().default(0.05),
+  // null = sin tope por ejecución (fase de medición de costes, ENFORCE_RUN_COST_CAP=false).
+  cost_cap_usd: z.number().positive().nullable().default(0.05),
   rate_limit_per_minute: z.number().int().positive().default(10),
   tags: z.array(z.string()).default([]),
 });
