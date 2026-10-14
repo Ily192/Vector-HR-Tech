@@ -89,3 +89,15 @@ def test_conftest_env_reached_the_module_level_settings() -> None:
     """El fix de `tests/conftest.py`: el env de test llega al singleton."""
     assert settings.jwt_secret == "test-secret-not-for-production"
     assert settings.env == "development"
+
+
+@pytest.mark.parametrize("valor", ["DEBUG", "Debug", " debug "])
+def test_log_level_acepta_mayusculas(valor: str) -> None:
+    """El compose de dev pasa `LOG_LEVEL: DEBUG` y el servicio no arrancaba."""
+    cfg = Settings(_env_file=None, log_level=valor)  # type: ignore[arg-type]
+    assert cfg.log_level == "debug"
+
+
+def test_log_level_desconocido_sigue_fallando() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, log_level="verbose")  # type: ignore[arg-type]
