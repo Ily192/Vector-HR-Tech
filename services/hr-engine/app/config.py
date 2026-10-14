@@ -125,6 +125,9 @@ class Settings(BaseSettings):
 
     # ─── Cost caps (defaults; override per-tenant) ───────
     default_run_cost_cap_usd: float = 0.05
+    # Apagado: fase de medición de costes (2026-10). El cap del run-token se sigue
+    # registrando en `runs`, pero no corta ninguna ejecución. Ver cost_tracker.py.
+    enforce_run_cost_cap: bool = False
     # Techo duro: aunque Paperclip firme un cap mayor, el engine lo recorta.
     max_run_cost_cap_usd: float = 5.0
 

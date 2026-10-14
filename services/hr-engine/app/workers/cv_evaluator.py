@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.clients.embeddings import embed_text
 from app.clients.errors import is_transient_error
 from app.clients.scoring import score_candidate_fit
+from app.config import settings
 from app.database import db_session
 from app.monitoring import bind_log_context, clear_log_context, logger
 from app.repositories import hr as hr_repo
@@ -165,7 +166,7 @@ async def _run(
     # del except y la fila se quedaba en `pending` para siempre, sin rastro.
     # Por eso el tracker se crea antes: si el claim revienta, el except lo
     # necesita. El cap definitivo lo baja el claim unas líneas más abajo.
-    cost_tracker = CostTracker(cap_usd=cost_cap_usd)
+    cost_tracker = CostTracker(cap_usd=cost_cap_usd, enforce=settings.enforce_run_cost_cap)
 
     try:
         claim = await run_state.claim_run(
@@ -235,6 +236,9 @@ async def _run(
                 "score": scoring.response.score,
                 "application_id": str(application_id),
                 "recommended_next_step": scoring.response.recommended_next_step,
+                # Para medir el coste real: qué paso gastó cuánto y con qué modelo.
+                "cost_breakdown": {k: round(v, 6) for k, v in cost_tracker.breakdown.items()},
+                "model": scoring.model,
             },
         )
     except Exception as exc:

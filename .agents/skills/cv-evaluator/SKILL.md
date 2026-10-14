@@ -22,7 +22,9 @@ models:
   # Tiene que coincidir con DEFAULT_SCORING_MODEL del hr-engine. Sin fallback:
   # el código no tiene ninguno. Lo vigila services/hr-engine/tests/unit/test_skills.py.
   default: gemini-2.5-flash
-cost_cap_usd: 0.02
+# Sin tope: fase de medición de costes (2026-10). Ver ENFORCE_RUN_COST_CAP
+# y services/hr-engine/scripts/informe_costes.py.
+cost_cap_usd: null
 rate_limit_per_minute: 30
 tags:
   - hr
