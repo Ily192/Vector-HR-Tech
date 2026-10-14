@@ -73,7 +73,7 @@ Shape Up (ya declarado en `docs/02_METHODOLOGY.md`) con un flujo Kanban por PR. 
 | F0·3 | El prompt sale del SKILL.md, con calibración y regla anti-sesgo |
 | F0·4 | Política determinista del siguiente paso según el score |
 | F0·5 | Contrato de `CvEvaluation` igual en Zod y Pydantic (hoy `candidate_id` ≠ `candidato_id`) |
-| F0·6 | Deriva docs↔código: ADR-008 cita `gemini-1.5-flash`, fallback inexistente, dependencias sin uso en hrbp |
+| F0·6 | ~~Deriva docs↔código~~ Corregida el 2026-10-14 (ADR-008 con actualización, README, 03, 05, 12, docstring de `run_state`). Quedan las dependencias sin uso en hrbp (`@supabase/supabase-js`, `@tanstack/react-router`, `zustand`, `@vortex/types`): se mantienen porque las usará el kanban con Realtime |
 | F0·7 | El runbook de la base de pruebas usa un puerto propio y falla si no arranca |
 
 **F1 · Clean Architecture** — el caso de uso `EvaluateCandidate` en capas Domain / Application / Infrastructure, como plantilla para el resto: dominio (F1·1), caso de uso (F1·2), adaptadores y worker fino (F1·3), sourcer (F1·4) y SKILL.md de producto alineados con el estándar Agent Skills (F1·5).
@@ -142,27 +142,40 @@ en línea no funcionan en PowerShell.
 #    Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 #    Espera a que `docker ps` responda; crea él solo su distro WSL2.
 
-# 2. Postgres con pgvector. El `rm -f` es lo que hace el bloque
+# 2. Postgres con pgvector en un puerto PROPIO (55432). El 5432 lo usan el
+#    compose de dev y, en esta máquina, `backend-db-1` de otro proyecto: con el
+#    5432, si `docker run` fallaba, pytest se conectaba a la base de otro.
+#    `set -e` corta el bloque en el primer fallo. El `rm -f` lo hace
 #    reproducible: sin él, la segunda vez falla con "name already in use".
-docker rm -f vortex-rls-pg 2>/dev/null
+set -e
+docker rm -f vortex-rls-pg 2>/dev/null || true
 docker run -d --name vortex-rls-pg \
   -e POSTGRES_USER=vortex -e POSTGRES_PASSWORD=vortex -e POSTGRES_DB=vortex_test \
-  -p 5432:5432 pgvector/pgvector:pg15
+  -p 55432:5432 pgvector/pgvector:pg15
+# Esperar a que acepte conexiones (máx. 30 s) en vez de dar por hecho que arrancó.
+for i in $(seq 30); do docker exec vortex-rls-pg pg_isready -U vortex -d vortex_test >/dev/null 2>&1 && break; sleep 1; done
+docker exec vortex-rls-pg pg_isready -U vortex -d vortex_test
 
 # 3. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
 cd services/hr-engine
-DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test" \
+DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:55432/vortex_test" \
 JWT_SECRET="test-secret-do-not-use" \
   uv run pytest tests/security -q
+set +e
 ```
 
 Si `uv` no está en el PATH (es lo normal en esta máquina):
 `python -m pip install uv` y luego `python -m uv run ...`.
 
-⚠️ **Este contenedor ocupa el puerto 5432, igual que el `docker compose` de
-desarrollo** (`infra/docker/docker-compose.dev.yml`, base `vortex_dev`). No
-pueden correr los dos a la vez. Son entornos distintos a propósito: el de arriba
-es desechable y lo recrea el fixture en cada sesión de pytest; el del compose
+La fixture borra el schema `public`, así que la guarda `_assert_disposable`
+(`tests/security/conftest.py`) aborta salvo que la base se llame `*test*` **y**
+el host sea local. Antes aceptaba cualquier nombre con `dev`, incluida
+`vortex_dev`, la base persistente del compose.
+
+Este contenedor usa el 55432 y el `docker compose` de desarrollo
+(`infra/docker/docker-compose.dev.yml`, base `vortex_dev`) el 5432, así que
+pueden correr a la vez. Son entornos distintos a propósito: el de arriba es
+desechable y lo recrea el fixture en cada sesión de pytest; el del compose
 persiste en un volumen y es el que usa el onboarding.
 
 ---

@@ -33,6 +33,22 @@ Multi-provider obligatorio para evitar lock-in. Abstracción en `app/providers/`
 - **Retries con backoff** en proveedor de fallback si primario falla.
 - **PII redactada** antes de logs.
 
+## Actualización 2026-10-14 · lo que ejecuta hoy el código
+
+La tabla de arriba es la decisión original (mayo 2026). Donde el código ya se
+apartó de ella, manda esto:
+
+| Caso | Hoy en el código | Dónde |
+|---|---|---|
+| Scoring (cv-evaluator y sourcer) | `gemini-2.5-flash`, a 0.30 / 2.50 USD por 1M tokens (entrada / salida). `gemini-1.5-flash` está retirado | `app/config.py::default_scoring_model`, `app/clients/scoring.py::_PRICING_USD_PER_1M` |
+| Respaldo de scoring | `gpt-5-mini` vía OpenAI Responses API, con el mismo SKILL.md y esquema. No hay fallback a `gpt-4o-mini` | `fallback_scoring_model`, `_score_con_openai` |
+| Disponibilidad | Circuit breaker por proveedor en Redis; si caen todos, la evaluación se aplaza y luego pasa a revisión manual | `app/clients/circuit_breaker.py`, `app/workers/run_state.py` |
+| Siguiente paso del candidato | Lo decide una regla fija según el score, no el modelo | `app/domain/siguiente_paso.py` |
+| Tope de gasto por run | Desactivado por defecto durante la fase de medición (`ENFORCE_RUN_COST_CAP=false`) | `app/workers/cost_tracker.py` |
+
+No existe `app/providers/`: la abstracción multi-proveedor vive en
+`app/clients/` (un módulo por función: `scoring.py`, `embeddings.py`).
+
 ## Alternatives considered
 
 - **Solo OpenAI:** más caro, lock-in.

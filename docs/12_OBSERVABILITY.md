@@ -172,7 +172,7 @@ Cada llamada a LLM emite:
   "service": "hr-engine",
   "agent_skill": "cv-evaluator",
   "provider": "gemini",
-  "model": "gemini-1.5-flash",
+  "model": "gemini-2.5-flash",
   "tokens_in": 1234,
   "tokens_out": 567,
   "cost_usd": 0.0023,

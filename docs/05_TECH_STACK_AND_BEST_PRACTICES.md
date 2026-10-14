@@ -96,8 +96,8 @@ services/<engine>/
 - **Settings tipadas** con Pydantic Settings. Sin `os.getenv` suelto.
 - **Idempotencia obligatoria** en workers que llaman APIs externas (clave: `(empresa_id, run_id, step_name)`).
 - **Retry policy explícito** con backoff exponencial. Distinguir errores transitorios vs permanentes.
-- **Circuit breakers** (`pybreaker`) en providers externos.
-- **Rate limiters** por proveedor (OpenAI, Apollo, ZeroBounce). Patrón `app/providers/rate_limiter.py` ya existente.
+- **Circuit breakers** por proveedor de LLM, con estado en Redis (`app/clients/circuit_breaker.py`; no se usa `pybreaker`).
+- **Rate limiters** por proveedor (OpenAI, Apollo, ZeroBounce). Hoy solo existe el límite global de Celery (`celery_task_default_rate_limit`); no hay `app/providers/`.
 - **Logs estructurados** JSON con `structlog`. Campos obligatorios: `empresa_id`, `run_id`, `agent_skill`, `cost_usd`.
 - **Cost accounting:** cada llamada a LLM emite evento → `runs.cost_usd` se actualiza → Paperclip checa hard-stop.
 - **Migrations sin downtime:** zero-downtime patterns (expand/contract). Alembic genera, humano revisa antes de mergear.
@@ -150,7 +150,7 @@ services/<engine>/
 | Caso | Modelo | Por qué |
 |---|---|---|
 | Embedding (CV, JD, ICP) | OpenAI `text-embedding-3-small` (1536 dim) | Costo/calidad imbatible |
-| Scoring rápido (CV fit, lead fit) | Google **Gemini 1.5 Flash** | $0.075/1M input — ~10x más barato que gpt-4o |
+| Scoring rápido (CV fit, lead fit) | Google **Gemini 2.5 Flash**, respaldo **gpt-5-mini** | 0.30 USD/1M de entrada; detalle y fuente en ADR-008 |
 | Razonamiento complejo (entrevista, análisis psicométrico) | OpenAI **gpt-4o** | Calidad cuando importa |
 | Conversación canal | OpenAI **gpt-4o-mini** o Gemini Flash | Latencia + costo |
 | Function calling / tool use | gpt-4o (mejor adherencia a schemas) | |

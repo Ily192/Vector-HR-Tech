@@ -232,7 +232,7 @@ Documentadas en `docs/adr/`:
 | ADR-005 | Paperclip emite run-tokens JWT 5 min; agentes nunca acceden directo a DB | Accepted |
 | ADR-006 | Skill = `SKILL.md` + `agents/openai.yaml` (formato gstack/openclaw) | Accepted |
 | ADR-007 | Pgvector en Supabase, no Pinecone (costo + lock-in) | Accepted |
-| ADR-008 | Gemini 1.5 Flash como default para scoring; OpenAI gpt-4o solo para razonamiento complejo | Accepted |
+| ADR-008 | Gemini Flash como default para scoring (hoy `gemini-2.5-flash`, respaldo `gpt-5-mini`); OpenAI gpt-4o solo para razonamiento complejo | Accepted · actualizado 2026-10-14 |
 
 ## 8. Diagramas a producir
 

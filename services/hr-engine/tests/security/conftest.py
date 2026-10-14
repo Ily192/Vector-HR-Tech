@@ -23,6 +23,7 @@ import os
 import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import asyncpg
 import pytest_asyncio
@@ -43,15 +44,28 @@ def _asyncpg_dsn() -> str:
     return raw.replace("postgresql+asyncpg://", "postgresql://")
 
 
+_HOSTS_LOCALES = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
 def _assert_disposable(dsn: str) -> None:
     """La fixture hace `drop schema public cascade`. Si DATABASE_URL apunta a
     algo que no es una DB de prueba desechable, aborta antes de destruirla.
+
+    Exige las dos cosas: una base cuyo nombre diga `test` y un host local.
+    Antes bastaba con que el nombre contuviera `dev`, y eso incluía `vortex_dev`,
+    la base persistente del compose de desarrollo.
     """
-    dbname = dsn.rsplit("/", 1)[-1].split("?")[0]
-    if not ("test" in dbname or "dev" in dbname):
+    url = urlsplit(dsn)
+    dbname = url.path.lstrip("/")
+    if "test" not in dbname:
         raise RuntimeError(
             f"Los RLS tests dropean el schema public. DATABASE_URL apunta a "
-            f"la base '{dbname}', que no parece desechable. Aborto."
+            f"la base '{dbname}', que no es de prueba (su nombre debe contener 'test'). Aborto."
+        )
+    if url.hostname not in _HOSTS_LOCALES:
+        raise RuntimeError(
+            f"Los RLS tests dropean el schema public. DATABASE_URL apunta al host "
+            f"'{url.hostname}', que no es local. Aborto."
         )
 
 
