@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Demo de Vortex Ops: encuesta de clima laboral y NOM-035, panel de RH y plan de acción.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Vortex Clima y NOM-035</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Lato:ital,wght@0,400;0,700;1,700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: barra de marca índigo + tres vistas (colaborador en marco de teléfono, panel RH, plan de acción). Identidad Vortex Ops: índigo autoridad, cian IA, naranja CTA. */
+:root {
+  --indigo: #1E1B4B;
+  --indigo-soft: #4D497F;
+  --cyan: #00B8B8;
+  --cyan-glow: #00FFFF;
+  --orange: #FF7F00;
+  --orange-ink: #CC6600;
+  --bg: #F5F5FA;
+  --surface: #FFFFFF;
+  --surface-2: #EEEDF6;
+  --line: #E0DFEC;
+  --fg: #1A1838;
+  --muted: #5F5C86;
+  --on-brand: #FFFFFF;
+  --r-nulo: #10B981; --r-bajo: #7CC96B; --r-medio: #F2C230; --r-alto: #F08A24; --r-muy: #E5484D;
+  --r-ink: #1A1838;
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-body: "Lato", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E0C26; --surface: #17143A; --surface-2: #211D4D; --line: #2E2A5E;
+  --fg: #ECEBF7; --muted: #A9A6CF; --cyan: #33E0E0; --orange: #FF9A33; --orange-ink: #FFB347;
+  --indigo: #100D2E; --indigo-soft: #7A77A8; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E0C26; --surface: #17143A; --surface-2: #211D4D; --line: #2E2A5E;
+  --fg: #ECEBF7; --muted: #A9A6CF; --cyan: #33E0E0; --orange: #FF9A33; --orange-ink: #FFB347;
+  --indigo: #100D2E; --indigo-soft: #7A77A8; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+.brandbar { background: #1E1B4B; color: #fff; }
+.brandbar .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
+.wordmark { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: -0.04em; display: inline-flex; align-items: baseline; gap: 6px; }
+.wordmark i { font-family: var(--font-body); font-weight: 700; font-style: italic; color: #00FFFF; letter-spacing: -0.01em; }
+.brandbar .demo-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #C0BED9; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { border: 1px solid #4D497F; background: transparent; color: #E0DFEC; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
+.tab[aria-selected="true"] { background: #00FFFF; color: #1E1B4B; border-color: #00FFFF; }
+
+.hero { padding-block: 28px 8px; display: grid; gap: 6px; }
+.hero h1 { font-size: clamp(24px, 4vw, 34px); font-weight: 900; }
+.hero p { margin: 0; color: var(--muted); max-width: 68ch; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+
+main.wrap { padding-block: 16px 48px; }
+.view[hidden] { display: none !important; }
+
+/* ─── Colaborador ─── */
+.collab { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 820px) { .collab { grid-template-columns: minmax(0, 1fr); } .collab aside { order: 2; } }
+.phone { background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 22px 20px 20px; box-shadow: 0 18px 40px -24px rgba(30,27,75,.45); min-height: 540px; display: flex; flex-direction: column; gap: 16px; }
+.phone-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
+.progress { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--orange)); width: 0; transition: width .25s; }
+.q-cat { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
+.q-text { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.3; }
+.options { display: grid; gap: 8px; }
+.opt { text-align: left; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); padding: 12px 14px; border-radius: 14px; font-weight: 700; }
+.opt:hover { border-color: var(--cyan); }
+.opt[aria-pressed="true"] { border-color: var(--orange); background: color-mix(in srgb, var(--orange) 12%, var(--surface)); }
+.scale11 { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
+.scale11 .opt { padding: 10px 0; text-align: center; font-family: var(--font-mono); font-size: 13px; }
+.scale-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.phone-nav { margin-top: auto; display: flex; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; }
+.btn-primary { background: var(--orange); color: #1A1838; flex: 1; }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-ghost { background: var(--surface-2); color: var(--fg); }
+.anon { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; }
+.done { text-align: center; display: grid; gap: 12px; justify-items: center; padding-top: 30px; }
+.done .big { font-size: 46px; line-height: 1; }
+aside.explain { display: grid; gap: 14px; }
+aside.explain h2 { font-size: 22px; }
+.feature-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.feature-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; }
+.feature-list .ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); color: var(--cyan); font-weight: 900; font-family: var(--font-mono); font-size: 13px; }
+.feature-list b { display: block; }
+.feature-list span { color: var(--muted); font-size: 14px; }
+
+/* ─── Panel RH ─── */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.toolbar label { font-weight: 700; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
+select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 820px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.kpi .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.kpi .val { font-family: var(--font-display); font-weight: 900; font-size: 28px; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 13px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel h3 { font-size: 16px; }
+.panel .hint { font-size: 13px; color: var(--muted); margin: 0; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 76px; gap: 10px; align-items: center; font-size: 14px; }
+.bar-track { height: 12px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--r-ink); text-align: center; white-space: nowrap; }
+.lvl-nulo { background: var(--r-nulo); } .lvl-bajo { background: var(--r-bajo); } .lvl-medio { background: var(--r-medio); } .lvl-alto { background: var(--r-alto); } .lvl-muy { background: var(--r-muy); color: #fff; }
+.heat-wrap { overflow-x: auto; }
+table.heat { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 520px; font-size: 13px; }
+table.heat th { text-align: left; font-weight: 700; color: var(--muted); padding: 4px; }
+table.heat td { border-radius: 8px; padding: 9px 6px; text-align: center; font-family: var(--font-mono); font-weight: 500; color: var(--r-ink); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.findings { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.findings li { border-left: 4px solid var(--r-alto); background: var(--surface-2); padding: 10px 12px; border-radius: 0 10px 10px 0; font-size: 14px; }
+.findings li.muy { border-left-color: var(--r-muy); }
+.findings li.ok { border-left-color: var(--r-nulo); }
+.you-flag { font-size: 12px; font-weight: 700; color: var(--orange-ink); }
+
+/* ─── Plan de acción ─── */
+.plan-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; margin-bottom: 14px; }
+.plan-list { display: grid; gap: 10px; }
+.action { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; }
+.action h4 { margin: 0; font-family: var(--font-display); font-size: 15px; }
+.action p { margin: 0; font-size: 14px; color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); grid-column: 1 / -1; }
+.meta b { color: var(--fg); }
+.status { border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); border-radius: 99px; padding: 5px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.status[data-s="En curso"] { background: color-mix(in srgb, var(--cyan) 22%, var(--surface)); }
+.status[data-s="Hecha"] { background: color-mix(in srgb, var(--r-nulo) 30%, var(--surface)); }
+.addform { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
+@media (max-width: 720px) { .addform { grid-template-columns: minmax(0, 1fr); } }
+input[type="text"], input[type="date"] { font: inherit; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-width: 0; }
+.cta-band { margin-top: 28px; background: #1E1B4B; color: #fff; border-radius: 18px; padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+.cta-band p { margin: 0; color: #C0BED9; max-width: 60ch; }
+.cta-band h3 { color: #fff; font-size: 18px; }
+.foot { font-size: 12px; color: var(--muted); margin-top: 18px; max-width: 80ch; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="brandbar">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <span class="wordmark" aria-label="Vortex Ops">VORTEX <i>OPS</i></span>
+      <span class="demo-tag">Clima laboral · NOM-035 · Demo</span>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Vistas de la demo">
+      <button class="tab" role="tab" id="tab-collab" aria-selected="true" data-view="collab">1 · Colaborador</button>
+      <button class="tab" role="tab" id="tab-panel" aria-selected="false" data-view="panel">2 · Panel RH</button>
+      <button class="tab" role="tab" id="tab-plan" aria-selected="false" data-view="plan">3 · Plan de acción</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap hero">
+  <span class="chip">Empresa de ejemplo: Planta Demo Querétaro · 60 colaboradores · datos ficticios</span>
+  <h1 id="hero-title">Contesta la encuesta como colaborador y mira cómo la recibe RH</h1>
+  <p id="hero-sub">Encuesta anónima desde el celular, resultados por categoría de riesgo psicosocial, mapa por área y un plan de acción listo para dar seguimiento.</p>
+</div>
+
+<main class="wrap">
+  <!-- 1 · Colaborador -->
+  <section class="view" id="view-collab" aria-labelledby="tab-collab">
+    <div class="collab">
+      <div class="phone" id="phone" aria-live="polite"></div>
+      <aside class="explain">
+        <h2>Lo que vive el colaborador</h2>
+        <ul class="feature-list">
+          <li><span class="ico">01</span><div><b>Entra con un enlace o QR</b><span>Sin descargar apps ni crear cuenta. Funciona en cualquier celular, también en planta.</span></div></li>
+          <li><span class="ico">02</span><div><b>Anónimo de verdad</b><span>RH ve resultados por grupo, nunca respuestas individuales. Los grupos de menos de 5 personas no se muestran por separado.</span></div></li>
+          <li><span class="ico">03</span><div><b>NOM-035 y clima en una sola aplicación</b><span>Riesgo psicosocial, eventos traumáticos (Guía I) y clima laboral en unos 4 minutos.</span></div></li>
+          <li><span class="ico">04</span><div><b>Lenguaje claro, en español de México</b><span>Preguntas cortas, una por pantalla, con respuestas grandes para tocar.</span></div></li>
+        </ul>
+        <p class="foot">En la demo hay 14 reactivos de ejemplo. En producción se aplican los cuestionarios completos de las Guías de Referencia I, II o III según el tamaño del centro de trabajo.</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 2 · Panel RH -->
+  <section class="view" id="view-panel" aria-labelledby="tab-panel" hidden>
+    <div class="toolbar">
+      <label for="f-area">Área
+        <select id="f-area"></select>
+      </label>
+      <span class="you-flag" id="you-flag" hidden>Incluye tu respuesta de la vista 1</span>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Riesgo psicosocial por categoría</h3>
+        <p class="hint">Porcentaje de riesgo promedio. Cuanto más alto, más atención requiere.</p>
+        <div id="cat-bars" style="display:grid;gap:10px"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="panel">
+        <h3>Hallazgos automáticos</h3>
+        <p class="hint">Vortex prioriza dónde actuar primero cruzando área y categoría.</p>
+        <ul class="findings" id="findings"></ul>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>Mapa de calor por área</h3>
+      <p class="hint">Riesgo por categoría en cada área. Las áreas con menos de 5 respuestas se ocultan para proteger el anonimato.</p>
+      <div class="heat-wrap"><table class="heat" id="heat"></table></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel">
+        <h3>Clima laboral</h3>
+        <p class="hint">Porcentaje de respuestas favorables (siempre o casi siempre).</p>
+        <div id="clima-bars" style="display:grid;gap:10px"></div>
+      </div>
+      <div class="panel">
+        <h3>Reporte para la STPS</h3>
+        <p class="hint">Evidencia que se genera sola con cada aplicación.</p>
+        <ul class="feature-list" id="evidence"></ul>
+        <button class="btn btn-ghost" id="copy-summary" type="button">Copiar resumen ejecutivo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · Plan de acción -->
+  <section class="view" id="view-plan" aria-labelledby="tab-plan" hidden>
+    <div class="plan-head">
+      <div style="display:grid;gap:4px">
+        <h2 style="font-size:22px">Plan de acción</h2>
+        <p class="hint" style="margin:0;color:var(--muted)">Propuesto a partir de los hallazgos. RH asigna responsable, fecha y da seguimiento hasta cerrar cada acción.</p>
+      </div>
+      <span class="chip" id="plan-count"></span>
+    </div>
+    <div class="plan-list" id="plan-list"></div>
+    <form class="addform" id="addform">
+      <input type="text" id="new-text" placeholder="Agregar acción propia, p. ej. pausas activas en turno nocturno" aria-label="Nueva acción" required>
+      <input type="text" id="new-owner" placeholder="Responsable" aria-label="Responsable">
+      <input type="date" id="new-date" aria-label="Fecha compromiso">
+      <button class="btn btn-primary" type="submit">Agregar</button>
+    </form>
+  </section>
+
+  <div class="cta-band">
+    <div style="display:grid;gap:4px">
+      <h3>¿Lo vemos con tus datos?</h3>
+      <p>Configuramos la encuesta con tus áreas y turnos, la aplicamos en una semana y te entregamos el reporte con plan de acción. Soporte en español desde México.</p>
+    </div>
+    <button class="btn btn-primary" style="flex:0 0 auto" type="button" data-view="collab" id="restart">Volver a contestar</button>
+  </div>
+  <p class="foot">Demo de Vortex Ops con datos ficticios. Los niveles de riesgo usan cortes demostrativos. La versión productiva aplica los criterios de calificación de la NOM-035-STPS-2018. Tus respuestas se quedan en este navegador y no se envían a ningún lado.</p>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  // ─── Modelo ───────────────────────────────────────────
+  const CATS = [
+    { id: "amb", name: "Ambiente de trabajo" },
+    { id: "act", name: "Carga y ritmo de trabajo" },
+    { id: "tie", name: "Jornada y descanso" },
+    { id: "lid", name: "Liderazgo y relaciones" },
+  ];
+  const CLIMA = [
+    { id: "rec", name: "Reconocimiento" },
+    { id: "com", name: "Comunicación" },
+    { id: "des", name: "Desarrollo" },
+  ];
+  const AREAS = ["Producción", "Almacén", "Calidad", "Administración"];
+  const LIKERT = ["Siempre", "Casi siempre", "Algunas veces", "Casi nunca", "Nunca"]; // valor 4..0
+  // inv: enunciado positivo (Siempre = sin riesgo).
+  const QUESTIONS = [
+    { id: "area", kind: "area", cat: "Datos generales", text: "¿En qué área trabajas?" },
+    { id: "g1", kind: "yesno", cat: "Guía I · Acontecimientos", text: "En el último año, ¿viviste o presenciaste en el trabajo un accidente grave, un asalto o una amenaza a tu integridad?" },
+    { id: "amb1", kind: "likert", cat: "amb", inv: true, text: "Mi lugar de trabajo me permite hacer mis tareas de forma segura y cómoda." },
+    { id: "amb2", kind: "likert", cat: "amb", inv: false, text: "El ruido, el calor o la iluminación me dificultan trabajar." },
+    { id: "act1", kind: "likert", cat: "act", inv: false, text: "Tengo que trabajar muy rápido para cumplir con lo que se me pide." },
+    { id: "act2", kind: "likert", cat: "act", inv: false, text: "Mi trabajo me exige estar muy concentrado todo el tiempo." },
+    { id: "act3", kind: "likert", cat: "act", inv: true, text: "Puedo decidir cómo organizar mis tareas." },
+    { id: "tie1", kind: "likert", cat: "tie", inv: false, text: "Mi jornada se alarga más allá del horario establecido." },
+    { id: "tie2", kind: "likert", cat: "tie", inv: false, text: "Pienso en pendientes del trabajo durante mi tiempo de descanso." },
+    { id: "lid1", kind: "likert", cat: "lid", inv: true, text: "Mi jefe me explica con claridad lo que espera de mí." },
+    { id: "lid2", kind: "likert", cat: "lid", inv: false, text: "He recibido burlas, gritos o trato humillante en el trabajo." },
+    { id: "lid3", kind: "likert", cat: "lid", inv: true, text: "Puedo contar con mis compañeros cuando necesito ayuda." },
+    { id: "rec", kind: "likert", cat: "clima", text: "Siento que reconocen mi trabajo." },
+    { id: "com", kind: "likert", cat: "clima", text: "Me entero a tiempo de los cambios que me afectan." },
+    { id: "des", kind: "likert", cat: "clima", text: "Veo oportunidades de crecer en esta empresa." },
+    { id: "enps", kind: "scale", cat: "Clima laboral", text: "Del 0 al 10, ¿qué tan probable es que recomiendes esta empresa como lugar para trabajar?" },
+  ];
+  const CAT_LABEL = Object.fromEntries(CATS.map(c => [c.id, c.name]));
+  CAT_LABEL.clima = "Clima laboral";
+  const HEADCOUNT = 60;
+  const MIN_GROUP = 5;
+
+  // Cortes demostrativos sobre % de riesgo.
+  const LEVELS = [
+    { max: 20, key: "nulo", name: "Nulo" },
+    { max: 40, key: "bajo", name: "Bajo" },
+    { max: 55, key: "medio", name: "Medio" },
+    { max: 70, key: "alto", name: "Alto" },
+    { max: 101, key: "muy", name: "Muy alto" },
+  ];
+  const level = pct => LEVELS.find(l => pct < l.max);
+
+  // ─── Datos de ejemplo deterministas ───────────────────
+  function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
+  const rand = rng(35);
+  const BIAS = { // riesgo base 0..4 por área y categoría
+    "Producción": { amb: 2.1, act: 2.9, tie: 2.6, lid: 1.7, clima: 2.5 },
+    "Almacén": { amb: 2.4, act: 2.3, tie: 2.0, lid: 2.5, clima: 2.3 },
+    "Calidad": { amb: 1.2, act: 2.0, tie: 1.6, lid: 1.2, clima: 3.1 },
+    "Administración": { amb: 0.8, act: 1.7, tie: 2.2, lid: 1.0, clima: 3.2 },
+  };
+  const AREA_N = { "Producción": 19, "Almacén": 12, "Calidad": 8, "Administración": 7 };
+  const clamp = v => Math.max(0, Math.min(4, Math.round(v)));
+  function sampleResponse(area) {
+    const b = BIAS[area], r = { area, sample: true };
+    for (const q of QUESTIONS) {
+      if (q.kind === "likert" && q.cat !== "clima") {
+        const risk = clamp(b[q.cat] + (rand() - 0.5) * 2.4);
+        r[q.id] = q.inv ? 4 - risk : risk;
+      } else if (q.kind === "likert") {
+        r[q.id] = clamp(b.clima + (rand() - 0.5) * 2.6);
+      }
+    }
+    r.g1 = rand() < (area === "Almacén" ? 0.12 : 0.03) ? "si" : "no";
+    r.enps = Math.max(0, Math.min(10, Math.round(3.6 + b.clima * 1.6 + (rand() - 0.5) * 4)));
+    return r;
+  }
+  const SAMPLE = [];
+  for (const a of AREAS) for (let i = 0; i < AREA_N[a]; i++) SAMPLE.push(sampleResponse(a));
+
+  // ─── Estado del visitante (solo en este navegador) ─────
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("vx-demo-" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("vx-demo-" + k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } },
+  };
+  let mine = store.get("mine", null);
+  let draft = {};
+  let step = 0;
+
+  // ─── Cálculo ──────────────────────────────────────────
+  const allResponses = () => mine ? SAMPLE.concat([{ ...mine, sample: false }]) : SAMPLE;
+  function riskOf(r, cat) {
+    const qs = QUESTIONS.filter(q => q.kind === "likert" && q.cat === cat);
+    const sum = qs.reduce((s, q) => s + (q.inv ? 4 - r[q.id] : r[q.id]), 0);
+    return (sum / (qs.length * 4)) * 100;
+  }
+  const avg = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  function stats(rs) {
+    const cats = Object.fromEntries(CATS.map(c => [c.id, avg(rs.map(r => riskOf(r, c.id)))]));
+    const overall = avg(Object.values(cats));
+    const clima = Object.fromEntries(CLIMA.map(c => [c.id, rs.length ? rs.filter(r => r[c.id] >= 3).length / rs.length * 100 : 0]));
+    const prom = rs.filter(r => r.enps >= 9).length, det = rs.filter(r => r.enps <= 6).length;
+    const enps = rs.length ? Math.round((prom - det) / rs.length * 100) : 0;
+    const g1 = rs.filter(r => r.g1 === "si").length;
+    return { n: rs.length, cats, overall, clima, enps, g1 };
+  }
+
+  // ─── Utilidades de UI ─────────────────────────────────
+  const $ = s => document.querySelector(s);
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    }
+    for (const k of kids) if (k != null) n.append(k);
+    return n;
+  };
+  const pill = pct => { const l = level(pct); return el("span", { class: "pill lvl-" + l.key, text: l.name }); };
+  const color = pct => `var(--r-${level(pct).key})`;
+  const fmt = v => Math.round(v) + "%";
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2200); }
+
+  // ─── Vistas ───────────────────────────────────────────
+  const HERO = {
+    collab: ["Contesta la encuesta como colaborador y mira cómo la recibe RH", "Encuesta anónima desde el celular, resultados por categoría de riesgo psicosocial, mapa por área y un plan de acción listo para dar seguimiento."],
+    panel: ["Panel de RH: dónde está el riesgo y qué hacer primero", "Resultados en tiempo real conforme el personal responde. Sin capturas en Excel ni reportes hechos a mano."],
+    plan: ["Del diagnóstico a la acción, con evidencia para la STPS", "Cada hallazgo se convierte en una acción con responsable y fecha. El avance queda documentado para las inspecciones."],
+  };
+  function show(view) {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+    for (const v of ["collab", "panel", "plan"]) $("#view-" + v).hidden = v !== view;
+    $("#hero-title").textContent = HERO[view][0];
+    $("#hero-sub").textContent = HERO[view][1];
+    if (view === "panel") renderPanel();
+    if (view === "plan") renderPlan();
+  }
+  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => show(t.dataset.view)));
+  $("#restart").addEventListener("click", () => { draft = {}; step = 0; renderPhone(); show("collab"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+
+  // 1 · Encuesta
+  function renderPhone() {
+    const ph = $("#phone"); ph.replaceChildren();
+    if (step >= QUESTIONS.length) {
+      ph.append(el("div", { class: "done" },
+        el("div", { class: "big", text: "✓" }),
+        el("h2", { style: "font-size:22px", text: "¡Gracias! Tu respuesta ya cuenta" }),
+        el("p", { style: "margin:0;color:var(--muted)", text: "Es anónima: RH solo ve resultados por grupo. Ahora mira cómo aparece en el panel." }),
+        el("button", { class: "btn btn-primary", type: "button", style: "flex:0 0 auto", text: "Ver el panel de RH", onclick: () => show("panel") }),
+      ));
+      return;
+    }
+    const q = QUESTIONS[step];
+    const top = el("div", { class: "phone-top" }, el("span", { text: "Encuesta de bienestar 2026" }), el("span", { text: `${step + 1} de ${QUESTIONS.length}` }));
+    const prog = el("div", { class: "progress" }, el("span", { style: `width:${(step / QUESTIONS.length) * 100}%` }));
+    const catTxt = q.kind === "likert" ? (q.cat === "clima" ? "Clima laboral" : "NOM-035 · " + CAT_LABEL[q.cat]) : q.cat;
+    const opts = el("div", { class: "options" });
+    const pick = v => { draft[q.id] = v; renderPhone(); };
+    if (q.kind === "area") AREAS.forEach(a => opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft.area === a), text: a, onclick: () => pick(a) })));
+    if (q.kind === "yesno") [["si", "Sí"], ["no", "No"]].forEach(([v, t]) => opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), text: t, onclick: () => pick(v) })));
+    if (q.kind === "likert") LIKERT.forEach((t, i) => { const v = 4 - i; opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), text: t, onclick: () => pick(v) })); });
+    if (q.kind === "scale") {
+      const row = el("div", { class: "scale11" });
+      for (let v = 0; v <= 10; v++) row.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), "aria-label": String(v), text: String(v), onclick: () => pick(v) }));
+      opts.append(row, el("div", { class: "scale-legend" }, el("span", { text: "Nada probable" }), el("span", { text: "Muy probable" })));
+    }
+    const answered = draft[q.id] !== undefined;
+    const last = step === QUESTIONS.length - 1;
+    const nav = el("div", { class: "phone-nav" },
+      step > 0 ? el("button", { class: "btn btn-ghost", type: "button", text: "Atrás", onclick: () => { step--; renderPhone(); } }) : null,
+      el("button", { class: "btn btn-primary", type: "button", text: last ? "Enviar respuestas" : "Siguiente", onclick: next }));
+    nav.lastChild.disabled = !answered;
+    function next() {
+      if (!answered) return;
+      if (last) { mine = { ...draft }; store.set("mine", mine); toast("Respuesta enviada al panel de RH"); }
+      step++; renderPhone();
+    }
+    ph.append(top, prog, el("div", { class: "q-cat", text: catTxt }), el("div", { class: "q-text", text: q.text }), opts,
+      q.id === "g1" && draft.g1 === "si" ? el("p", { class: "anon", text: "Gracias por decirlo. En producción, RH recibe un aviso anónimo para canalizar a valoración, como pide la Guía I." }) : null,
+      nav, el("p", { class: "anon" }, el("span", { text: "🔒" }), el("span", { text: "Anónimo. Nadie en tu empresa verá tus respuestas individuales." })));
+  }
+
+  // 2 · Panel
+  const sel = $("#f-area");
+  sel.append(el("option", { value: "", text: "Toda la planta" }), ...AREAS.map(a => el("option", { value: a, text: a })));
+  sel.addEventListener("change", renderPanel);
+  function renderPanel() {
+    const rs = allResponses();
+    const area = sel.value;
+    const scoped = area ? rs.filter(r => r.area === area) : rs;
+    const s = stats(scoped);
+    $("#you-flag").hidden = !mine || (area && mine.area !== area);
+
+    const lv = level(s.overall);
+    $("#kpis").replaceChildren(
+      kpi("Participación", area ? s.n + " resp." : fmt(s.n / HEADCOUNT * 100), area ? "en " + area : `${s.n} de ${HEADCOUNT} colaboradores`),
+      kpiNode("Riesgo general", el("span", {}, el("span", { class: "pill lvl-" + lv.key, style: "font-size:16px;padding:4px 12px", text: lv.name })), fmt(s.overall) + " de riesgo promedio"),
+      kpi("eNPS", (s.enps > 0 ? "+" : "") + s.enps, "promotores menos detractores"),
+      kpi("Guía I", String(s.g1), s.g1 === 1 ? "persona por canalizar a valoración" : "personas por canalizar a valoración"),
+    );
+
+    $("#cat-bars").replaceChildren(...CATS.map(c => {
+      const p = s.cats[c.id];
+      return el("div", { class: "bar-row" }, el("span", { text: c.name }),
+        el("div", { class: "bar-track", role: "img", "aria-label": `${c.name}: ${fmt(p)}` }, el("div", { class: "bar-fill", style: `width:${p}%;background:${color(p)}` })),
+        pill(p));
+    }));
+    $("#legend").replaceChildren(el("span", { text: "Niveles:" }), ...LEVELS.map(l => el("span", { class: "pill lvl-" + l.key, text: l.name })));
+
+    // Mapa de calor (siempre por área, respeta el mínimo de grupo)
+    const heat = $("#heat"); heat.replaceChildren();
+    heat.append(el("thead", {}, el("tr", {}, el("th", { text: "Área" }), el("th", { text: "Resp." }), ...CATS.map(c => el("th", { text: c.name })))));
+    const tb = el("tbody");
+    for (const a of AREAS) {
+      const ar = rs.filter(r => r.area === a);
+      const row = el("tr", {}, el("th", { text: a }), el("td", { style: "background:var(--surface-2);color:var(--fg)", text: String(ar.length) }));
+      if (ar.length < MIN_GROUP) row.append(el("td", { colspan: String(CATS.length), style: "background:var(--surface-2);color:var(--muted)", text: "Oculto: menos de 5 respuestas" }));
+      else { const st = stats(ar); for (const c of CATS) row.append(el("td", { style: `background:${color(st.cats[c.id])}${level(st.cats[c.id]).key === "muy" ? ";color:#fff" : ""}`, text: fmt(st.cats[c.id]) })); }
+      tb.append(row);
+    }
+    heat.append(tb);
+
+    // Hallazgos
+    const combos = [];
+    for (const a of AREAS) { const ar = rs.filter(r => r.area === a); if (ar.length < MIN_GROUP) continue; const st = stats(ar); for (const c of CATS) combos.push({ a, c, p: st.cats[c.id] }); }
+    const scopedCombos = area ? combos.filter(x => x.a === area) : combos;
+    const top = scopedCombos.sort((x, y) => y.p - x.p).filter(x => x.p >= 40).slice(0, 3);
+    const fl = $("#findings"); fl.replaceChildren();
+    if (!top.length) fl.append(el("li", { class: "ok", text: "Sin focos de riesgo medio o superior en este grupo. Mantener el seguimiento anual." }));
+    for (const x of top) {
+      const l = level(x.p);
+      fl.append(el("li", { class: l.key === "muy" ? "muy" : "" },
+        el("b", { text: `${x.a} · ${x.c.name}: ${l.name} (${fmt(x.p)})` }), el("br"),
+        el("span", { text: INSIGHT[x.c.id] })));
+    }
+    if (s.g1 > 0) fl.append(el("li", { class: "muy" }, el("b", { text: `${s.g1} caso${s.g1 > 1 ? "s" : ""} de la Guía I` }), el("br"), el("span", { text: "Canalizar a valoración clínica y documentarlo, como pide la norma." })));
+
+    $("#clima-bars").replaceChildren(...CLIMA.map(c => {
+      const p = s.clima[c.id];
+      const tone = p >= 70 ? "nulo" : p >= 50 ? "medio" : "alto";
+      return el("div", { class: "bar-row" }, el("span", { text: c.name }),
+        el("div", { class: "bar-track", role: "img", "aria-label": `${c.name}: ${fmt(p)} favorable` }, el("div", { class: "bar-fill", style: `width:${p}%;background:var(--r-${tone})` })),
+        el("span", { style: "font-family:var(--font-mono);font-variant-numeric:tabular-nums", text: fmt(p) }));
+    }));
+
+    $("#evidence").replaceChildren(...[
+      ["✓", "Resultados por categoría y dominio", "Con fecha de aplicación y número de participantes."],
+      ["✓", "Registro de canalizaciones de la Guía I", "Sin exponer identidades."],
+      ["✓", "Plan de acción con seguimiento", "Responsables, fechas y avance de cada medida."],
+      ["✓", "Difusión de la política de prevención", "Con acuse de lectura del personal."],
+    ].map(([i, b, t]) => el("li", {}, el("span", { class: "ico", text: i }), el("div", {}, el("b", { text: b }), el("span", { text: t })))));
+  }
+  const kpi = (l, v, sub) => kpiNode(l, document.createTextNode(v), sub);
+  const kpiNode = (l, node, sub) => el("div", { class: "kpi" }, el("span", { class: "lbl", text: l }), el("span", { class: "val" }, node), el("span", { class: "sub", text: sub }));
+  const INSIGHT = {
+    amb: "Revisar condiciones físicas (ruido, temperatura, iluminación) y el equipo de protección en las estaciones con más quejas.",
+    act: "El ritmo exigido supera la capacidad del equipo. Revisar metas por turno y redistribuir cargas en picos de producción.",
+    tie: "Jornadas que se alargan y poca desconexión. Controlar horas extra y respetar los descansos entre turnos.",
+    lid: "Señales de trato negativo o poca claridad del jefe directo. Capacitar a supervisores y abrir un canal de denuncia confidencial.",
+  };
+
+  $("#copy-summary").addEventListener("click", () => {
+    const s = stats(allResponses());
+    const text = [
+      "Resumen ejecutivo · Clima laboral y NOM-035 (demo Vortex Ops)",
+      `Participación: ${s.n} de ${HEADCOUNT} (${fmt(s.n / HEADCOUNT * 100)})`,
+      `Riesgo psicosocial general: ${level(s.overall).name} (${fmt(s.overall)})`,
+      ...CATS.map(c => `- ${c.name}: ${level(s.cats[c.id]).name} (${fmt(s.cats[c.id])})`),
+      `eNPS: ${s.enps}`, `Casos Guía I por canalizar: ${s.g1}`,
+    ].join("\n");
+    navigator.clipboard.writeText(text).then(() => toast("Resumen copiado"), () => toast("No se pudo copiar en esta vista"));
+  });
+
+  // 3 · Plan de acción
+  const ACTION_LIB = {
+    amb: { t: "Auditoría de condiciones físicas por estación", d: "Medir ruido, temperatura e iluminación y corregir los puntos fuera de norma.", owner: "Seguridad e Higiene", days: 30 },
+    act: { t: "Revisión de metas y cargas por turno", d: "Ajustar estándares con supervisión y sumar apoyo en horas pico.", owner: "Gerencia de Producción", days: 45 },
+    tie: { t: "Control de horas extra y descansos", d: "Tope semanal de horas extra y descanso mínimo entre turnos.", owner: "Recursos Humanos", days: 30 },
+    lid: { t: "Taller de liderazgo para supervisores y canal de denuncia", d: "Cuatro sesiones de liderazgo y un buzón confidencial con respuesta en 72 h.", owner: "Recursos Humanos", days: 60 },
+  };
+  const iso = d => d.toISOString().slice(0, 10);
+  function suggested() {
+    const rs = allResponses(), out = [];
+    for (const a of AREAS) {
+      const ar = rs.filter(r => r.area === a); if (ar.length < MIN_GROUP) continue;
+      const st = stats(ar);
+      for (const c of CATS) if (st.cats[c.id] >= 40) {
+        const lib = ACTION_LIB[c.id], due = new Date(); due.setDate(due.getDate() + lib.days);
+        out.push({ id: `${a}-${c.id}`, title: lib.t, desc: lib.d, area: a, cat: c.name, owner: lib.owner, due: iso(due), p: st.cats[c.id] });
+      }
+    }
+    out.push({ id: "politica", title: "Difundir la política de prevención de riesgos psicosociales", desc: "Publicarla en planta y en el celular con acuse de lectura.", area: "Toda la planta", cat: "Obligación NOM-035", owner: "Recursos Humanos", due: iso(new Date(Date.now() + 15 * 864e5)), p: 0 });
+    return out.sort((x, y) => y.p - x.p);
+  }
+  let statuses = store.get("status", {});
+  let custom = store.get("custom", []);
+  const NEXT = { "Pendiente": "En curso", "En curso": "Hecha", "Hecha": "Pendiente" };
+  function renderPlan() {
+    const list = suggested().concat(custom);
+    const done = list.filter(a => statuses[a.id] === "Hecha").length;
+    $("#plan-count").textContent = `${done} de ${list.length} acciones cerradas`;
+    $("#plan-list").replaceChildren(...list.map(a => {
+      const st = statuses[a.id] || "Pendiente";
+      return el("article", { class: "action" },
+        el("div", { style: "display:grid;gap:4px;min-width:0" }, el("h4", { text: a.title }), el("p", { text: a.desc })),
+        el("button", { class: "status", type: "button", "data-s": st, "aria-label": `Estado: ${st}. Cambiar`, text: st, onclick: () => { statuses[a.id] = NEXT[st]; store.set("status", statuses); renderPlan(); } }),
+        el("div", { class: "meta" },
+          a.p ? pill(a.p) : null,
+          el("span", {}, "Área: ", el("b", { text: a.area })),
+          el("span", {}, "Categoría: ", el("b", { text: a.cat })),
+          el("span", {}, "Responsable: ", el("b", { text: a.owner || "Por asignar" })),
+          el("span", {}, "Fecha: ", el("b", { text: a.due || "Por definir" }))));
+    }));
+  }
+  $("#addform").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("#new-text").value.trim(); if (!t) return;
+    custom.push({ id: "c" + Date.now(), title: t, desc: "Acción agregada por RH.", area: sel.value || "Toda la planta", cat: "Propia", owner: $("#new-owner").value.trim(), due: $("#new-date").value, p: 0 });
+    store.set("custom", custom);
+    e.target.reset(); renderPlan(); toast("Acción agregada");
+  });
+
+  renderPhone();
+  if (location.hash === "#panel" || location.hash === "#plan") show(location.hash.slice(1));
+})();
+</script>
+
+</body>
+</html>
