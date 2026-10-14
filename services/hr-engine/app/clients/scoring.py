@@ -23,7 +23,7 @@ sin exponer identidad.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 
 from google import genai
@@ -41,6 +41,7 @@ from app.clients.circuit_breaker import CircuitBreaker
 from app.clients.errors import is_retryable_llm_error, log_retry_attempt
 from app.clients.por_loop import por_event_loop
 from app.config import settings
+from app.domain.siguiente_paso import siguiente_paso
 from app.monitoring import hash_pii, logger
 from app.skills import load_skill
 
@@ -284,6 +285,31 @@ _PROVEEDORES = (
 )
 
 
+def _con_politica_de_siguiente_paso(
+    resultado: ScoringResult, candidate_ref: str | None
+) -> ScoringResult:
+    """El siguiente paso lo decide la política de dominio, no el modelo.
+
+    Si el modelo sugirió otro, se registra: es una señal de que el prompt y la
+    calibración se están desalineando.
+    """
+    sugerido = resultado.response.recommended_next_step
+    decidido = siguiente_paso(resultado.response.score)
+    if sugerido == decidido:
+        return resultado
+    logger.info(
+        "scoring.siguiente_paso_corregido",
+        candidate_ref=candidate_ref,
+        score=resultado.response.score,
+        sugerido=sugerido,
+        decidido=decidido,
+    )
+    return replace(
+        resultado,
+        response=resultado.response.model_copy(update={"recommended_next_step": decidido}),
+    )
+
+
 def _breaker(proveedor: str) -> CircuitBreaker:
     return CircuitBreaker(proveedor)
 
@@ -330,7 +356,7 @@ async def score_candidate_fit(candidate: dict[str, Any], icp_text: str) -> Scori
         breaker.registrar_exito()
         if proveedor != _PROVEEDORES[0][0]:
             logger.warning("scoring.respaldo_usado", proveedor=proveedor, model=resultado.model)
-        return resultado
+        return _con_politica_de_siguiente_paso(resultado, candidate_ref)
     if otro_error is not None:
         raise otro_error
     raise LLMUnavailableError("ningún proveedor de LLM disponible para puntuar")
