@@ -4,6 +4,37 @@ Bitácora de sesiones de trabajo Ilyra + Claude. Más reciente arriba.
 
 ---
 
+## 2026-10-14 · Cierre del sprint 1 (1-14 oct)
+
+**Objetivo:** "Ninguna evaluación se pierde en silencio, y el tablero refleja la realidad del proyecto". **Cumplido en código**, con un matiz: hr-engine aún no está desplegado (eso es del sprint 3), así que en sus tarjetas no se pudo marcar el "desplegado y comprobado en el entorno real" de la DoD. Se cerraron con la CI de main, que incluye integración con Postgres y Redis y los tests RLS.
+
+### Qué entró en main
+
+23 merges entre el 5 y el 14 de octubre; 22 tarjetas en ✅.
+
+- **Evaluaciones que se perdían:** motor sin pool para los workers de Celery (#20), un run nunca se queda en `pending` (#21), la evaluación sigue si un LLM deja de responder (#29) y sin tope de gasto mientras se mide el coste real (#25).
+- **El evaluador cumple su SKILL.md:** el prompt sale del SKILL.md con calibración y regla anti-sesgo (#23), evaluación a ciegas sin el nombre del candidato (#38) y una política determinista decide el siguiente paso según el score (#40).
+- **Contratos y documentación:** `CvEvaluation` igual en Zod y Pydantic, con un fichero de ejemplos que se prueba en los dos lados (#41), y documentación al día con el código (#42).
+- **CI y tooling:** mypy en verde (#33), skill evals no bloqueantes hasta tener golden set (#34), `LOG_LEVEL` en mayúsculas (#37), `cost_cap_usd: null` válido en Zod (#39), pnpm declarado una sola vez (#22) y seis PRs de Dependabot (#27, #28, #30, #32, #35 y #36).
+- **Proceso:** skills como Claude skills (#17), tablero de Trello como código (#18) y la bitácora de la sesión 6 (#19).
+
+Vuelven al backlog, con el motivo en su tarjeta: el permiso de PRs del token, que depende de Ilyra, y la cola de Dependabot (9 PRs abiertos; el PR de Next 16 sustituye a 2).
+
+### Lo que se aprendió
+
+- **La caché de Turborepo dio por bueno un test con main en rojo.** El test de skills-sdk valida los SKILL.md, que viven fuera del paquete, y Turborepo no los tenía como entrada: devolvía el resultado verde guardado. Se arregló en #39 añadiéndolos a `globalDependencies`. Regla: todo fichero que un test lea de fuera de su paquete se declara como entrada de la caché.
+- **La guarda de los tests RLS aceptaba `vortex_dev`**, la base de desarrollo con datos persistentes, y esos tests la habrían borrado. Desde #42 exige "test" en el nombre de la base y un host local. Regla: la guarda de un fixture destructivo es una lista de permitidos, no de prohibidos.
+- **Un PR apilado no se cierra solo.** #29 tenía como base la rama de #25: su código llegó a main, pero GitHub no lo marcó como merged y hubo que cerrarlo a mano. Regla: PRs siempre contra main; si hay que apilar, se cambia la base antes del merge.
+- **Los PRs de Dependabot envejecen.** Los 16 del 10 de septiembre pasaron un mes abiertos: su CI quedó vieja, el triaje necesitó tres pasadas y a una (#24) se le pasó. Regla: triarlos la misma semana en que llegan.
+- **La deriva entre docs y código volvió**, esta vez en un contrato Zod↔Pydantic que se decía "espejo" y no lo era. Una equivalencia que se afirma necesita un test que falle cuando deja de cumplirse, que es lo que añade #41.
+- **Los límites del token marcan el flujo.** Sin permiso de PRs ni de comentarios, los PRs se abren desde la sesión web de Ilyra, y los merges a main los ejecuta ella con un script que deja preparado Claude.
+
+### Sprint 2 (15-28 oct)
+
+Objetivo: "`EvaluateCandidate` en capas como plantilla, y career-site fuera de una versión sin soporte". Entran las cuatro tarjetas [S2] que cumplen la DoR: Next 14 → 16 y React 19 (PR #43) y las tres capas de `EvaluateCandidate` (dominio, caso de uso, y adaptadores con worker fino). Sourcer y los SKILL.md de producto siguen en el backlog porque no tienen criterios de aceptación.
+
+---
+
 ## 2026-09-14 · Sesión 6 — Auditoría contra las skills, ruta por fases y tablero
 
 **Duración:** una jornada · **Modo:** Auto · **Modelo:** Claude Opus 5 (1M)
