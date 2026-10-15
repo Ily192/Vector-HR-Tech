@@ -2,590 +2,1258 @@
 <html lang="es-MX">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Demo de Vortex Ops: encuesta de clima laboral y NOM-035, panel de RH y plan de acción.">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Vortex Clima y NOM-035</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vortex Ops · Clima laboral y NOM-035</title>
+<meta name="description" content="Demo con datos ficticios: la encuesta de clima laboral y NOM-035 desde el celular, el panel de RH, el plan de acción y el expediente para la STPS.">
+<meta name="theme-color" content="#181854">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ily192.github.io/Vector-HR-Tech/">
+<meta property="og:title" content="Clima laboral y NOM-035, de la encuesta al plan de acción · Vortex Ops">
+<meta property="og:description" content="Contesta la encuesta como colaborador y mira cómo la recibe RH: mapa de riesgo, plan de acción y expediente para la STPS. Demo con datos ficticios.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23181854'/%3E%3Cpath d='M18 19l14 27 14-27' fill='none' stroke='%233EECEB' stroke-width='7.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Lato:ital,wght@0,400;0,700;1,700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..900;1,700..800&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: barra de marca índigo + tres vistas (colaborador en marco de teléfono, panel RH, plan de acción). Identidad Vortex Ops: índigo autoridad, cian IA, naranja CTA. */
+/* ── Marca Vortex Ops v2: tokens ───────────────────────────────────────── */
 :root {
-  --indigo: #1E1B4B;
-  --indigo-soft: #4D497F;
-  --cyan: #00B8B8;
-  --cyan-glow: #00FFFF;
-  --orange: #FF7F00;
-  --orange-ink: #CC6600;
-  --bg: #F5F5FA;
-  --surface: #FFFFFF;
-  --surface-2: #EEEDF6;
-  --line: #E0DFEC;
-  --fg: #1A1838;
-  --muted: #5F5C86;
-  --on-brand: #FFFFFF;
-  --r-nulo: #10B981; --r-bajo: #7CC96B; --r-medio: #F2C230; --r-alto: #F08A24; --r-muy: #E5484D;
-  --r-ink: #1A1838;
-  --font-display: "Inter", system-ui, sans-serif;
-  --font-body: "Lato", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --ink-950: #0C0C36; --ink-900: #181854; --ink-800: #323973; --ink-700: #434D97; --ink-600: #5661BC;
+  --ink-500: #6D7BE2; --ink-300: #B3C0FE; --ink-200: #D4DCFF; --ink-100: #EAEEFE; --ink-50: #F5F6FE;
+  --aqua-300: #3EECEB; --aqua-500: #02999B; --aqua-600: #037B7D; --aqua-700: #066263; --aqua-100: #C1FBFB; --aqua-50: #DDFFFE;
+  --flame-400: #FFA663; --flame-500: #FE7802; --flame-600: #E05F00; --flame-700: #893B01; --flame-100: #FFEADF; --flame-50: #FFF4EF;
+  --mist-50: #F7F8FC; --mist-100: #EFF1F7; --mist-150: #E5E7F0; --mist-200: #DBDDE8; --mist-300: #C1C3CF;
+  --mist-500: #828594; --mist-600: #686B78; --mist-700: #525560;
+  --ok-50: #E4FFEE; --ok-600: #068050; --warn-50: #FEF5E8; --warn-700: #714E04;
+  /* Escala de riesgo NOM-035: la claridad baja con el nivel. */
+  --r-nulo: #C2F3F3; --r-nulo-t: #005256; --r-bajo: #B4EEC7; --r-bajo-t: #02572F;
+  --r-medio: #F8D376; --r-medio-t: #6F4502; --r-alto: #FFA666; --r-alto-t: #6F2A01;
+  --r-muy: #F66D67; --r-muy-t: #520D0F;
+  --bg: var(--mist-50); --surface: #FFFFFF; --text: var(--ink-900); --text-2: var(--mist-600); --line: var(--mist-200);
+  --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 28px;
+  --sh-1: 0 1px 2px rgb(24 24 84 / .06), 0 1px 1px rgb(24 24 84 / .04);
+  --sh-2: 0 10px 30px -12px rgb(24 24 84 / .18), 0 2px 6px rgb(24 24 84 / .05);
+  --sh-3: 0 40px 80px -30px rgb(12 12 54 / .45), 0 12px 30px -12px rgb(12 12 54 / .25);
+  --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --grad: linear-gradient(90deg, #FE7802, #FFC252 48%, #3EECEB);
+  --ease: cubic-bezier(.2, .7, .2, 1);
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0E0C26; --surface: #17143A; --surface-2: #211D4D; --line: #2E2A5E;
-  --fg: #ECEBF7; --muted: #A9A6CF; --cyan: #33E0E0; --orange: #FF9A33; --orange-ink: #FFB347;
-  --indigo: #100D2E; --indigo-soft: #7A77A8; color-scheme: dark; } }
-:root[data-theme="dark"] {
-  --bg: #0E0C26; --surface: #17143A; --surface-2: #211D4D; --line: #2E2A5E;
-  --fg: #ECEBF7; --muted: #A9A6CF; --cyan: #33E0E0; --orange: #FF9A33; --orange-ink: #FFB347;
-  --indigo: #100D2E; --indigo-soft: #7A77A8; color-scheme: dark; }
+@supports (background: linear-gradient(in oklch, red, blue)) {
+  :root { --grad: linear-gradient(90deg in oklch, #FE7802, #FFC252 48%, #3EECEB); }
+}
 
-* { box-sizing: border-box; }
-body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
-h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
-button { font: inherit; cursor: pointer; }
-:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+/* ── Base ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 400 16px/1.55 var(--font); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4 { margin: 0; line-height: 1.12; letter-spacing: -0.02em; font-weight: 800; }
+p { margin: 0; }
+a { color: var(--aqua-700); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--aqua-500); outline-offset: 2px; border-radius: 6px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.skip { position: absolute; left: 12px; top: -48px; background: var(--ink-900); color: #fff; padding: 10px 14px; border-radius: 10px; z-index: 100; }
+.skip:focus { top: 12px; }
+.ico { display: inline-flex; width: 1.15em; height: 1.15em; flex: none; }
+.ico svg { width: 100%; height: 100%; }
+.mono { font-family: var(--mono); }
+.eyebrow {
+  font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--aqua-700);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.eyebrow::before { content: ""; width: 18px; height: 2px; border-radius: 2px; background: var(--grad); }
 
-.brandbar { background: #1E1B4B; color: #fff; }
-.brandbar .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 14px; }
-.wordmark { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: -0.04em; display: inline-flex; align-items: baseline; gap: 6px; }
-.wordmark i { font-family: var(--font-body); font-weight: 700; font-style: italic; color: #00FFFF; letter-spacing: -0.01em; }
-.brandbar .demo-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #C0BED9; }
-.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.tab { border: 1px solid #4D497F; background: transparent; color: #E0DFEC; padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 14px; }
-.tab[aria-selected="true"] { background: #00FFFF; color: #1E1B4B; border-color: #00FFFF; }
+/* ── Botones ──────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 20px; border-radius: 999px; border: 1.5px solid transparent;
+  font-weight: 700; font-size: 15px; text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: transform .15s var(--ease), background-color .15s, box-shadow .15s, border-color .15s;
+}
+.btn:active { transform: translateY(1px); }
+.btn--cta { background: var(--flame-500); color: var(--ink-900); box-shadow: 0 6px 18px -8px rgb(254 120 2 / .7); }
+.btn--cta:hover { background: var(--flame-400); }
+.btn--primary { background: var(--ink-900); color: #fff; }
+.btn--primary:hover { background: var(--ink-800); }
+.btn--ghost { background: var(--surface); color: var(--ink-900); border-color: var(--line); }
+.btn--ghost:hover { border-color: var(--ink-300); background: var(--ink-50); }
+.btn--sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+.btn--block { width: 100%; }
+.btn[disabled] { opacity: .55; cursor: default; }
+.link {
+  display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 6px 2px;
+  color: var(--text-2); font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none;
+}
+.link:hover { color: var(--ink-900); }
 
-.hero { padding-block: 28px 8px; display: grid; gap: 6px; }
-.hero h1 { font-size: clamp(24px, 4vw, 34px); font-weight: 900; }
-.hero p { margin: 0; color: var(--muted); max-width: 68ch; }
-.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+/* ── Barra superior ───────────────────────────────────────────────────── */
+.top {
+  position: sticky; top: 0; z-index: 40; background: rgb(255 255 255 / .86);
+  backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.top__in { display: flex; align-items: center; gap: 20px; min-height: 68px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink-900); }
+.mono-v { width: 30px; height: 30px; border-radius: 9px; background: var(--ink-900); display: grid; place-items: center; flex: none; }
+.mono-v svg { width: 18px; height: 18px; }
+.wordmark { font-weight: 900; font-size: 19px; letter-spacing: -0.03em; line-height: 1; }
+.wordmark i { font-style: italic; font-weight: 800; letter-spacing: -0.01em; color: var(--aqua-600); margin-left: 3px; }
+.top__product { color: var(--text-2); font-weight: 600; font-size: 14px; padding-left: 16px; border-left: 1px solid var(--line); }
+.steps { display: flex; gap: 4px; margin-left: auto; background: var(--mist-100); padding: 4px; border-radius: 999px; }
+.steps a {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 999px;
+  color: var(--mist-700); text-decoration: none; font-weight: 700; font-size: 14px; transition: background-color .15s, color .15s;
+}
+.steps a:hover { color: var(--ink-900); }
+.steps .n {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: #fff; color: var(--ink-700); font: 600 12px/1 var(--mono); box-shadow: var(--sh-1);
+}
+.steps a.is-activo { background: var(--ink-900); color: #fff; }
+.steps a.is-activo .n { background: var(--aqua-300); color: var(--ink-900); box-shadow: none; }
+.context { border-bottom: 1px solid var(--line); background: var(--surface); }
+.context .wrap { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-top: 10px; padding-bottom: 10px; font-size: 13px; color: var(--text-2); }
+.context span { display: inline-flex; align-items: center; gap: 6px; }
+.context b { color: var(--ink-900); font-weight: 700; }
+.chip-demo {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  background: var(--flame-50); color: var(--flame-700); font-weight: 700; font-size: 12px; border: 1px solid var(--flame-100);
+}
 
-main.wrap { padding-block: 16px 48px; }
-.view[hidden] { display: none !important; }
+/* ── Secciones ────────────────────────────────────────────────────────── */
+main { padding: 40px 0 72px; }
+.hero { display: grid; gap: 14px; max-width: 760px; margin-bottom: 32px; }
+.hero h1 { font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.03em; line-height: 1.06; text-wrap: balance; }
+/* La cursiva es la firma de la marca (como "OPS"); el degradado subraya, no tiñe el texto. */
+.hero h1 em {
+  font-style: italic; font-weight: 800; padding: 0 2px;
+  background-image: var(--grad); background-repeat: no-repeat; background-size: 100% .16em; background-position: 0 94%;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.hero p { font-size: 18px; color: var(--text-2); max-width: 62ch; text-wrap: pretty; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-l); box-shadow: var(--sh-1); }
+.card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 0; }
+.card__head h2, .card__head h3 { font-size: 18px; letter-spacing: -0.015em; }
+.card__sub { font-size: 14px; color: var(--text-2); margin-top: 4px; }
+.card__body { padding: 18px 22px 22px; }
+.next {
+  margin-top: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 18px 22px; border-radius: var(--r-l); background: var(--ink-50); border: 1px solid var(--ink-100);
+}
+.next p { color: var(--ink-800); font-weight: 600; }
 
-/* ─── Colaborador ─── */
-.collab { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 820px) { .collab { grid-template-columns: minmax(0, 1fr); } .collab aside { order: 2; } }
-.phone { background: var(--surface); border: 1px solid var(--line); border-radius: 28px; padding: 22px 20px 20px; box-shadow: 0 18px 40px -24px rgba(30,27,75,.45); min-height: 540px; display: flex; flex-direction: column; gap: 16px; }
-.phone-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
-.progress { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
-.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--cyan), var(--orange)); width: 0; transition: width .25s; }
-.q-cat { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
-.q-text { font-family: var(--font-display); font-weight: 700; font-size: 20px; line-height: 1.3; }
-.options { display: grid; gap: 8px; }
-.opt { text-align: left; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); padding: 12px 14px; border-radius: 14px; font-weight: 700; }
-.opt:hover { border-color: var(--cyan); }
-.opt[aria-pressed="true"] { border-color: var(--orange); background: color-mix(in srgb, var(--orange) 12%, var(--surface)); }
-.scale11 { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 4px; }
-.scale11 .opt { padding: 10px 0; text-align: center; font-family: var(--font-mono); font-size: 13px; }
-.scale-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-.phone-nav { margin-top: auto; display: flex; gap: 8px; }
-.btn { border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; }
-.btn-primary { background: var(--orange); color: #1A1838; flex: 1; }
-.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
-.btn-ghost { background: var(--surface-2); color: var(--fg); }
-.anon { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: flex-start; }
-.done { text-align: center; display: grid; gap: 12px; justify-items: center; padding-top: 30px; }
-.done .big { font-size: 46px; line-height: 1; }
-aside.explain { display: grid; gap: 14px; }
-aside.explain h2 { font-size: 22px; }
-.feature-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.feature-list li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; }
-.feature-list .ico { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-2); color: var(--cyan); font-weight: 900; font-family: var(--font-mono); font-size: 13px; }
-.feature-list b { display: block; }
-.feature-list span { color: var(--muted); font-size: 14px; }
+/* ── Paso 1: colaborador ──────────────────────────────────────────────── */
+.collab { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 56px; align-items: start; }
+.benefits { display: grid; gap: 14px; margin-top: 8px; }
+.benefit { display: grid; grid-template-columns: 44px 1fr; gap: 14px; align-items: start; padding: 16px; border-radius: var(--r-m); background: var(--surface); border: 1px solid var(--line); }
+.benefit .bubble { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--aqua-50); color: var(--aqua-700); font-size: 20px; }
+.benefit:nth-child(2) .bubble { background: var(--ink-50); color: var(--ink-700); }
+.benefit:nth-child(3) .bubble { background: var(--flame-50); color: var(--flame-700); }
+.benefit:nth-child(4) .bubble { background: var(--ok-50); color: var(--ok-600); }
+.benefit h3 { font-size: 16px; letter-spacing: -0.01em; margin-bottom: 2px; }
+.benefit p { font-size: 14.5px; color: var(--text-2); }
+.fineprint { font-size: 13px; color: var(--text-2); margin-top: 16px; padding-left: 12px; border-left: 2px solid var(--line); max-width: 60ch; }
 
-/* ─── Panel RH ─── */
-.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.toolbar label { font-weight: 700; font-size: 14px; display: inline-flex; gap: 8px; align-items: center; }
-select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-@media (max-width: 820px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
-.kpi .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
-.kpi .val { font-family: var(--font-display); font-weight: 900; font-size: 28px; font-variant-numeric: tabular-nums; }
-.kpi .sub { font-size: 13px; color: var(--muted); }
-.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
-.panel h3 { font-size: 16px; }
-.panel .hint { font-size: 13px; color: var(--muted); margin: 0; }
-.bar-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 76px; gap: 10px; align-items: center; font-size: 14px; }
-.bar-track { height: 12px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 99px; }
-.pill { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; color: var(--r-ink); text-align: center; white-space: nowrap; }
-.lvl-nulo { background: var(--r-nulo); } .lvl-bajo { background: var(--r-bajo); } .lvl-medio { background: var(--r-medio); } .lvl-alto { background: var(--r-alto); } .lvl-muy { background: var(--r-muy); color: #fff; }
-.heat-wrap { overflow-x: auto; }
-table.heat { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 520px; font-size: 13px; }
-table.heat th { text-align: left; font-weight: 700; color: var(--muted); padding: 4px; }
-table.heat td { border-radius: 8px; padding: 9px 6px; text-align: center; font-family: var(--font-mono); font-weight: 500; color: var(--r-ink); font-variant-numeric: tabular-nums; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
-.findings { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.findings li { border-left: 4px solid var(--r-alto); background: var(--surface-2); padding: 10px 12px; border-radius: 0 10px 10px 0; font-size: 14px; }
-.findings li.muy { border-left-color: var(--r-muy); }
-.findings li.ok { border-left-color: var(--r-nulo); }
-.you-flag { font-size: 12px; font-weight: 700; color: var(--orange-ink); }
+.phone-col { position: sticky; top: 96px; }
+.phone {
+  width: 372px; height: 760px; border-radius: 52px; padding: 11px; background: linear-gradient(160deg, #23235e, #0C0C36);
+  box-shadow: var(--sh-3), inset 0 0 0 1.5px rgb(255 255 255 / .08); position: relative;
+}
+.phone::before {
+  content: ""; position: absolute; top: 22px; left: 50%; transform: translateX(-50%);
+  width: 108px; height: 30px; border-radius: 20px; background: #05051a; z-index: 3;
+}
+.screen { height: 100%; border-radius: 42px; background: #fff; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.phone-caption { text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-2); }
 
-/* ─── Plan de acción ─── */
-.plan-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; margin-bottom: 14px; }
-.plan-list { display: grid; gap: 10px; }
-.action { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: start; }
-.action h4 { margin: 0; font-family: var(--font-display); font-size: 15px; }
-.action p { margin: 0; font-size: 14px; color: var(--muted); }
-.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); grid-column: 1 / -1; }
-.meta b { color: var(--fg); }
-.status { border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); border-radius: 99px; padding: 5px 12px; font-size: 13px; font-weight: 700; white-space: nowrap; }
-.status[data-s="En curso"] { background: color-mix(in srgb, var(--cyan) 22%, var(--surface)); }
-.status[data-s="Hecha"] { background: color-mix(in srgb, var(--r-nulo) 30%, var(--surface)); }
-.addform { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; margin-top: 14px; }
-@media (max-width: 720px) { .addform { grid-template-columns: minmax(0, 1fr); } }
-input[type="text"], input[type="date"] { font: inherit; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-width: 0; }
-.cta-band { margin-top: 28px; background: #1E1B4B; color: #fff; border-radius: 18px; padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
-.cta-band p { margin: 0; color: #C0BED9; max-width: 60ch; }
-.cta-band h3 { color: #fff; font-size: 18px; }
-.foot { font-size: 12px; color: var(--muted); margin-top: 18px; max-width: 80ch; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* Encuesta */
+.sv { display: flex; flex-direction: column; height: 100%; padding: 64px 22px 20px; }
+.sv-top { display: grid; gap: 10px; }
+.sv-progress { height: 6px; border-radius: 999px; background: var(--mist-100); overflow: hidden; }
+.sv-progress span { display: block; height: 100%; border-radius: inherit; background: var(--grad); transition: width .35s var(--ease); }
+.sv-meta { display: flex; justify-content: space-between; font: 500 12px/1 var(--mono); color: var(--text-2); }
+.sv-body { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-top: 26px; min-height: 0; overflow-y: auto; }
+.sv-section { font: 600 11.5px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--aqua-700); }
+.sv-q { font-size: 21px; line-height: 1.28; letter-spacing: -0.015em; font-weight: 800; margin-bottom: 8px; outline: none; }
+.sv-opts { display: grid; gap: 8px; }
+.sv-opts--2 { grid-template-columns: 1fr 1fr; }
+.sv-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 12px 14px;
+  border: 1.5px solid var(--line); border-radius: var(--r-m); background: #fff; color: var(--ink-900);
+  font-weight: 650; font-size: 15.5px; text-align: left; cursor: pointer;
+  transition: border-color .15s, background-color .15s, transform .12s var(--ease);
+}
+.sv-opt:hover { border-color: var(--ink-300); background: var(--ink-50); }
+.sv-opt:active { transform: scale(.985); }
+.sv-radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--mist-300); flex: none; display: grid; place-items: center; transition: border-color .15s, background-color .15s; }
+.sv-opt.is-sel { border-color: var(--ink-900); background: var(--ink-900); color: #fff; }
+.sv-opt.is-sel .sv-radio { border-color: var(--aqua-300); background: var(--aqua-300); box-shadow: inset 0 0 0 4px var(--ink-900); }
+.sv-opts--2 .sv-opt { justify-content: center; min-height: 64px; font-size: 17px; }
+.sv-opts--2 .sv-radio { display: none; }
+.sv-scale { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+.sv-num {
+  aspect-ratio: 1; border-radius: 12px; border: 1.5px solid var(--line); background: #fff; font-weight: 800; font-size: 16px; cursor: pointer;
+  transition: border-color .15s, background-color .15s;
+}
+.sv-num:hover { border-color: var(--ink-300); background: var(--ink-50); }
+.sv-num.is-sel { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+.sv-scale-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12.5px; color: var(--text-2); }
+.sv-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--mist-100); margin-top: 10px; }
+.sv-lock { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-2); font-weight: 600; }
+.sv-intro { display: flex; flex-direction: column; height: 100%; padding: 70px 24px 24px; gap: 16px; }
+.sv-badge { width: 52px; height: 52px; border-radius: 16px; background: var(--ink-900); display: grid; place-items: center; }
+.sv-badge svg { width: 28px; height: 28px; }
+.sv-kicker { font: 600 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin-top: 6px; }
+.sv-title { font-size: 27px; letter-spacing: -0.025em; line-height: 1.1; }
+.sv-facts { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 12px; }
+.sv-facts li { display: flex; gap: 12px; align-items: center; font-size: 15px; color: var(--mist-700); }
+.sv-facts .ico { width: 36px; height: 36px; padding: 8px; border-radius: 10px; background: var(--mist-100); color: var(--ink-700); }
+.sv-facts b { color: var(--ink-900); }
+.sv-details { border: 1px solid var(--line); border-radius: var(--r-m); padding: 0 14px; margin-top: auto; }
+.sv-details summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: 14.5px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.sv-details summary::-webkit-details-marker { display: none; }
+.sv-details summary::after { content: "+"; font: 600 18px/1 var(--mono); color: var(--aqua-700); }
+.sv-details[open] summary::after { content: "–"; }
+.sv-details p { font-size: 13.5px; color: var(--text-2); padding-bottom: 14px; }
+.sv-done, .sv-care { display: flex; flex-direction: column; justify-content: center; height: 100%; padding: 40px 24px 28px; gap: 14px; text-align: center; align-items: center; }
+.sv-check { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-50); color: var(--ok-600); font-size: 36px; animation: pop .5s var(--ease) both; }
+.sv-care .sv-check { background: var(--ink-50); color: var(--ink-700); }
+.sv-done h3, .sv-care h3 { font-size: 24px; letter-spacing: -0.02em; }
+.sv-done p, .sv-care p { color: var(--text-2); font-size: 15px; max-width: 30ch; }
+.sv-note { background: var(--aqua-50); color: var(--aqua-700) !important; border-radius: 12px; padding: 10px 12px; font-weight: 600; font-size: 13.5px !important; max-width: none !important; }
+.sv-done .btn, .sv-care .btn { margin-top: 10px; }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ── Paso 2: panel ────────────────────────────────────────────────────── */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter {
+  min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface);
+  font-weight: 700; font-size: 14px; color: var(--mist-700); cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.filter:hover { border-color: var(--ink-300); color: var(--ink-900); }
+.filter[aria-pressed="true"] { background: var(--ink-900); border-color: var(--ink-900); color: #fff; }
+.filter[disabled] { cursor: not-allowed; opacity: .6; border-style: dashed; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text-2); font-weight: 600; }
+.live .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok-600); box-shadow: 0 0 0 4px rgb(6 128 80 / .15); animation: pulse 2s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px rgb(6 128 80 / 0); } }
+.yours { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--aqua-50); color: var(--aqua-700); font-weight: 700; font-size: 12.5px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+.kpi { padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.kpi__label { font-size: 13.5px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpi__value { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi__value small { font-size: 15px; font-weight: 700; color: var(--text-2); letter-spacing: -0.01em; margin-left: 4px; }
+.kpi__hint { font-size: 13px; color: var(--text-2); }
+.kpi__row { display: flex; align-items: center; gap: 14px; }
+.donut { width: 62px; height: 62px; flex: none; transform: rotate(-90deg); }
+.meter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 2px; }
+.meter span { height: 8px; border-radius: 3px; background: var(--mist-150); }
+.meter span.on { box-shadow: 0 0 0 2px var(--ink-900); }
+.split { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--mist-150); }
+.split span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--text-2); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lvl {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-weight: 800; font-size: 12.5px; white-space: nowrap;
+}
+.lvl::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.lvl--nulo { background: var(--r-nulo); color: var(--r-nulo-t); }
+.lvl--bajo { background: var(--r-bajo); color: var(--r-bajo-t); }
+.lvl--medio { background: var(--r-medio); color: var(--r-medio-t); }
+.lvl--alto { background: var(--r-alto); color: var(--r-alto-t); }
+.lvl--muy { background: var(--r-muy); color: var(--r-muy-t); }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+/* Sin esto, el ancho mínimo del mapa de calor ensancha toda la página en móvil. */
+.grid-2 > *, .stack > *, .dossier > *, .collab > *, .board > *, .kpis > * { min-width: 0; }
+.insight { border: 1px solid var(--ink-100); background: linear-gradient(180deg, var(--ink-50), #fff 70%); }
+.insight__head { display: flex; align-items: center; gap: 10px; padding: 18px 22px 4px; }
+.insight__head .spark { width: 34px; height: 34px; border-radius: 10px; background: var(--ink-900); color: var(--aqua-300); display: grid; place-items: center; }
+.insight__head h2 { font-size: 18px; }
+.finding { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 14px 22px; border-top: 1px solid var(--ink-100); }
+.finding:first-of-type { border-top: 0; }
+.finding__title { font-weight: 800; font-size: 15.5px; letter-spacing: -0.01em; }
+.finding__why { font-size: 13.5px; color: var(--text-2); margin-top: 2px; }
+.finding__acts { display: flex; gap: 6px; }
+.notice { display: flex; gap: 10px; align-items: flex-start; margin: 4px 22px 18px; padding: 12px 14px; border-radius: 12px; background: var(--mist-100); color: var(--mist-700); font-size: 13.5px; }
+.notice .ico { margin-top: 2px; color: var(--ink-600); }
+.heat-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 4px 22px 6px; }
+.heat { border-collapse: separate; border-spacing: 6px; width: 100%; min-width: 640px; margin: 0 -6px; }
+.heat th { font-size: 12.5px; font-weight: 700; color: var(--text-2); text-align: left; vertical-align: bottom; padding: 0 4px 2px; line-height: 1.25; }
+.heat thead th:not(:first-child) { width: 17%; }
+.heat tbody th { padding: 0 10px 0 0; white-space: nowrap; }
+.heat__area { display: block; font-size: 14.5px; font-weight: 800; color: var(--ink-900); }
+.heat__n { display: block; font: 500 11.5px/1.3 var(--mono); color: var(--text-2); }
+.heat__cell {
+  width: 100%; height: 52px; border-radius: 12px; border: 0; font-weight: 800; font-size: 13.5px; cursor: pointer;
+  transition: transform .15s var(--ease), box-shadow .15s;
+}
+.heat__cell:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -10px rgb(24 24 84 / .5); }
+.heat__hidden {
+  display: flex; align-items: center; justify-content: center; gap: 6px; height: 52px; border-radius: 12px; font-size: 12.5px; font-weight: 700; color: var(--mist-600);
+  background: repeating-linear-gradient(135deg, var(--mist-100) 0 8px, var(--mist-50) 8px 16px); border: 1px dashed var(--mist-300);
+}
+.heat tr.is-dim { opacity: .35; }
+.heat-legend { padding: 8px 22px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text-2); }
+.climate { display: grid; gap: 16px; }
+.climate__row { display: grid; gap: 7px; }
+.climate__top { display: flex; justify-content: space-between; gap: 8px; font-size: 14.5px; font-weight: 700; }
+.climate__top span:last-child { font-variant-numeric: tabular-nums; }
+.climate .split { height: 10px; }
+
+/* ── Panel lateral (detalle) ──────────────────────────────────────────── */
+.backdrop { position: fixed; inset: 0; background: rgb(12 12 54 / .38); z-index: 60; animation: fade .2s both; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); background: #fff; z-index: 61; display: flex; flex-direction: column;
+  box-shadow: -30px 0 60px -30px rgb(12 12 54 / .5); animation: slide .28s var(--ease) both;
+}
+.drawer__head { padding: 22px 24px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.drawer__close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; cursor: pointer; }
+.drawer__close:hover { background: var(--mist-100); }
+.drawer__head h2 { font-size: 22px; padding-right: 48px; }
+.drawer__body { overflow-y: auto; padding: 20px 24px 28px; display: grid; gap: 24px; align-content: start; }
+.drawer h3 { font-size: 13px; font: 600 12px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--text-2); margin-bottom: 12px; }
+.why { display: grid; gap: 12px; }
+.why__item { display: grid; gap: 6px; font-size: 14.5px; }
+.why__item .bar { height: 8px; border-radius: 999px; background: var(--mist-100); overflow: hidden; }
+.why__item .bar span { display: block; height: 100%; border-radius: inherit; background: var(--flame-500); }
+.why__pct { font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.norm { padding: 14px 16px; border-radius: 14px; background: var(--ink-50); color: var(--ink-800); font-size: 14.5px; border-left: 3px solid var(--ink-600); }
+.suggest { padding: 16px; border-radius: 14px; border: 1px solid var(--line); display: grid; gap: 12px; }
+.suggest p { font-weight: 700; }
+.suggest small { color: var(--text-2); font-size: 13px; }
+@keyframes slide { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } }
+
+/* ── Paso 3: plan ─────────────────────────────────────────────────────── */
+.summary { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 18px 22px; margin-bottom: 16px; }
+.summary__stat { display: grid; gap: 2px; }
+.summary__stat b { font-size: 26px; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.summary__stat span { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.summary__bar { flex: 1 1 220px; display: grid; gap: 6px; }
+.summary__bar .split { height: 10px; }
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.col { background: var(--mist-100); border-radius: var(--r-l); padding: 12px; display: grid; gap: 10px; }
+.col__head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 2px; font-weight: 800; font-size: 14.5px; }
+.col__head .count { font: 600 12px/1 var(--mono); background: #fff; border-radius: 999px; padding: 5px 9px; color: var(--mist-700); }
+.col__empty { font-size: 13.5px; color: var(--text-2); padding: 14px; text-align: center; border: 1.5px dashed var(--mist-300); border-radius: 14px; }
+.task { background: #fff; border-radius: 16px; padding: 14px; display: grid; gap: 10px; box-shadow: var(--sh-1); border: 1px solid var(--mist-150); animation: fade .25s both; }
+.task__tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--mist-700); }
+.task__tag i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.task__title { font-weight: 750; font-size: 15px; line-height: 1.35; letter-spacing: -0.01em; }
+.task__meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.owner { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mist-700); font-weight: 600; min-width: 0; }
+.avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 10.5px/1 var(--mono); color: #fff; background: var(--ink-600); flex: none; }
+.due { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-2); font-weight: 600; }
+.status {
+  appearance: none; -webkit-appearance: none; border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 30px 6px 12px; font-weight: 700; font-size: 13px; cursor: pointer;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23686B78' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center / 14px;
+}
+.status[data-v="curso"] { border-color: var(--ink-200); background-color: var(--ink-50); color: var(--ink-700); }
+.status[data-v="hecha"] { border-color: #B5EECB; background-color: var(--ok-50); color: var(--ok-600); }
+.newtask { padding: 18px 22px; margin-bottom: 16px; display: grid; gap: 14px; }
+.newtask__grid { display: grid; grid-template-columns: 2fr 1.2fr 1fr 1.4fr; gap: 12px; }
+.field { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: var(--mist-700); }
+.field input, .field select {
+  min-height: 44px; border: 1.5px solid var(--line); border-radius: 12px; padding: 0 12px; font-weight: 600; font-size: 15px; color: var(--ink-900); background: #fff; width: 100%;
+}
+.field input:focus, .field select:focus { border-color: var(--aqua-500); outline: none; box-shadow: 0 0 0 4px rgb(2 153 155 / .15); }
+.newtask__acts { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── Paso 4: expediente ───────────────────────────────────────────────── */
+.dossier { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.checklist { list-style: none; margin: 0; padding: 6px 0; }
+.check { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: start; padding: 16px 22px; border-top: 1px solid var(--mist-150); }
+.check:first-child { border-top: 0; }
+.check__icon { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; }
+.check__icon--ok { background: var(--ok-50); color: var(--ok-600); }
+.check__icon--curso { background: var(--warn-50); color: var(--warn-700); }
+.check__icon--pendiente { background: var(--mist-100); color: var(--mist-600); }
+.check h3 { font-size: 15.5px; letter-spacing: -0.01em; }
+.check p { font-size: 13.5px; color: var(--text-2); margin-top: 3px; }
+.ring { width: 120px; height: 120px; margin: 4px auto 10px; display: block; transform: rotate(-90deg); }
+.ring-wrap { position: relative; text-align: center; }
+.ring-wrap b { position: absolute; top: 46px; left: 0; right: 0; font-size: 26px; letter-spacing: -0.03em; }
+.side-acts { display: grid; gap: 10px; }
+.cta-band {
+  margin-top: 28px; border-radius: var(--r-xl); padding: 40px; color: #fff; position: relative; overflow: hidden;
+  background: radial-gradient(600px 300px at 100% 0%, rgb(62 236 235 / .22), transparent 60%), radial-gradient(500px 280px at 0% 100%, rgb(254 120 2 / .22), transparent 60%), var(--ink-900);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 28px; align-items: center;
+}
+.cta-band .eyebrow { color: var(--aqua-300); }
+.cta-band h2 { font-size: clamp(26px, 3vw, 36px); letter-spacing: -0.03em; margin: 12px 0 10px; text-wrap: balance; }
+.cta-band p { color: #C9CCF2; font-size: 16.5px; max-width: 58ch; }
+.cta-band__acts { display: grid; gap: 10px; }
+.cta-band .btn--ghost { background: transparent; color: #fff; border-color: rgb(255 255 255 / .28); }
+.cta-band .btn--ghost:hover { background: rgb(255 255 255 / .08); border-color: rgb(255 255 255 / .5); }
+
+footer { border-top: 1px solid var(--line); background: var(--surface); }
+footer .wrap { padding-top: 22px; padding-bottom: 26px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; font-size: 13px; color: var(--text-2); }
+footer p { max-width: 80ch; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 80; background: var(--ink-900); color: #fff;
+  padding: 12px 18px; border-radius: 14px; font-weight: 700; font-size: 14.5px; box-shadow: var(--sh-3); display: flex; gap: 10px; align-items: center;
+  animation: up .25s var(--ease) both; max-width: calc(100% - 32px);
+}
+.toast .ico { color: var(--aqua-300); }
+@keyframes up { from { transform: translate(-50%, 12px); opacity: 0; } }
+
+.bottomnav { display: none; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-2, .dossier { grid-template-columns: minmax(0, 1fr); }
+  .collab { gap: 32px; }
+  .top__product { display: none; }
+}
+@media (max-width: 900px) {
+  .steps { display: none; }
+  .top__in { justify-content: space-between; }
+  .collab { grid-template-columns: minmax(0, 1fr); }
+  .phone-col { position: static; order: -1; justify-self: center; }
+  .board { grid-template-columns: minmax(0, 1fr); }
+  .newtask__grid { grid-template-columns: 1fr 1fr; }
+  .cta-band { grid-template-columns: minmax(0, 1fr); padding: 32px 24px; }
+  main { padding-bottom: 110px; }
+  footer .wrap { padding-bottom: 104px; }
+  .bottomnav {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    background: rgb(255 255 255 / .94); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  .bottomnav a {
+    display: grid; justify-items: center; gap: 3px; padding: 7px 4px; border-radius: 14px; text-decoration: none;
+    color: var(--mist-600); font-size: 11.5px; font-weight: 700;
+  }
+  .bottomnav a .ico { width: 22px; height: 22px; }
+  .bottomnav a.is-activo { color: var(--ink-900); background: var(--ink-50); }
+  .bottomnav a.is-activo .ico { color: var(--aqua-600); }
+  .toast { bottom: 92px; }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  main { padding-top: 26px; }
+  .hero { margin-bottom: 22px; }
+  .hero p { font-size: 16.5px; }
+  .context .wrap { gap: 4px 12px; font-size: 12.5px; }
+  .context .hide-sm { display: none; }
+  .phone-col { justify-self: stretch; }
+  .phone { width: 100%; height: auto; min-height: 600px; padding: 0; border-radius: var(--r-xl); background: none; box-shadow: var(--sh-2); }
+  .phone::before { display: none; }
+  .screen { border-radius: var(--r-xl); min-height: 600px; border: 1px solid var(--line); }
+  .sv { padding: 22px 18px 16px; }
+  .sv-intro { padding: 26px 20px 20px; }
+  .sv-done, .sv-care { padding: 32px 20px 24px; }
+  .phone-caption { display: none; }
+  .kpis { gap: 10px; }
+  .kpi { padding: 14px; }
+  .kpi__value { font-size: 28px; }
+  .donut { width: 50px; height: 50px; }
+  .card__head { padding: 16px 16px 0; }
+  .card__body { padding: 14px 16px 16px; }
+  .finding { grid-template-columns: 1fr; gap: 8px; padding: 14px 16px; }
+  .finding__acts { justify-content: flex-start; }
+  .notice { margin: 4px 16px 16px; }
+  .heat-wrap { padding: 4px 16px 6px; }
+  .heat-legend { padding: 8px 16px 16px; }
+  .newtask__grid { grid-template-columns: minmax(0, 1fr); }
+  .check { grid-template-columns: 32px minmax(0, 1fr); padding: 14px 16px; }
+  .check .btn { grid-column: 2; justify-self: start; }
+  .drawer { top: auto; height: 88vh; width: 100%; border-radius: 24px 24px 0 0; animation-name: sheet; }
+  .next { padding: 16px; }
+  .next .btn { width: 100%; }
+}
+@keyframes sheet { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media print {
+  .top, .context, .bottomnav, .no-print, footer, .toast, #paso-colaborador, #paso-panel, #paso-plan { display: none !important; }
+  #paso-expediente { display: block !important; }
+  body { background: #fff; }
+  main { padding: 0; }
+  .card { box-shadow: none; break-inside: avoid; }
+  .dossier { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+<a class="skip" href="#contenido">Saltar al contenido</a>
 
-<header class="brandbar">
-  <div class="wrap">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <span class="wordmark" aria-label="Vortex Ops">VORTEX <i>OPS</i></span>
-      <span class="demo-tag">Clima laboral · NOM-035 · Demo</span>
-    </div>
-    <nav class="tabs" role="tablist" aria-label="Vistas de la demo">
-      <button class="tab" role="tab" id="tab-collab" aria-selected="true" data-view="collab">1 · Colaborador</button>
-      <button class="tab" role="tab" id="tab-panel" aria-selected="false" data-view="panel">2 · Panel RH</button>
-      <button class="tab" role="tab" id="tab-plan" aria-selected="false" data-view="plan">3 · Plan de acción</button>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="#colaborador" aria-label="Vortex Ops, volver al inicio de la demo">
+      <span class="mono-v" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#3EECEB" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l7 13 7-13"/></svg></span>
+      <span class="wordmark">VORTEX<i>OPS</i></span>
+    </a>
+    <span class="top__product">Clima laboral y NOM-035</span>
+    <nav class="steps" aria-label="Recorrido de la demo">
+      <a href="#colaborador" data-paso="colaborador"><span class="n">1</span>Colaborador</a>
+      <a href="#panel" data-paso="panel"><span class="n">2</span>Panel de RH</a>
+      <a href="#plan" data-paso="plan"><span class="n">3</span>Plan de acción</a>
+      <a href="#expediente" data-paso="expediente"><span class="n">4</span>Expediente STPS</a>
     </nav>
+    <a class="btn btn--cta btn--sm js-agendar" href="#">Agendar 30 min</a>
   </div>
 </header>
 
-<div class="wrap hero">
-  <span class="chip">Empresa de ejemplo: Planta Demo Querétaro · 60 colaboradores · datos ficticios</span>
-  <h1 id="hero-title">Contesta la encuesta como colaborador y mira cómo la recibe RH</h1>
-  <p id="hero-sub">Encuesta anónima desde el celular, resultados por categoría de riesgo psicosocial, mapa por área y un plan de acción listo para dar seguimiento.</p>
+<div class="context">
+  <div class="wrap">
+    <span class="chip-demo">Demo · datos ficticios</span>
+    <span><b>Planta Demo Querétaro</b></span>
+    <span class="js-plantilla">64 colaboradores</span>
+    <span class="hide-sm">Cuestionario: Guía de Referencia III</span>
+    <span class="hide-sm">Periodo: octubre 2026</span>
+  </div>
 </div>
 
-<main class="wrap">
-  <!-- 1 · Colaborador -->
-  <section class="view" id="view-collab" aria-labelledby="tab-collab">
-    <div class="collab">
-      <div class="phone" id="phone" aria-live="polite"></div>
-      <aside class="explain">
-        <h2>Lo que vive el colaborador</h2>
-        <ul class="feature-list">
-          <li><span class="ico">01</span><div><b>Entra con un enlace o QR</b><span>Sin descargar apps ni crear cuenta. Funciona en cualquier celular, también en planta.</span></div></li>
-          <li><span class="ico">02</span><div><b>Anónimo de verdad</b><span>RH ve resultados por grupo, nunca respuestas individuales. Los grupos de menos de 5 personas no se muestran por separado.</span></div></li>
-          <li><span class="ico">03</span><div><b>NOM-035 y clima en una sola aplicación</b><span>Riesgo psicosocial, eventos traumáticos (Guía I) y clima laboral en unos 4 minutos.</span></div></li>
-          <li><span class="ico">04</span><div><b>Lenguaje claro, en español de México</b><span>Preguntas cortas, una por pantalla, con respuestas grandes para tocar.</span></div></li>
-        </ul>
-        <p class="foot"><b>Esta demo usa 14 reactivos de ejemplo.</b> En producción aplicamos los cuestionarios oficiales completos de la NOM-035-STPS-2018 (Guías de Referencia I, II y III, según el tamaño del centro de trabajo) con sus criterios oficiales de calificación.</p>
-      </aside>
-    </div>
-  </section>
+<main id="contenido">
+  <div class="wrap">
 
-  <!-- 2 · Panel RH -->
-  <section class="view" id="view-panel" aria-labelledby="tab-panel" hidden>
-    <div class="toolbar">
-      <label for="f-area">Área
-        <select id="f-area"></select>
-      </label>
-      <span class="you-flag" id="you-flag" hidden>Incluye tu respuesta de la vista 1</span>
-    </div>
-    <div class="kpis" id="kpis"></div>
-    <div class="grid2">
-      <div class="panel">
-        <h3>Riesgo psicosocial por categoría</h3>
-        <p class="hint">Porcentaje de riesgo promedio. Cuanto más alto, más atención requiere.</p>
-        <div id="cat-bars" style="display:grid;gap:10px"></div>
-        <div class="legend" id="legend"></div>
-        <p class="hint">Niveles calculados con cortes de demostración. En producción aplicamos los cuestionarios oficiales completos de la NOM-035-STPS-2018 (Guías de Referencia I, II y III, según el tamaño del centro de trabajo) con sus criterios oficiales de calificación.</p>
+    <!-- 1 · Colaborador -->
+    <section id="paso-colaborador" aria-labelledby="t-colaborador">
+      <div class="collab">
+        <div>
+          <div class="hero">
+            <span class="eyebrow">Paso 1 de 4 · Experiencia del colaborador</span>
+            <h1 id="t-colaborador">Tres minutos desde el celular, <em>sin descargar nada</em></h1>
+            <p>Así contesta tu gente: una pregunta por pantalla, en español claro y con el anonimato explicado en palabras simples. Pruébalo: tu respuesta aparece en el panel de RH.</p>
+          </div>
+          <div class="benefits">
+            <div class="benefit"><span class="bubble" data-icono="link"></span><div><h3>Entra con un enlace o un QR</h3><p>Sin apps ni contraseñas. Funciona en cualquier celular, también en piso de planta.</p></div></div>
+            <div class="benefit"><span class="bubble" data-icono="shield"></span><div><h3>Anónima de verdad</h3><p>RH ve resultados por grupo, y un grupo con menos de 5 respuestas no se muestra.</p></div></div>
+            <div class="benefit"><span class="bubble" data-icono="clipboard"></span><div><h3>Alineada a la NOM-035</h3><p>La escala oficial de cinco opciones y las cinco categorías de la Guía de Referencia III.</p></div></div>
+            <div class="benefit"><span class="bubble" data-icono="heart"></span><div><h3>Clima laboral en la misma encuesta</h3><p>Reconocimiento, comunicación, desarrollo y eNPS, sin lanzar una segunda campaña.</p></div></div>
+          </div>
+          <p class="fineprint">Esta demo usa 16 preguntas de ejemplo. En producción se aplican los cuestionarios oficiales completos de la NOM-035-STPS-2018 (Guía I, y la II o la III según el tamaño del centro de trabajo) con sus criterios de calificación.</p>
+        </div>
+        <div class="phone-col">
+          <div class="phone"><div class="screen" id="encuesta" aria-live="polite"></div></div>
+          <p class="phone-caption">Vista del colaborador · tócala y contesta</p>
+        </div>
       </div>
-      <div class="panel">
-        <h3>Hallazgos automáticos</h3>
-        <p class="hint">Vortex prioriza dónde actuar primero cruzando área y categoría.</p>
-        <ul class="findings" id="findings"></ul>
-      </div>
-    </div>
-    <div class="panel" style="margin-top:16px">
-      <h3>Mapa de calor por área</h3>
-      <p class="hint">Riesgo por categoría en cada área. Las áreas con menos de 5 respuestas se ocultan para proteger el anonimato.</p>
-      <div class="heat-wrap"><table class="heat" id="heat"></table></div>
-    </div>
-    <div class="grid2" style="margin-top:16px">
-      <div class="panel">
-        <h3>Clima laboral</h3>
-        <p class="hint">Porcentaje de respuestas favorables (siempre o casi siempre).</p>
-        <div id="clima-bars" style="display:grid;gap:10px"></div>
-      </div>
-      <div class="panel">
-        <h3>Reporte para la STPS</h3>
-        <p class="hint">Evidencia que se genera sola con cada aplicación.</p>
-        <ul class="feature-list" id="evidence"></ul>
-        <button class="btn btn-ghost" id="copy-summary" type="button">Copiar resumen ejecutivo</button>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 3 · Plan de acción -->
-  <section class="view" id="view-plan" aria-labelledby="tab-plan" hidden>
-    <div class="plan-head">
-      <div style="display:grid;gap:4px">
-        <h2 style="font-size:22px">Plan de acción</h2>
-        <p class="hint" style="margin:0;color:var(--muted)">Propuesto a partir de los hallazgos. RH asigna responsable, fecha y da seguimiento hasta cerrar cada acción.</p>
+    <!-- 2 · Panel de RH -->
+    <section id="paso-panel" aria-labelledby="t-panel" hidden>
+      <div class="hero">
+        <span class="eyebrow">Paso 2 de 4 · Panel de RH</span>
+        <h1 id="t-panel">Dónde está el riesgo y <em>qué hacer primero</em></h1>
+        <p>Los resultados se calculan solos conforme la gente responde: sin capturas en Excel ni reportes hechos a mano.</p>
       </div>
-      <span class="chip" id="plan-count"></span>
-    </div>
-    <div class="plan-list" id="plan-list"></div>
-    <form class="addform" id="addform">
-      <input type="text" id="new-text" placeholder="Agregar acción propia, p. ej. pausas activas en turno nocturno" aria-label="Nueva acción" required>
-      <input type="text" id="new-owner" placeholder="Responsable" aria-label="Responsable">
-      <input type="date" id="new-date" aria-label="Fecha compromiso">
-      <button class="btn btn-primary" type="submit">Agregar</button>
-    </form>
-  </section>
+      <div class="toolbar">
+        <div class="filters" id="filtros" role="group" aria-label="Filtrar por área"></div>
+        <div class="live" id="en-vivo"></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid-2">
+        <div class="stack">
+          <div class="card insight" id="hallazgos"></div>
+          <div class="card">
+            <div class="card__head"><div><h2>Mapa de riesgo psicosocial por área</h2><p class="card__sub">Las cinco categorías de la Guía III. Toca una celda para ver qué la explica.</p></div></div>
+            <div class="heat-wrap" id="mapa"></div>
+            <div class="heat-legend" id="leyenda"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card__head"><div><h2>Clima laboral</h2><p class="card__sub" id="clima-sub">Porcentaje de respuestas favorables</p></div></div>
+          <div class="card__body"><div class="climate" id="clima"></div></div>
+        </div>
+      </div>
+      <div class="next no-print"><p>Cada hallazgo se convierte en una acción con responsable y fecha.</p><a class="btn btn--primary" href="#plan">Ver el plan de acción <span class="ico" data-icono="arrow"></span></a></div>
+    </section>
 
-  <div class="cta-band">
-    <div style="display:grid;gap:4px">
-      <h3>¿Lo vemos con tus datos?</h3>
-      <p>Configuramos la encuesta con tus áreas y turnos, la aplicamos en una semana y te entregamos el reporte con plan de acción. Soporte en español desde México.</p>
-    </div>
-    <button class="btn btn-primary" style="flex:0 0 auto" type="button" data-view="collab" id="restart">Volver a contestar</button>
+    <!-- 3 · Plan de acción -->
+    <section id="paso-plan" aria-labelledby="t-plan" hidden>
+      <div class="hero">
+        <span class="eyebrow">Paso 3 de 4 · Plan de acción</span>
+        <h1 id="t-plan">Cada hallazgo, <em>una acción con dueño y fecha</em></h1>
+        <p>El avance queda registrado. Es la evidencia de las medidas de prevención y acciones de control que pide la norma.</p>
+      </div>
+      <div class="card summary" id="resumen-plan"></div>
+      <form class="card newtask" id="nueva" hidden>
+        <div class="newtask__grid">
+          <label class="field">Acción<input name="titulo" required maxlength="140" placeholder="Ej. Rotación de puestos en la línea 2"></label>
+          <label class="field">Responsable<input name="resp" maxlength="60" placeholder="Ej. Gerente de Producción"></label>
+          <label class="field">Fecha compromiso<input name="fecha" type="date" required></label>
+          <label class="field">Hallazgo<select name="hallazgo"></select></label>
+        </div>
+        <div class="newtask__acts">
+          <button class="btn btn--ghost btn--sm" type="button" id="cancelar">Cancelar</button>
+          <button class="btn btn--primary btn--sm" type="submit">Agregar al plan</button>
+        </div>
+      </form>
+      <div class="board" id="tablero"></div>
+      <div class="next no-print"><p>Todo lo anterior arma el expediente que revisa la STPS.</p><a class="btn btn--primary" href="#expediente">Ver el expediente <span class="ico" data-icono="arrow"></span></a></div>
+    </section>
+
+    <!-- 4 · Expediente -->
+    <section id="paso-expediente" aria-labelledby="t-expediente" hidden>
+      <div class="hero">
+        <span class="eyebrow">Paso 4 de 4 · Expediente NOM-035</span>
+        <h1 id="t-expediente">Listo para la inspección <em>de la STPS</em></h1>
+        <p>Lo que la norma pide documentar, en un solo lugar y al día, sin armar carpetas a mano.</p>
+      </div>
+      <div class="dossier">
+        <div class="card"><ul class="checklist" id="checklist"></ul></div>
+        <div class="card">
+          <div class="card__body">
+            <div class="ring-wrap" id="avance"></div>
+            <div class="side-acts no-print">
+              <button class="btn btn--primary btn--block" type="button" id="imprimir"><span class="ico" data-icono="printer"></span>Imprimir o guardar como PDF</button>
+              <button class="btn btn--ghost btn--block" type="button" id="copiar"><span class="ico" data-icono="copy"></span>Copiar resumen ejecutivo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cta-band no-print">
+        <div>
+          <span class="eyebrow">Fue una muestra con datos ficticios</span>
+          <h2>Veámoslo con tus centros de trabajo, tus áreas y tus turnos</h2>
+          <p>En una sesión de 30 minutos recorremos tu caso: qué cuestionario te corresponde (Guía II o III), cómo llega la encuesta a planta y qué verías en tu primer reporte.</p>
+        </div>
+        <div class="cta-band__acts">
+          <a class="btn btn--cta js-agendar" href="#"><span class="ico" data-icono="calendar"></span>Agendar sesión de 30 min</a>
+          <a class="btn btn--ghost" href="https://www.linkedin.com/company/vector-hr-tech" target="_blank" rel="noopener">Escribir por LinkedIn</a>
+        </div>
+      </div>
+    </section>
   </div>
-  <p class="foot">Demo de Vortex Ops con datos ficticios, reactivos de ejemplo y cortes de demostración. En producción aplicamos los cuestionarios oficiales completos de la NOM-035-STPS-2018 (Guías de Referencia I, II y III, según el tamaño del centro de trabajo) con sus criterios oficiales de calificación. Tus respuestas se quedan en este navegador y no se envían a ningún lado.</p>
 </main>
-<div class="toast" id="toast" hidden></div>
+
+<footer>
+  <div class="wrap">
+    <p><b>Vortex Ops · Vector HR Tech.</b> Demo con datos ficticios. Las preguntas y los cortes de nivel son de ejemplo; en producción se aplican los cuestionarios y los criterios de calificación oficiales de la NOM-035-STPS-2018.</p>
+    <p><a href="mailto:hola@vectorhr.tech">hola@vectorhr.tech</a></p>
+  </div>
+</footer>
+
+<nav class="bottomnav" aria-label="Recorrido de la demo">
+  <a href="#colaborador" data-paso="colaborador"><span class="ico" data-icono="phone"></span>Encuesta</a>
+  <a href="#panel" data-paso="panel"><span class="ico" data-icono="grid"></span>Panel</a>
+  <a href="#plan" data-paso="plan"><span class="ico" data-icono="list"></span>Plan</a>
+  <a href="#expediente" data-paso="expediente"><span class="ico" data-icono="file"></span>Expediente</a>
+</nav>
+
+<div id="capa"></div>
+<div id="aviso" role="status" aria-live="polite"></div>
 
 <script>
 (() => {
-  // ─── Modelo ───────────────────────────────────────────
+  "use strict";
+
+  // ── La planta de ejemplo (datos ficticios) ──────────────────────────────
+  const AREAS = [
+    { id: "prod", nombre: "Producción", plantilla: 24, respuestas: 20 },
+    { id: "alm", nombre: "Almacén", plantilla: 15, respuestas: 13 },
+    { id: "cal", nombre: "Calidad", plantilla: 10, respuestas: 9 },
+    { id: "adm", nombre: "Administración", plantilla: 9, respuestas: 8 },
+    { id: "mant", nombre: "Mantenimiento", plantilla: 6, respuestas: 4 },
+  ];
+  const AREA = Object.fromEntries(AREAS.map(a => [a.id, a]));
+  const PLANTILLA = AREAS.reduce((s, a) => s + a.plantilla, 0);
+  const MIN_GRUPO = 5;
+  // Muestra representativa de la NOM-035 para centros de más de 50 personas.
+  const MUESTRA = Math.ceil((0.9604 * PLANTILLA) / (0.0025 * (PLANTILLA - 1) + 0.9604));
+
   const CATS = [
-    { id: "amb", name: "Ambiente de trabajo" },
-    { id: "act", name: "Carga y ritmo de trabajo" },
-    { id: "tie", name: "Jornada y descanso" },
-    { id: "lid", name: "Liderazgo y relaciones" },
+    { id: "amb", nombre: "Ambiente de trabajo", corto: "Ambiente de trabajo" },
+    { id: "act", nombre: "Factores propios de la actividad", corto: "Factores de la actividad" },
+    { id: "tie", nombre: "Organización del tiempo de trabajo", corto: "Organización del tiempo" },
+    { id: "lid", nombre: "Liderazgo y relaciones en el trabajo", corto: "Liderazgo y relaciones" },
+    { id: "ent", nombre: "Entorno organizacional", corto: "Entorno organizacional" },
   ];
+  const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
   const CLIMA = [
-    { id: "rec", name: "Reconocimiento" },
-    { id: "com", name: "Comunicación" },
-    { id: "des", name: "Desarrollo" },
+    { id: "rec", nombre: "Reconocimiento", item: "ent1" },
+    { id: "per", nombre: "Orgullo y pertenencia", item: "ent2" },
+    { id: "com", nombre: "Comunicación", item: "com" },
+    { id: "des", nombre: "Desarrollo", item: "des" },
   ];
-  const AREAS = ["Producción", "Almacén", "Calidad", "Administración"];
-  const LIKERT = ["Siempre", "Casi siempre", "Algunas veces", "Casi nunca", "Nunca"]; // valor 4..0
-  // inv: enunciado positivo (Siempre = sin riesgo).
-  const QUESTIONS = [
-    { id: "area", kind: "area", cat: "Datos generales", text: "¿En qué área trabajas?" },
-    { id: "g1", kind: "yesno", cat: "Guía I · Acontecimientos", text: "En el último año, ¿viviste o presenciaste en el trabajo un accidente grave, un asalto o una amenaza a tu integridad?" },
-    { id: "amb1", kind: "likert", cat: "amb", inv: true, text: "Mi lugar de trabajo me permite hacer mis tareas de forma segura y cómoda." },
-    { id: "amb2", kind: "likert", cat: "amb", inv: false, text: "El ruido, el calor o la iluminación me dificultan trabajar." },
-    { id: "act1", kind: "likert", cat: "act", inv: false, text: "Tengo que trabajar muy rápido para cumplir con lo que se me pide." },
-    { id: "act2", kind: "likert", cat: "act", inv: false, text: "Mi trabajo me exige estar muy concentrado todo el tiempo." },
-    { id: "act3", kind: "likert", cat: "act", inv: true, text: "Puedo decidir cómo organizar mis tareas." },
-    { id: "tie1", kind: "likert", cat: "tie", inv: false, text: "Mi jornada se alarga más allá del horario establecido." },
-    { id: "tie2", kind: "likert", cat: "tie", inv: false, text: "Pienso en pendientes del trabajo durante mi tiempo de descanso." },
-    { id: "lid1", kind: "likert", cat: "lid", inv: true, text: "Mi jefe me explica con claridad lo que espera de mí." },
-    { id: "lid2", kind: "likert", cat: "lid", inv: false, text: "He recibido burlas, gritos o trato humillante en el trabajo." },
-    { id: "lid3", kind: "likert", cat: "lid", inv: true, text: "Puedo contar con mis compañeros cuando necesito ayuda." },
-    { id: "rec", kind: "likert", cat: "clima", text: "Siento que reconocen mi trabajo." },
-    { id: "com", kind: "likert", cat: "clima", text: "Me entero a tiempo de los cambios que me afectan." },
-    { id: "des", kind: "likert", cat: "clima", text: "Veo oportunidades de crecer en esta empresa." },
-    { id: "enps", kind: "scale", cat: "Clima laboral", text: "Del 0 al 10, ¿qué tan probable es que recomiendes esta empresa como lugar para trabajar?" },
+  const LIKERT = ["Siempre", "Casi siempre", "Algunas veces", "Casi nunca", "Nunca"];
+  // pos: enunciado positivo (Siempre = sin riesgo). Se guarda el índice de LIKERT.
+  const PREGUNTAS = [
+    { id: "area", tipo: "area", seccion: "Datos generales", texto: "¿En qué área trabajas?" },
+    { id: "g1", tipo: "sino", seccion: "Acontecimientos graves · confidencial", texto: "En el último año, ¿viviste o presenciaste en el trabajo un accidente grave, un asalto o una amenaza a tu integridad?" },
+    { id: "amb1", tipo: "likert", cat: "amb", pos: true, texto: "Mi lugar de trabajo me permite hacer mis tareas de forma segura." },
+    { id: "amb2", tipo: "likert", cat: "amb", pos: false, texto: "El ruido, el calor o la iluminación me dificultan trabajar." },
+    { id: "act1", tipo: "likert", cat: "act", pos: false, texto: "Tengo que trabajar muy rápido para cumplir con lo que se me pide." },
+    { id: "act2", tipo: "likert", cat: "act", pos: true, texto: "Puedo decidir cómo organizar mis tareas." },
+    { id: "tie1", tipo: "likert", cat: "tie", pos: false, texto: "Mi jornada se alarga más allá del horario establecido." },
+    { id: "tie2", tipo: "likert", cat: "tie", pos: false, texto: "Pienso en pendientes del trabajo durante mi tiempo de descanso." },
+    { id: "lid1", tipo: "likert", cat: "lid", pos: true, texto: "Mi jefe me explica con claridad lo que espera de mí." },
+    { id: "lid2", tipo: "likert", cat: "lid", pos: false, texto: "He recibido burlas, gritos o un trato humillante en el trabajo." },
+    { id: "lid3", tipo: "likert", cat: "lid", pos: true, texto: "Puedo contar con mis compañeros cuando necesito ayuda." },
+    { id: "ent1", tipo: "likert", cat: "ent", pos: true, texto: "Me reconocen cuando hago bien mi trabajo." },
+    { id: "ent2", tipo: "likert", cat: "ent", pos: true, texto: "Me siento orgulloso de trabajar en esta empresa." },
+    { id: "com", tipo: "likert", pos: true, seccion: "Clima laboral", texto: "Me entero a tiempo de los cambios que me afectan." },
+    { id: "des", tipo: "likert", pos: true, seccion: "Clima laboral", texto: "Veo oportunidades de crecer en esta empresa." },
+    { id: "enps", tipo: "escala", seccion: "Clima laboral", texto: "Del 0 al 10, ¿qué tan probable es que recomiendes esta empresa como lugar para trabajar?" },
   ];
-  const CAT_LABEL = Object.fromEntries(CATS.map(c => [c.id, c.name]));
-  CAT_LABEL.clima = "Clima laboral";
-  const HEADCOUNT = 60;
-  const MIN_GROUP = 5;
+  const ITEMS = PREGUNTAS.filter(q => q.tipo === "likert");
+  const itemsDe = cat => ITEMS.filter(q => q.cat === cat);
 
-  // Cortes demostrativos sobre % de riesgo.
-  const LEVELS = [
-    { max: 20, key: "nulo", name: "Nulo" },
-    { max: 40, key: "bajo", name: "Bajo" },
-    { max: 55, key: "medio", name: "Medio" },
-    { max: 70, key: "alto", name: "Alto" },
-    { max: 101, key: "muy", name: "Muy alto" },
+  // Cortes de ejemplo sobre el % de riesgo; en producción, los de la Guía III.
+  const NIVELES = [
+    { id: "nulo", nombre: "Nulo", max: 20 },
+    { id: "bajo", nombre: "Bajo", max: 35 },
+    { id: "medio", nombre: "Medio", max: 50 },
+    { id: "alto", nombre: "Alto", max: 65 },
+    { id: "muy", nombre: "Muy alto", max: Infinity },
   ];
-  const level = pct => LEVELS.find(l => pct < l.max);
-
-  // ─── Datos de ejemplo deterministas ───────────────────
-  function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
-  const rand = rng(35);
-  const BIAS = { // riesgo base 0..4 por área y categoría
-    "Producción": { amb: 2.1, act: 2.9, tie: 2.6, lid: 1.7, clima: 2.5 },
-    "Almacén": { amb: 2.4, act: 2.3, tie: 2.0, lid: 2.5, clima: 2.3 },
-    "Calidad": { amb: 1.2, act: 2.0, tie: 1.6, lid: 1.2, clima: 3.1 },
-    "Administración": { amb: 0.8, act: 1.7, tie: 2.2, lid: 1.0, clima: 3.2 },
+  const nivel = pct => NIVELES.find(n => pct < n.max);
+  const CRITERIO = {
+    muy: "Programa de intervención con evaluaciones específicas, campañas de sensibilización y revisión de la política de prevención, reforzando su aplicación y difusión.",
+    alto: "Programa de intervención a partir del análisis de cada categoría y dominio. Puede incluir una evaluación específica y debe incluir una campaña de sensibilización.",
+    medio: "Revisar la política de prevención y los programas de prevención, y reforzar su aplicación y difusión con un programa de intervención.",
+    bajo: "Dar mayor difusión a la política de prevención y a los programas para prevenir los factores de riesgo psicosocial.",
+    nulo: "Riesgo despreciable: no requiere medidas adicionales.",
   };
-  const AREA_N = { "Producción": 19, "Almacén": 12, "Calidad": 8, "Administración": 7 };
-  const clamp = v => Math.max(0, Math.min(4, Math.round(v)));
-  function sampleResponse(area) {
-    const b = BIAS[area], r = { area, sample: true };
-    for (const q of QUESTIONS) {
-      if (q.kind === "likert" && q.cat !== "clima") {
-        const risk = clamp(b[q.cat] + (rand() - 0.5) * 2.4);
-        r[q.id] = q.inv ? 4 - risk : risk;
-      } else if (q.kind === "likert") {
-        r[q.id] = clamp(b.clima + (rand() - 0.5) * 2.6);
-      }
+  const SUGERENCIA = {
+    amb: { titulo: "Recorrido de condiciones con la Comisión de Seguridad e Higiene: ruido, temperatura e iluminación", resp: "Comisión de Seguridad e Higiene" },
+    act: { titulo: "Revisar cargas y ritmos con rotación de puestos y metas por turno alcanzables", resp: "Gerencia de Producción" },
+    tie: { titulo: "Controlar el tiempo extra y respetar los descansos entre turnos", resp: "Recursos Humanos" },
+    lid: { titulo: "Taller de liderazgo y trato respetuoso para supervisores, con canal de denuncia confidencial", resp: "Recursos Humanos" },
+    ent: { titulo: "Programa mensual de reconocimiento y difusión de la política de prevención", resp: "Comunicación interna" },
+  };
+
+  // ── Respuestas de ejemplo, siempre las mismas ───────────────────────────
+  const rng = seed => () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const rand = rng(20261014);
+  const SESGO = { // riesgo base 0..4 por área y categoría
+    prod: { amb: 1.7, act: 2.55, tie: 2.15, lid: 1.2, ent: 1.8, clima: 1.9, enps: 7.4 },
+    alm: { amb: 1.75, act: 1.6, tie: 1.2, lid: 2.45, ent: 1.8, clima: 2.0, enps: 7.2 },
+    cal: { amb: 1.0, act: 1.3, tie: 1.1, lid: 0.6, ent: 1.0, clima: 1.1, enps: 9.0 },
+    adm: { amb: 0.6, act: 1.2, tie: 1.55, lid: 0.9, ent: 1.1, clima: 1.2, enps: 8.8 },
+    mant: { amb: 2.2, act: 1.8, tie: 2.4, lid: 1.5, ent: 1.6, clima: 1.8, enps: 7.6 },
+  };
+  const acotar = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function respuestaEjemplo(area, i) {
+    const s = SESGO[area], r = { area };
+    for (const q of ITEMS) {
+      const riesgo = acotar(Math.round((q.cat ? s[q.cat] : s.clima) + (rand() - 0.5) * 2.2), 0, 4);
+      r[q.id] = q.pos ? riesgo : 4 - riesgo;
     }
-    r.g1 = rand() < (area === "Almacén" ? 0.12 : 0.03) ? "si" : "no";
-    r.enps = Math.max(0, Math.min(10, Math.round(3.6 + b.clima * 1.6 + (rand() - 0.5) * 4)));
+    r.g1 = (area === "prod" || area === "alm") && i === 0 ? "si" : "no";
+    r.enps = acotar(Math.round(s.enps + (rand() - 0.5) * 5), 0, 10);
     return r;
   }
-  const SAMPLE = [];
-  for (const a of AREAS) for (let i = 0; i < AREA_N[a]; i++) SAMPLE.push(sampleResponse(a));
+  const EJEMPLO = AREAS.flatMap(a => Array.from({ length: a.respuestas }, (_, i) => respuestaEjemplo(a.id, i)));
 
-  // ─── Estado del visitante (solo en este navegador) ─────
-  const store = {
-    get(k, d) { try { const v = localStorage.getItem("vx-demo-" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
-    set(k, v) { try { localStorage.setItem("vx-demo-" + k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } },
-  };
-  let mine = store.get("mine", null);
-  let draft = {};
-  let step = 0;
-
-  // ─── Cálculo ──────────────────────────────────────────
-  const allResponses = () => mine ? SAMPLE.concat([{ ...mine, sample: false }]) : SAMPLE;
-  function riskOf(r, cat) {
-    const qs = QUESTIONS.filter(q => q.kind === "likert" && q.cat === cat);
-    const sum = qs.reduce((s, q) => s + (q.inv ? 4 - r[q.id] : r[q.id]), 0);
-    return (sum / (qs.length * 4)) * 100;
-  }
-  const avg = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+  // ── Cálculo ─────────────────────────────────────────────────────────────
+  const riesgoItem = (q, v) => (q.pos ? v : 4 - v);
+  const prom = xs => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+  const pctCat = (rs, cat) => prom(rs.map(r => prom(itemsDe(cat).map(q => riesgoItem(q, r[q.id]))) / 4 * 100));
   function stats(rs) {
-    const cats = Object.fromEntries(CATS.map(c => [c.id, avg(rs.map(r => riskOf(r, c.id)))]));
-    const overall = avg(Object.values(cats));
-    const clima = Object.fromEntries(CLIMA.map(c => [c.id, rs.length ? rs.filter(r => r[c.id] >= 3).length / rs.length * 100 : 0]));
-    const prom = rs.filter(r => r.enps >= 9).length, det = rs.filter(r => r.enps <= 6).length;
-    const enps = rs.length ? Math.round((prom - det) / rs.length * 100) : 0;
-    const g1 = rs.filter(r => r.g1 === "si").length;
-    return { n: rs.length, cats, overall, clima, enps, g1 };
+    const n = rs.length || 1;
+    const cats = Object.fromEntries(CATS.map(c => [c.id, pctCat(rs, c.id)]));
+    const clima = Object.fromEntries(CLIMA.map(d => {
+      const vs = rs.map(r => r[d.item]);
+      return [d.id, { fav: vs.filter(v => v <= 1).length / n * 100, neu: vs.filter(v => v === 2).length / n * 100, des: vs.filter(v => v >= 3).length / n * 100 }];
+    }));
+    const promotores = rs.filter(r => r.enps >= 9).length, detractores = rs.filter(r => r.enps <= 6).length;
+    return {
+      n: rs.length, cats, general: prom(Object.values(cats)), clima,
+      enps: Math.round((promotores - detractores) / n * 100), promotores, detractores, pasivos: rs.length - promotores - detractores,
+      g1: rs.filter(r => r.g1 === "si").length,
+    };
   }
 
-  // ─── Utilidades de UI ─────────────────────────────────
+  // ── Estado (solo en este navegador) ─────────────────────────────────────
+  const almacen = {
+    leer(k, def) { try { const v = localStorage.getItem("vx-nom035-" + k); return v ? JSON.parse(v) : def; } catch { return def; } },
+    guardar(k, v) { try { localStorage.setItem("vx-nom035-" + k, JSON.stringify(v)); } catch { /* sin almacenamiento: sigue en memoria */ } },
+  };
+  const SEMILLA = [
+    { id: "a1", titulo: "Revisar cargas y ritmos de la línea 2 con rotación de puestos", area: "prod", cat: "act", resp: "Raúl Mendoza · Producción", fecha: "2026-10-31", estado: "curso" },
+    { id: "a2", titulo: "Taller de liderazgo y trato respetuoso para supervisores", area: "alm", cat: "lid", resp: "Laura Treviño · RH", fecha: "2026-11-14", estado: "pendiente" },
+    { id: "a3", titulo: "Pausas activas de 10 minutos en cada turno", area: "prod", cat: "tie", resp: "Comisión de Seguridad e Higiene", fecha: "2026-10-24", estado: "hecha" },
+    { id: "a4", titulo: "Canalizar a valoración clínica a quienes reportaron un acontecimiento grave", area: "planta", cat: "g1", resp: "Dra. Sofía Ramírez · Servicio médico", fecha: "2026-10-17", estado: "curso" },
+    { id: "a5", titulo: "Difundir la política de prevención de riesgos psicosociales en los tres turnos", area: "planta", cat: "ent", resp: "Comunicación interna", fecha: "2026-10-31", estado: "pendiente" },
+  ];
+  const ESTADOS = [{ id: "pendiente", nombre: "Por hacer" }, { id: "curso", nombre: "En curso" }, { id: "hecha", nombre: "Hecha" }];
+  const est = {
+    mia: almacen.leer("mia", null),
+    plan: almacen.leer("plan", null) || SEMILLA.map(a => ({ ...a })),
+    filtro: "todas",
+    encuesta: { i: -1, resp: {}, cuidado: false },
+    difundido: almacen.leer("difundido", false),
+  };
+  if (est.mia) est.encuesta.i = PREGUNTAS.length;
+  const todas = () => (est.mia ? EJEMPLO.concat([est.mia]) : EJEMPLO);
+  const deArea = (rs, id) => rs.filter(r => r.area === id);
+  const visible = id => deArea(todas(), id).length >= MIN_GRUPO;
+  const guardarPlan = () => almacen.guardar("plan", est.plan);
+  const reducido = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ── Utilidades de interfaz ──────────────────────────────────────────────
   const $ = s => document.querySelector(s);
-  const el = (tag, attrs = {}, ...kids) => {
+  function h(tag, props, ...hijos) {
     const n = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) {
-      if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
-      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    for (const [k, v] of Object.entries(props || {})) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "html") n.innerHTML = v; // solo iconos propios
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
     }
-    for (const k of kids) if (k != null) n.append(k);
+    for (const c of hijos.flat(Infinity)) if (c != null && c !== false) n.append(c instanceof Node ? c : String(c));
     return n;
-  };
-  const pill = pct => { const l = level(pct); return el("span", { class: "pill lvl-" + l.key, text: l.name }); };
-  const color = pct => `var(--r-${level(pct).key})`;
-  const fmt = v => Math.round(v) + "%";
-  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2200); }
-
-  // ─── Vistas ───────────────────────────────────────────
-  const HERO = {
-    collab: ["Contesta la encuesta como colaborador y mira cómo la recibe RH", "Encuesta anónima desde el celular, resultados por categoría de riesgo psicosocial, mapa por área y un plan de acción listo para dar seguimiento."],
-    panel: ["Panel de RH: dónde está el riesgo y qué hacer primero", "Resultados en tiempo real conforme el personal responde. Sin capturas en Excel ni reportes hechos a mano."],
-    plan: ["Del diagnóstico a la acción, con evidencia para la STPS", "Cada hallazgo se convierte en una acción con responsable y fecha. El avance queda documentado para las inspecciones."],
-  };
-  function show(view) {
-    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === view)));
-    for (const v of ["collab", "panel", "plan"]) $("#view-" + v).hidden = v !== view;
-    $("#hero-title").textContent = HERO[view][0];
-    $("#hero-sub").textContent = HERO[view][1];
-    if (view === "panel") renderPanel();
-    if (view === "plan") renderPlan();
   }
-  document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => show(t.dataset.view)));
-  $("#restart").addEventListener("click", () => { draft = {}; step = 0; renderPhone(); show("collab"); window.scrollTo({ top: 0, behavior: "smooth" }); });
-
-  // 1 · Encuesta
-  function renderPhone() {
-    const ph = $("#phone"); ph.replaceChildren();
-    if (step >= QUESTIONS.length) {
-      ph.append(el("div", { class: "done" },
-        el("div", { class: "big", text: "✓" }),
-        el("h2", { style: "font-size:22px", text: "¡Gracias! Tu respuesta ya cuenta" }),
-        el("p", { style: "margin:0;color:var(--muted)", text: "Es anónima: RH solo ve resultados por grupo. Ahora mira cómo aparece en el panel." }),
-        el("button", { class: "btn btn-primary", type: "button", style: "flex:0 0 auto", text: "Ver el panel de RH", onclick: () => show("panel") }),
-      ));
-      return;
-    }
-    const q = QUESTIONS[step];
-    const top = el("div", { class: "phone-top" }, el("span", { text: "Encuesta de bienestar 2026" }), el("span", { text: `${step + 1} de ${QUESTIONS.length}` }));
-    const prog = el("div", { class: "progress" }, el("span", { style: `width:${(step / QUESTIONS.length) * 100}%` }));
-    const catTxt = q.kind === "likert" ? (q.cat === "clima" ? "Clima laboral" : "NOM-035 · " + CAT_LABEL[q.cat]) : q.cat;
-    const opts = el("div", { class: "options" });
-    const pick = v => { draft[q.id] = v; renderPhone(); };
-    if (q.kind === "area") AREAS.forEach(a => opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft.area === a), text: a, onclick: () => pick(a) })));
-    if (q.kind === "yesno") [["si", "Sí"], ["no", "No"]].forEach(([v, t]) => opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), text: t, onclick: () => pick(v) })));
-    if (q.kind === "likert") LIKERT.forEach((t, i) => { const v = 4 - i; opts.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), text: t, onclick: () => pick(v) })); });
-    if (q.kind === "scale") {
-      const row = el("div", { class: "scale11" });
-      for (let v = 0; v <= 10; v++) row.append(el("button", { class: "opt", type: "button", "aria-pressed": String(draft[q.id] === v), "aria-label": String(v), text: String(v), onclick: () => pick(v) }));
-      opts.append(row, el("div", { class: "scale-legend" }, el("span", { text: "Nada probable" }), el("span", { text: "Muy probable" })));
-    }
-    const answered = draft[q.id] !== undefined;
-    const last = step === QUESTIONS.length - 1;
-    const nav = el("div", { class: "phone-nav" },
-      step > 0 ? el("button", { class: "btn btn-ghost", type: "button", text: "Atrás", onclick: () => { step--; renderPhone(); } }) : null,
-      el("button", { class: "btn btn-primary", type: "button", text: last ? "Enviar respuestas" : "Siguiente", onclick: next }));
-    nav.lastChild.disabled = !answered;
-    function next() {
-      if (!answered) return;
-      if (last) { mine = { ...draft }; store.set("mine", mine); toast("Respuesta enviada al panel de RH"); }
-      step++; renderPhone();
-    }
-    ph.append(top, prog, el("div", { class: "q-cat", text: catTxt }), el("div", { class: "q-text", text: q.text }), opts,
-      q.id === "g1" && draft.g1 === "si" ? el("p", { class: "anon", text: "Gracias por decirlo. En producción, RH recibe un aviso anónimo para canalizar a valoración, como pide la Guía I." }) : null,
-      nav, el("p", { class: "anon" }, el("span", { text: "🔒" }), el("span", { text: "Anónimo. Nadie en tu empresa verá tus respuestas individuales." })));
+  const P = {
+    arrow: "M5 12h14M13 6l6 6-6 6", back: "M19 12H5M11 18l-6-6 6-6", check: "M20 6 9 17l-5-5",
+    shield: "M12 3l8 3v6c0 5-3.4 8.3-8 9-4.6-.7-8-4-8-9V6l8-3zM9 12l2 2 4-4",
+    clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2",
+    link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+    clipboard: "M9 3h6v4H9zM7 5H5v16h14V5h-2M9 14l2 2 4-4",
+    heart: "M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20z",
+    phone: "M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2",
+    grid: "M4 4h7v7H4zM13 4h7v7h-7zM13 13h7v7h-7zM4 13h7v7H4z",
+    list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+    file: "M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5zM14 3v5h5M9 13l2 2 4-4",
+    x: "M18 6 6 18M6 6l12 12", plus: "M12 5v14M5 12h14",
+    eyeoff: "M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A9.6 9.6 0 0 1 12 5c5 0 9 4.5 10 7a13 13 0 0 1-2.9 3.9M6.6 6.6C4.6 8 3 10 2 12c1 2.5 5 7 10 7 1.6 0 3.2-.5 4.5-1.2",
+    printer: "M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z",
+    copy: "M9 9h11v11H9zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1",
+    calendar: "M4 5h16v16H4zM16 3v4M8 3v4M4 10h16",
+    spark: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z",
+    info: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16v-4M12 8h.01",
+    users: "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+    hand: "M12 21c-4 0-7-3-7-7v-3a1.5 1.5 0 0 1 3 0V6a1.5 1.5 0 0 1 3 0v4-6a1.5 1.5 0 0 1 3 0v6-4a1.5 1.5 0 0 1 3 0v8c0 4-3 7-8 7z",
+  };
+  // replaceChildren no aplana listas ni ignora null: esto sí.
+  const poner = (nodo, ...hijos) => nodo.replaceChildren(...hijos.flat(Infinity).filter(c => c != null && c !== false));
+  const svg = nombre => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[nombre]}"/></svg>`;
+  const ico = nombre => h("span", { class: "ico", html: svg(nombre) });
+  document.querySelectorAll("[data-icono]").forEach(n => { n.innerHTML = svg(n.dataset.icono); });
+  const badge = pct => { const n = nivel(pct); return h("span", { class: "lvl lvl--" + n.id }, n.nombre); };
+  const fmtPct = v => Math.round(v) + " %";
+  const fecha = iso => new Date(iso + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+  const iniciales = t => t.split("·")[0].trim().split(/\s+/).filter(w => /^[A-ZÁÉÍÓÚÑ]/.test(w)).slice(0, 2).map(w => w[0]).join("") || "RH";
+  function aviso(texto) {
+    const cont = $("#aviso");
+    cont.replaceChildren(h("div", { class: "toast" }, ico("check"), texto));
+    clearTimeout(aviso.t);
+    aviso.t = setTimeout(() => cont.replaceChildren(), 2600);
   }
 
-  // 2 · Panel
-  const sel = $("#f-area");
-  sel.append(el("option", { value: "", text: "Toda la planta" }), ...AREAS.map(a => el("option", { value: a, text: a })));
-  sel.addEventListener("change", renderPanel);
-  function renderPanel() {
-    const rs = allResponses();
-    const area = sel.value;
-    const scoped = area ? rs.filter(r => r.area === area) : rs;
-    const s = stats(scoped);
-    $("#you-flag").hidden = !mine || (area && mine.area !== area);
+  const asunto = "Clima laboral y NOM-035: sesión de 30 minutos";
+  const cuerpo = "Hola, vi la demo de Vortex Ops y me gustaría agendar una sesión de 30 minutos.\n\nEmpresa:\nNúmero de colaboradores:\nCentros de trabajo:\n";
+  document.querySelectorAll(".js-agendar").forEach(a => {
+    a.href = "mailto:hola@vectorhr.tech?subject=" + encodeURIComponent(asunto) + "&body=" + encodeURIComponent(cuerpo);
+  });
+  $(".js-plantilla").textContent = PLANTILLA + " colaboradores";
 
-    const lv = level(s.overall);
-    $("#kpis").replaceChildren(
-      kpi("Participación", area ? s.n + " resp." : fmt(s.n / HEADCOUNT * 100), area ? "en " + area : `${s.n} de ${HEADCOUNT} colaboradores`),
-      kpiNode("Riesgo general", el("span", {}, el("span", { class: "pill lvl-" + lv.key, style: "font-size:16px;padding:4px 12px", text: lv.name })), fmt(s.overall) + " de riesgo promedio"),
-      kpi("eNPS", (s.enps > 0 ? "+" : "") + s.enps, "promotores menos detractores"),
-      kpi("Guía I", String(s.g1), s.g1 === 1 ? "persona por canalizar a valoración" : "personas por canalizar a valoración"),
-    );
+  // ── Navegación por pasos ────────────────────────────────────────────────
+  const PASOS = ["colaborador", "panel", "plan", "expediente"];
+  let primera = true;
+  function mostrar(paso) {
+    if (!PASOS.includes(paso)) paso = "colaborador";
+    for (const p of PASOS) $("#paso-" + p).hidden = p !== paso;
+    document.querySelectorAll("[data-paso]").forEach(a => {
+      const activo = a.dataset.paso === paso;
+      a.classList.toggle("is-activo", activo);
+      if (activo) a.setAttribute("aria-current", "step"); else a.removeAttribute("aria-current");
+    });
+    if (paso === "panel") pintarPanel();
+    if (paso === "plan") pintarPlan();
+    if (paso === "expediente") pintarExpediente();
+    if (!primera) window.scrollTo({ top: 0, behavior: reducido() ? "auto" : "smooth" });
+    primera = false;
+  }
+  window.addEventListener("hashchange", () => mostrar(location.hash.slice(1)));
 
-    $("#cat-bars").replaceChildren(...CATS.map(c => {
-      const p = s.cats[c.id];
-      return el("div", { class: "bar-row" }, el("span", { text: c.name }),
-        el("div", { class: "bar-track", role: "img", "aria-label": `${c.name}: ${fmt(p)}` }, el("div", { class: "bar-fill", style: `width:${p}%;background:${color(p)}` })),
-        pill(p));
+  // ── 1 · Encuesta del colaborador ────────────────────────────────────────
+  let avanzando = false;
+  function pintarEncuesta(enfocar) {
+    const e = est.encuesta, pantalla = $("#encuesta");
+    let vista;
+    if (e.i < 0) vista = intro();
+    else if (e.cuidado) vista = cuidado();
+    else if (e.i >= PREGUNTAS.length) vista = final();
+    else vista = pregunta(PREGUNTAS[e.i]);
+    pantalla.replaceChildren(vista);
+    if (enfocar) { const f = pantalla.querySelector("h3"); if (f) { f.setAttribute("tabindex", "-1"); f.focus({ preventScroll: true }); } }
+  }
+  function intro() {
+    return h("div", { class: "sv-intro" },
+      h("span", { class: "sv-badge", html: '<svg viewBox="0 0 24 24" fill="none" stroke="#3EECEB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6l7 13 7-13"/></svg>' }),
+      h("div", {}, h("p", { class: "sv-kicker" }, "Planta Demo Querétaro"), h("h3", { class: "sv-title" }, "Encuesta de bienestar 2026")),
+      h("ul", { class: "sv-facts" },
+        h("li", {}, ico("clock"), h("span", {}, h("b", {}, "3 minutos"), " · 16 preguntas")),
+        h("li", {}, ico("shield"), h("span", {}, h("b", {}, "Anónima"), " · RH solo ve grupos de 5 o más")),
+        h("li", {}, ico("phone"), h("span", {}, h("b", {}, "Desde tu celular"), " · sin apps ni contraseñas"))),
+      h("details", { class: "sv-details" },
+        h("summary", {}, "¿Quién ve mis respuestas?"),
+        h("p", {}, "Nadie ve tus respuestas una por una. RH recibe resultados por área y solo si hay 5 o más respuestas. La pregunta sobre acontecimientos graves es confidencial: si contestas que sí, solo el servicio médico lo sabe, para ofrecerte apoyo.")),
+      h("button", { class: "btn btn--primary btn--block", type: "button", onclick: () => { est.encuesta.i = 0; pintarEncuesta(true); } }, "Comenzar", ico("arrow")));
+  }
+  function pregunta(q) {
+    const e = est.encuesta, total = PREGUNTAS.length;
+    const min = Math.max(1, Math.round(((total - e.i) * 11) / 60));
+    return h("div", { class: "sv" },
+      h("div", { class: "sv-top" },
+        h("div", { class: "sv-progress", role: "progressbar", "aria-label": "Avance de la encuesta", "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(e.i) },
+          h("span", { style: `width:${Math.max(4, (e.i / total) * 100)}%` })),
+        h("div", { class: "sv-meta" }, h("span", {}, `Pregunta ${e.i + 1} de ${total}`), h("span", {}, `≈ ${min} min`))),
+      h("div", { class: "sv-body" },
+        h("p", { class: "sv-section" }, q.seccion || CAT[q.cat].nombre),
+        h("h3", { class: "sv-q", id: "sv-q" }, q.texto),
+        opciones(q)),
+      h("div", { class: "sv-foot" },
+        e.i > 0 ? h("button", { class: "link", type: "button", onclick: atras }, ico("back"), "Atrás") : h("span"),
+        h("span", { class: "sv-lock" }, ico("shield"), q.id === "g1" ? "Confidencial" : "Anónima")));
+  }
+  function opciones(q) {
+    const actual = est.encuesta.resp[q.id];
+    const op = (texto, valor) => h("button", {
+      type: "button", class: "sv-opt" + (actual === valor ? " is-sel" : ""), "aria-pressed": String(actual === valor),
+      onclick: () => responder(q, valor),
+    }, h("span", { class: "sv-radio" }), h("span", {}, texto));
+    const grupo = (cls, hijos) => h("div", { class: cls, role: "group", "aria-labelledby": "sv-q" }, hijos);
+    if (q.tipo === "area") return grupo("sv-opts", AREAS.map(a => op(a.nombre, a.id)));
+    if (q.tipo === "sino") return grupo("sv-opts sv-opts--2", [op("Sí", "si"), op("No", "no")]);
+    if (q.tipo === "likert") return grupo("sv-opts", LIKERT.map((t, i) => op(t, i)));
+    return h("div", {},
+      grupo("sv-scale", Array.from({ length: 11 }, (_, v) => h("button", {
+        type: "button", class: "sv-num" + (actual === v ? " is-sel" : ""), "aria-pressed": String(actual === v),
+        "aria-label": `${v} de 10`, onclick: () => responder(q, v),
+      }, String(v)))),
+      h("div", { class: "sv-scale-labels" }, h("span", {}, "Nada probable"), h("span", {}, "Muy probable")));
+  }
+  function responder(q, valor) {
+    if (avanzando) return;
+    const e = est.encuesta;
+    e.resp[q.id] = valor;
+    pintarEncuesta(false);
+    avanzando = true;
+    setTimeout(() => {
+      avanzando = false;
+      if (q.id === "g1" && valor === "si") e.cuidado = true;
+      else avanzar();
+      pintarEncuesta(true);
+    }, reducido() ? 0 : 240);
+  }
+  function avanzar() {
+    const e = est.encuesta;
+    e.i += 1;
+    if (e.i >= PREGUNTAS.length) {
+      est.mia = { ...e.resp };
+      almacen.guardar("mia", est.mia);
+    }
+  }
+  function atras() { const e = est.encuesta; if (e.i > 0) { e.i -= 1; pintarEncuesta(true); } }
+  function cuidado() {
+    return h("div", { class: "sv-care" },
+      h("div", { class: "sv-check", html: svg("heart") }),
+      h("h3", {}, "Gracias por decírnoslo"),
+      h("p", {}, "El servicio médico de la planta te contactará de forma confidencial para ofrecerte apoyo. Nadie más verá esta respuesta."),
+      h("button", { class: "btn btn--primary btn--block", type: "button", onclick: () => { est.encuesta.cuidado = false; avanzar(); pintarEncuesta(true); } }, "Continuar", ico("arrow")));
+  }
+  function final() {
+    const area = AREA[est.mia.area];
+    const nArea = deArea(todas(), area.id).length;
+    const desbloqueo = area.respuestas < MIN_GRUPO && nArea >= MIN_GRUPO;
+    const muestra = todas().length === MUESTRA;
+    return h("div", { class: "sv-done" },
+      h("div", { class: "sv-check", html: svg("check") }),
+      h("h3", {}, "¡Listo! Gracias por tu tiempo"),
+      h("p", {}, `Tus respuestas ya cuentan en ${area.nombre}. RH ve resultados por grupo, nunca respuestas individuales.`),
+      desbloqueo ? h("p", { class: "sv-note" }, `Con tu respuesta, ${area.nombre} llegó a ${MIN_GRUPO} y ya puede mostrarse en el panel.`) : null,
+      !desbloqueo && muestra ? h("p", { class: "sv-note" }, `Con tu respuesta se alcanzó la muestra que pide la norma: ${MUESTRA} de ${PLANTILLA} personas.`) : null,
+      h("a", { class: "btn btn--cta btn--block", href: "#panel" }, "Ver cómo lo recibe RH", ico("arrow")),
+      h("button", { class: "link", type: "button", onclick: () => { est.encuesta = { i: 0, resp: {}, cuidado: false }; pintarEncuesta(true); } }, "Contestar de nuevo"));
+  }
+
+  // ── 2 · Panel de RH ─────────────────────────────────────────────────────
+  function celdas() { // área × categoría de los grupos visibles, de mayor a menor riesgo
+    const rs = todas();
+    return AREAS.filter(a => visible(a.id)).flatMap(a => CATS.map(c => ({ area: a.id, cat: c.id, pct: pctCat(deArea(rs, a.id), c.id) })))
+      .sort((x, y) => y.pct - x.pct);
+  }
+  function itemsQueExplican(area, cat) {
+    const rsA = deArea(todas(), area);
+    return itemsDe(cat).map(q => ({ q, pct: rsA.filter(r => riesgoItem(q, r[q.id]) >= 3).length / rsA.length * 100 })).sort((x, y) => y.pct - x.pct);
+  }
+  function enPlan(area, cat) { return est.plan.some(t => t.area === area && t.cat === cat); }
+  function agregarSugerida(area, cat) {
+    if (enPlan(area, cat)) return;
+    const s = SUGERENCIA[cat];
+    est.plan.push({ id: "n" + Date.now(), titulo: s.titulo, area, cat, resp: s.resp, fecha: "2026-11-21", estado: "pendiente" });
+    guardarPlan();
+    aviso("Agregada al plan de acción");
+  }
+  function pintarPanel() {
+    const rsTodas = todas();
+    if (est.filtro !== "todas" && !visible(est.filtro)) est.filtro = "todas";
+    const f = est.filtro;
+    const rs = f === "todas" ? rsTodas : deArea(rsTodas, f);
+    const st = stats(rs);
+    const plantilla = f === "todas" ? PLANTILLA : AREA[f].plantilla;
+
+    poner($("#filtros"),
+      h("button", { type: "button", class: "filter", "aria-pressed": String(f === "todas"), onclick: () => { est.filtro = "todas"; pintarPanel(); } }, "Toda la planta"),
+      AREAS.map(a => visible(a.id)
+        ? h("button", { type: "button", class: "filter", "aria-pressed": String(f === a.id), onclick: () => { est.filtro = a.id; pintarPanel(); } }, a.nombre)
+        : h("button", { type: "button", class: "filter", disabled: true, title: "Menos de 5 respuestas: no se muestra" }, ico("eyeoff"), a.nombre)));
+    poner($("#en-vivo"),
+      est.mia ? h("span", { class: "yours" }, ico("check"), "Incluye tu respuesta") : null,
+      h("span", { class: "live" }, h("span", { class: "dot" }), `En vivo · ${rsTodas.length} respuestas`));
+
+    // Indicadores
+    const part = (st.n / plantilla) * 100;
+    const C = 2 * Math.PI * 26;
+    const nGen = nivel(st.general);
+    const idxGen = NIVELES.indexOf(nGen);
+    poner($("#kpis"),
+      h("div", { class: "card kpi" },
+        h("div", { class: "kpi__label" }, "Participación"),
+        h("div", { class: "kpi__row" },
+          h("span", { html: `<svg class="donut" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="#EFF1F7" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#037B7D" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C * part) / 100} ${C}"/></svg>` }),
+          h("div", {}, h("div", { class: "kpi__value" }, fmtPct(part)), h("div", { class: "kpi__hint" }, `${st.n} de ${plantilla} personas`)))),
+      h("div", { class: "card kpi" },
+        h("div", { class: "kpi__label" }, "Riesgo psicosocial"),
+        h("div", { class: "kpi__value" }, nGen.nombre),
+        h("div", { class: "meter", "aria-hidden": "true" }, NIVELES.map((n, i) => h("span", { class: i === idxGen ? "on" : null, style: `background:var(--r-${n.id})` }))),
+        h("div", { class: "kpi__hint" }, f === "todas" ? "General de la planta · Guía III" : `General de ${AREA[f].nombre}`)),
+      h("div", { class: "card kpi" },
+        h("div", { class: "kpi__label" }, "eNPS"),
+        h("div", { class: "kpi__value" }, (st.enps > 0 ? "+" : "") + st.enps),
+        h("div", { class: "split", "aria-hidden": "true" },
+          h("span", { style: `width:${(st.promotores / (st.n || 1)) * 100}%;background:var(--aqua-500)` }),
+          h("span", { style: `width:${(st.pasivos / (st.n || 1)) * 100}%;background:var(--mist-300)` }),
+          h("span", { style: `width:${(st.detractores / (st.n || 1)) * 100}%;background:var(--flame-400)` })),
+        h("div", { class: "legend" },
+          h("span", {}, h("i", { style: "background:var(--aqua-500)" }), `${st.promotores} promotores`),
+          h("span", {}, h("i", { style: "background:var(--flame-400)" }), `${st.detractores} detractores`))),
+      h("div", { class: "card kpi" },
+        h("div", { class: "kpi__label" }, "Guía I · acontecimientos graves"),
+        f === "todas"
+          ? [h("div", { class: "kpi__value" }, String(st.g1), h("small", {}, st.g1 === 1 ? "persona" : "personas")), h("div", { class: "kpi__hint" }, "Para valoración clínica. Solo lo ve el servicio médico.")]
+          : [h("div", { class: "kpi__value" }, "—"), h("div", { class: "kpi__hint" }, "Solo a nivel planta, para proteger la confidencialidad.")]));
+
+    // Lo más importante
+    const top = celdas().filter(c => f === "todas" || c.area === f).slice(0, 2);
+    const ocultos = AREAS.filter(a => { const n = deArea(rsTodas, a.id).length; return n > 0 && n < MIN_GRUPO; });
+    poner($("#hallazgos"),
+      h("div", { class: "insight__head" }, h("span", { class: "spark", html: svg("spark") }), h("h2", {}, "Lo más importante")),
+      top.map(c => {
+        const why = itemsQueExplican(c.area, c.cat)[0];
+        const ya = enPlan(c.area, c.cat);
+        return h("div", { class: "finding" },
+          badge(c.pct),
+          h("div", {},
+            h("div", { class: "finding__title" }, `${AREA[c.area].nombre} · ${CAT[c.cat].nombre}`),
+            h("div", { class: "finding__why" }, `${fmtPct(why.pct)} contestó en riesgo: “${why.q.texto}”`)),
+          h("div", { class: "finding__acts" },
+            h("button", { class: "btn btn--ghost btn--sm", type: "button", onclick: () => abrirDetalle(c.area, c.cat) }, "Ver detalle"),
+            h("button", { class: "btn btn--primary btn--sm", type: "button", disabled: ya, onclick: () => { agregarSugerida(c.area, c.cat); pintarPanel(); } }, ya ? "En el plan" : "Agregar al plan")));
+      }),
+      ocultos.map(a => h("div", { class: "notice" }, ico("eyeoff"), h("span", {}, h("b", {}, a.nombre), ` tiene ${deArea(rsTodas, a.id).length} respuestas: no se muestra para proteger el anonimato (mínimo ${MIN_GRUPO}).`))));
+
+    // Mapa de calor
+    $("#mapa").replaceChildren(h("table", { class: "heat" },
+      h("caption", { class: "sr-only" }, "Nivel de riesgo psicosocial por área y categoría"),
+      h("thead", {}, h("tr", {}, h("th", { scope: "col" }, "Área"), CATS.map(c => h("th", { scope: "col" }, c.corto)))),
+      h("tbody", {}, AREAS.map(a => {
+        const rsA = deArea(rsTodas, a.id), oculto = rsA.length < MIN_GRUPO;
+        return h("tr", { class: f !== "todas" && f !== a.id ? "is-dim" : null },
+          h("th", { scope: "row" }, h("span", { class: "heat__area" }, a.nombre), h("span", { class: "heat__n" }, `${rsA.length} de ${a.plantilla}`)),
+          CATS.map(c => {
+            if (oculto) return h("td", {}, h("span", { class: "heat__hidden", title: "Menos de 5 respuestas" }, ico("eyeoff"), "Oculto"));
+            const p = pctCat(rsA, c.id), n = nivel(p);
+            return h("td", {}, h("button", {
+              type: "button", class: "heat__cell lvl--" + n.id, onclick: () => abrirDetalle(a.id, c.id),
+              "aria-label": `${a.nombre}, ${c.nombre}: riesgo ${n.nombre}. Ver detalle`,
+            }, n.nombre));
+          }));
+      }))));
+    poner($("#leyenda"),h("span", {}, "Nivel de riesgo:"), NIVELES.map(n => h("span", { class: "lvl lvl--" + n.id }, n.nombre)));
+
+    // Clima
+    $("#clima-sub").textContent = `Respuestas favorables · ${f === "todas" ? "toda la planta" : AREA[f].nombre}`;
+    poner($("#clima"),
+      CLIMA.map(d => {
+        const c = st.clima[d.id];
+        return h("div", { class: "climate__row" },
+          h("div", { class: "climate__top" }, h("span", {}, d.nombre), h("span", {}, fmtPct(c.fav))),
+          h("div", { class: "split", role: "img", "aria-label": `${d.nombre}: ${Math.round(c.fav)} % favorable, ${Math.round(c.des)} % desfavorable` },
+            h("span", { style: `width:${c.fav}%;background:var(--aqua-600)` }),
+            h("span", { style: `width:${c.neu}%;background:var(--mist-300)` }),
+            h("span", { style: `width:${c.des}%;background:var(--flame-400)` })));
+      }),
+      h("div", { class: "legend" },
+        h("span", {}, h("i", { style: "background:var(--aqua-600)" }), "Favorable"),
+        h("span", {}, h("i", { style: "background:var(--mist-300)" }), "Neutral"),
+        h("span", {}, h("i", { style: "background:var(--flame-400)" }), "Desfavorable")));
+  }
+
+  // Detalle de una celda
+  let volverA = null;
+  function cerrarDetalle() {
+    $("#capa").replaceChildren();
+    document.removeEventListener("keydown", teclaDetalle);
+    if (volverA && document.contains(volverA)) volverA.focus();
+  }
+  function teclaDetalle(ev) { if (ev.key === "Escape") cerrarDetalle(); }
+  function abrirDetalle(area, cat) {
+    volverA = document.activeElement;
+    const rsA = deArea(todas(), area);
+    const p = pctCat(rsA, cat), n = nivel(p);
+    const ya = enPlan(area, cat);
+    const boton = h("button", { class: "btn btn--primary btn--block", type: "button", disabled: ya, onclick: () => { agregarSugerida(area, cat); cerrarDetalle(); pintarPanel(); } },
+      ya ? "Ya está en el plan de acción" : [ico("plus"), "Agregar al plan de acción"]);
+    const cerrar = h("button", { class: "drawer__close", type: "button", "aria-label": "Cerrar", onclick: cerrarDetalle, html: svg("x") });
+    $("#capa").replaceChildren(
+      h("div", { class: "backdrop", onclick: cerrarDetalle }),
+      h("aside", { class: "drawer", role: "dialog", "aria-modal": "true", "aria-labelledby": "d-titulo" },
+        cerrar,
+        h("div", { class: "drawer__head" },
+          h("span", { class: "eyebrow" }, `${AREA[area].nombre} · ${rsA.length} respuestas`),
+          h("h2", { id: "d-titulo" }, CAT[cat].nombre),
+          h("div", {}, badge(p))),
+        h("div", { class: "drawer__body" },
+          h("section", {}, h("h3", {}, "Qué lo explica"),
+            h("div", { class: "why" }, itemsQueExplican(area, cat).map(x => h("div", { class: "why__item" },
+              h("span", {}, `“${x.q.texto}”`),
+              h("div", { class: "bar" }, h("span", { style: `width:${x.pct}%` })),
+              h("span", { class: "why__pct" }, `${fmtPct(x.pct)} contestó en riesgo`))))),
+          h("section", {}, h("h3", {}, `Qué pide la NOM-035 en nivel ${n.nombre.toLowerCase()}`), h("p", { class: "norm" }, CRITERIO[n.id])),
+          h("section", {}, h("h3", {}, "Acción sugerida"),
+            h("div", { class: "suggest" }, h("p", {}, SUGERENCIA[cat].titulo), h("small", {}, `Responsable sugerido: ${SUGERENCIA[cat].resp}`), boton)))));
+    document.addEventListener("keydown", teclaDetalle);
+    cerrar.focus();
+  }
+
+  // ── 3 · Plan de acción ──────────────────────────────────────────────────
+  function etiquetaHallazgo(t) {
+    if (t.cat === "g1") return { texto: "Toda la planta · Guía I", color: "var(--ink-500)" };
+    const area = t.area === "planta" ? "Toda la planta" : AREA[t.area].nombre;
+    const pct = t.area === "planta" ? stats(todas()).cats[t.cat] : pctCat(deArea(todas(), t.area), t.cat);
+    return { texto: `${area} · ${CAT[t.cat].corto}`, color: `var(--r-${nivel(pct).id}-t)` };
+  }
+  function pintarPlan() {
+    const total = est.plan.length, cuenta = id => est.plan.filter(t => t.estado === id).length;
+    const hechas = cuenta("hecha"), curso = cuenta("curso");
+    $("#resumen-plan").replaceChildren(
+      h("div", { class: "summary__stat" }, h("b", {}, String(total)), h("span", {}, "acciones")),
+      h("div", { class: "summary__stat" }, h("b", {}, String(curso)), h("span", {}, "en curso")),
+      h("div", { class: "summary__stat" }, h("b", {}, String(hechas)), h("span", {}, "hechas")),
+      h("div", { class: "summary__bar" },
+        h("div", { class: "split", role: "img", "aria-label": `${hechas} de ${total} acciones hechas` },
+          h("span", { style: `width:${(hechas / (total || 1)) * 100}%;background:var(--ok-600)` }),
+          h("span", { style: `width:${(curso / (total || 1)) * 100}%;background:var(--ink-500)` })),
+        h("span", { class: "kpi__hint" }, `${Math.round((hechas / (total || 1)) * 100)} % completado`)),
+      h("button", { class: "btn btn--cta btn--sm no-print", type: "button", onclick: abrirFormulario }, ico("plus"), "Nueva acción"));
+    $("#tablero").replaceChildren(...ESTADOS.map(s => {
+      const tareas = est.plan.filter(t => t.estado === s.id);
+      return h("div", { class: "col" },
+        h("div", { class: "col__head" }, h("span", {}, s.nombre), h("span", { class: "count" }, String(tareas.length))),
+        tareas.length ? tareas.map(tarjeta) : h("div", { class: "col__empty" }, "Sin acciones"));
     }));
-    $("#legend").replaceChildren(el("span", { text: "Niveles:" }), ...LEVELS.map(l => el("span", { class: "pill lvl-" + l.key, text: l.name })));
-
-    // Mapa de calor (siempre por área, respeta el mínimo de grupo)
-    const heat = $("#heat"); heat.replaceChildren();
-    heat.append(el("thead", {}, el("tr", {}, el("th", { text: "Área" }), el("th", { text: "Resp." }), ...CATS.map(c => el("th", { text: c.name })))));
-    const tb = el("tbody");
-    for (const a of AREAS) {
-      const ar = rs.filter(r => r.area === a);
-      const row = el("tr", {}, el("th", { text: a }), el("td", { style: "background:var(--surface-2);color:var(--fg)", text: String(ar.length) }));
-      if (ar.length < MIN_GROUP) row.append(el("td", { colspan: String(CATS.length), style: "background:var(--surface-2);color:var(--muted)", text: "Oculto: menos de 5 respuestas" }));
-      else { const st = stats(ar); for (const c of CATS) row.append(el("td", { style: `background:${color(st.cats[c.id])}${level(st.cats[c.id]).key === "muy" ? ";color:#fff" : ""}`, text: fmt(st.cats[c.id]) })); }
-      tb.append(row);
-    }
-    heat.append(tb);
-
-    // Hallazgos
-    const combos = [];
-    for (const a of AREAS) { const ar = rs.filter(r => r.area === a); if (ar.length < MIN_GROUP) continue; const st = stats(ar); for (const c of CATS) combos.push({ a, c, p: st.cats[c.id] }); }
-    const scopedCombos = area ? combos.filter(x => x.a === area) : combos;
-    const top = scopedCombos.sort((x, y) => y.p - x.p).filter(x => x.p >= 40).slice(0, 3);
-    const fl = $("#findings"); fl.replaceChildren();
-    if (!top.length) fl.append(el("li", { class: "ok", text: "Sin focos de riesgo medio o superior en este grupo. Mantener el seguimiento anual." }));
-    for (const x of top) {
-      const l = level(x.p);
-      fl.append(el("li", { class: l.key === "muy" ? "muy" : "" },
-        el("b", { text: `${x.a} · ${x.c.name}: ${l.name} (${fmt(x.p)})` }), el("br"),
-        el("span", { text: INSIGHT[x.c.id] })));
-    }
-    if (s.g1 > 0) fl.append(el("li", { class: "muy" }, el("b", { text: `${s.g1} caso${s.g1 > 1 ? "s" : ""} de la Guía I` }), el("br"), el("span", { text: "Canalizar a valoración clínica y documentarlo, como pide la norma." })));
-
-    $("#clima-bars").replaceChildren(...CLIMA.map(c => {
-      const p = s.clima[c.id];
-      const tone = p >= 70 ? "nulo" : p >= 50 ? "medio" : "alto";
-      return el("div", { class: "bar-row" }, el("span", { text: c.name }),
-        el("div", { class: "bar-track", role: "img", "aria-label": `${c.name}: ${fmt(p)} favorable` }, el("div", { class: "bar-fill", style: `width:${p}%;background:var(--r-${tone})` })),
-        el("span", { style: "font-family:var(--font-mono);font-variant-numeric:tabular-nums", text: fmt(p) }));
-    }));
-
-    $("#evidence").replaceChildren(...[
-      ["✓", "Resultados por categoría y dominio", "Con fecha de aplicación y número de participantes."],
-      ["✓", "Registro de canalizaciones de la Guía I", "Sin exponer identidades."],
-      ["✓", "Plan de acción con seguimiento", "Responsables, fechas y avance de cada medida."],
-      ["✓", "Difusión de la política de prevención", "Con acuse de lectura del personal."],
-    ].map(([i, b, t]) => el("li", {}, el("span", { class: "ico", text: i }), el("div", {}, el("b", { text: b }), el("span", { text: t })))));
   }
-  const kpi = (l, v, sub) => kpiNode(l, document.createTextNode(v), sub);
-  const kpiNode = (l, node, sub) => el("div", { class: "kpi" }, el("span", { class: "lbl", text: l }), el("span", { class: "val" }, node), el("span", { class: "sub", text: sub }));
-  const INSIGHT = {
-    amb: "Revisar condiciones físicas (ruido, temperatura, iluminación) y el equipo de protección en las estaciones con más quejas.",
-    act: "El ritmo exigido supera la capacidad del equipo. Revisar metas por turno y redistribuir cargas en picos de producción.",
-    tie: "Jornadas que se alargan y poca desconexión. Controlar horas extra y respetar los descansos entre turnos.",
-    lid: "Señales de trato negativo o poca claridad del jefe directo. Capacitar a supervisores y abrir un canal de denuncia confidencial.",
-  };
+  function tarjeta(t) {
+    const tag = etiquetaHallazgo(t);
+    const sel = h("select", { class: "status", "data-v": t.estado, "aria-label": `Estado de: ${t.titulo}`, onchange: ev => {
+      t.estado = ev.target.value; guardarPlan(); pintarPlan();
+      aviso(t.estado === "hecha" ? "Acción marcada como hecha" : "Estado actualizado");
+    } }, ESTADOS.map(s => h("option", { value: s.id, selected: s.id === t.estado }, s.nombre)));
+    return h("article", { class: "task" },
+      h("span", { class: "task__tag" }, h("i", { style: `background:${tag.color}` }), tag.texto),
+      h("p", { class: "task__title" }, t.titulo),
+      h("div", { class: "task__meta" },
+        h("span", { class: "owner" }, h("span", { class: "avatar" }, iniciales(t.resp)), t.resp),
+        h("span", { class: "due" }, ico("calendar"), fecha(t.fecha))),
+      sel);
+  }
+  function abrirFormulario() {
+    const form = $("#nueva");
+    const opciones = [h("option", { value: "planta|ent" }, "Toda la planta · Entorno organizacional")]
+      .concat(celdas().filter(c => c.pct >= 35).map(c => h("option", { value: `${c.area}|${c.cat}` }, `${AREA[c.area].nombre} · ${CAT[c.cat].corto} (${nivel(c.pct).nombre})`)));
+    form.elements.hallazgo.replaceChildren(...opciones);
+    form.elements.hallazgo.selectedIndex = opciones.length > 1 ? 1 : 0;
+    form.elements.fecha.value = "2026-11-28";
+    form.hidden = false;
+    form.elements.titulo.focus();
+  }
+  $("#cancelar").addEventListener("click", () => { $("#nueva").hidden = true; $("#nueva").reset(); });
+  $("#nueva").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const [area, cat] = String(fd.get("hallazgo")).split("|");
+    est.plan.push({ id: "n" + Date.now(), titulo: String(fd.get("titulo")).trim(), area, cat, resp: String(fd.get("resp")).trim() || "Recursos Humanos", fecha: String(fd.get("fecha")), estado: "pendiente" });
+    guardarPlan();
+    ev.target.reset();
+    ev.target.hidden = true;
+    pintarPlan();
+    aviso("Acción agregada al plan");
+  });
 
-  $("#copy-summary").addEventListener("click", () => {
-    const s = stats(allResponses());
-    const text = [
-      "Resumen ejecutivo · Clima laboral y NOM-035 (demo Vortex Ops)",
-      `Participación: ${s.n} de ${HEADCOUNT} (${fmt(s.n / HEADCOUNT * 100)})`,
-      `Riesgo psicosocial general: ${level(s.overall).name} (${fmt(s.overall)})`,
-      ...CATS.map(c => `- ${c.name}: ${level(s.cats[c.id]).name} (${fmt(s.cats[c.id])})`),
-      `eNPS: ${s.enps}`, `Casos Guía I por canalizar: ${s.g1}`,
+  // ── 4 · Expediente ──────────────────────────────────────────────────────
+  function resumenTexto() {
+    const st = stats(todas());
+    const altos = celdas().filter(c => c.pct >= 50).map(c => `${AREA[c.area].nombre} (${CAT[c.cat].nombre}, ${nivel(c.pct).nombre})`);
+    const hechas = est.plan.filter(t => t.estado === "hecha").length;
+    return [
+      "Diagnóstico NOM-035 y clima laboral · Planta Demo Querétaro (datos ficticios)",
+      `Participación: ${st.n} de ${PLANTILLA} (${fmtPct((st.n / PLANTILLA) * 100)})`,
+      `Riesgo psicosocial general: ${nivel(st.general).nombre}`,
+      `Requieren atención: ${altos.length ? altos.join("; ") : "ninguna área en riesgo alto"}`,
+      `eNPS: ${(st.enps > 0 ? "+" : "") + st.enps}`,
+      `Plan de acción: ${est.plan.length} acciones, ${hechas} hechas`,
     ].join("\n");
-    navigator.clipboard.writeText(text).then(() => toast("Resumen copiado"), () => toast("No se pudo copiar en esta vista"));
-  });
-
-  // 3 · Plan de acción
-  const ACTION_LIB = {
-    amb: { t: "Auditoría de condiciones físicas por estación", d: "Medir ruido, temperatura e iluminación y corregir los puntos fuera de norma.", owner: "Seguridad e Higiene", days: 30 },
-    act: { t: "Revisión de metas y cargas por turno", d: "Ajustar estándares con supervisión y sumar apoyo en horas pico.", owner: "Gerencia de Producción", days: 45 },
-    tie: { t: "Control de horas extra y descansos", d: "Tope semanal de horas extra y descanso mínimo entre turnos.", owner: "Recursos Humanos", days: 30 },
-    lid: { t: "Taller de liderazgo para supervisores y canal de denuncia", d: "Cuatro sesiones de liderazgo y un buzón confidencial con respuesta en 72 h.", owner: "Recursos Humanos", days: 60 },
-  };
-  const iso = d => d.toISOString().slice(0, 10);
-  function suggested() {
-    const rs = allResponses(), out = [];
-    for (const a of AREAS) {
-      const ar = rs.filter(r => r.area === a); if (ar.length < MIN_GROUP) continue;
-      const st = stats(ar);
-      for (const c of CATS) if (st.cats[c.id] >= 40) {
-        const lib = ACTION_LIB[c.id], due = new Date(); due.setDate(due.getDate() + lib.days);
-        out.push({ id: `${a}-${c.id}`, title: lib.t, desc: lib.d, area: a, cat: c.name, owner: lib.owner, due: iso(due), p: st.cats[c.id] });
-      }
+  }
+  async function copiar(texto) {
+    try { await navigator.clipboard.writeText(texto); return true; } catch {
+      const ta = h("textarea", { style: "position:fixed;opacity:0" }); ta.value = texto; document.body.append(ta); ta.select();
+      let ok = false; try { ok = document.execCommand("copy"); } catch { ok = false; } ta.remove(); return ok;
     }
-    out.push({ id: "politica", title: "Difundir la política de prevención de riesgos psicosociales", desc: "Publicarla en planta y en el celular con acuse de lectura.", area: "Toda la planta", cat: "Obligación NOM-035", owner: "Recursos Humanos", due: iso(new Date(Date.now() + 15 * 864e5)), p: 0 });
-    return out.sort((x, y) => y.p - x.p);
   }
-  let statuses = store.get("status", {});
-  let custom = store.get("custom", []);
-  const NEXT = { "Pendiente": "En curso", "En curso": "Hecha", "Hecha": "Pendiente" };
-  function renderPlan() {
-    const list = suggested().concat(custom);
-    const done = list.filter(a => statuses[a.id] === "Hecha").length;
-    $("#plan-count").textContent = `${done} de ${list.length} acciones cerradas`;
-    $("#plan-list").replaceChildren(...list.map(a => {
-      const st = statuses[a.id] || "Pendiente";
-      return el("article", { class: "action" },
-        el("div", { style: "display:grid;gap:4px;min-width:0" }, el("h4", { text: a.title }), el("p", { text: a.desc })),
-        el("button", { class: "status", type: "button", "data-s": st, "aria-label": `Estado: ${st}. Cambiar`, text: st, onclick: () => { statuses[a.id] = NEXT[st]; store.set("status", statuses); renderPlan(); } }),
-        el("div", { class: "meta" },
-          a.p ? pill(a.p) : null,
-          el("span", {}, "Área: ", el("b", { text: a.area })),
-          el("span", {}, "Categoría: ", el("b", { text: a.cat })),
-          el("span", {}, "Responsable: ", el("b", { text: a.owner || "Por asignar" })),
-          el("span", {}, "Fecha: ", el("b", { text: a.due || "Por definir" }))));
-    }));
+  function pintarExpediente() {
+    const st = stats(todas());
+    const hechas = est.plan.filter(t => t.estado === "hecha").length;
+    const g1 = est.plan.find(t => t.cat === "g1");
+    const filas = [
+      { e: "ok", t: "Política de prevención de riesgos psicosociales", d: "Publicada y difundida el 12 de septiembre de 2026." },
+      { e: g1 && g1.estado === "hecha" ? "ok" : "curso", t: "Identificación de acontecimientos traumáticos severos · Guía I", d: `${st.n} cuestionarios aplicados · ${st.g1} personas canalizadas a valoración clínica, de forma confidencial.` },
+      { e: st.n >= MUESTRA ? "ok" : "curso", t: "Factores de riesgo psicosocial y entorno organizacional · Guía III", d: st.n >= MUESTRA ? `Muestra representativa alcanzada: ${st.n} respuestas; la norma pide ${MUESTRA} para ${PLANTILLA} personas.` : `${st.n} de las ${MUESTRA} respuestas que pide la norma para ${PLANTILLA} personas. Contesta la encuesta del paso 1 para completarla.` },
+      { e: total() === hechas ? "ok" : "curso", t: "Medidas de prevención y acciones de control", d: `${est.plan.length} acciones con responsable y fecha · ${hechas} hechas.` },
+      { e: est.difundido ? "ok" : "pendiente", t: "Difusión de los resultados a los trabajadores", d: est.difundido ? "Resumen copiado para compartir con la plantilla." : "El resumen para la plantilla ya está listo.", boton: !est.difundido },
+      { e: "ok", t: "Registros del periodo", d: "Resultados, acciones y canalizaciones con su fecha, en este expediente." },
+    ];
+    function total() { return est.plan.length; }
+    const icono = { ok: "check", curso: "clock", pendiente: "info" };
+    $("#checklist").replaceChildren(...filas.map(f => h("li", { class: "check" },
+      h("span", { class: "check__icon check__icon--" + f.e, html: svg(icono[f.e]) }),
+      h("div", {}, h("h3", {}, f.t), h("p", {}, f.d)),
+      f.boton ? h("button", { class: "btn btn--ghost btn--sm no-print", type: "button", onclick: async () => {
+        const ok = await copiar(resumenTexto());
+        est.difundido = true; almacen.guardar("difundido", true); pintarExpediente();
+        aviso(ok ? "Resumen copiado para difundir" : "Resumen listo para difundir");
+      } }, ico("copy"), "Copiar resumen") : null)));
+    const listos = filas.filter(f => f.e === "ok").length;
+    const C = 2 * Math.PI * 50;
+    $("#avance").replaceChildren(
+      h("span", { html: `<svg class="ring" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="#EFF1F7" stroke-width="12"/><circle cx="60" cy="60" r="50" fill="none" stroke="#068050" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(C * listos) / filas.length} ${C}"/></svg>` }),
+      h("b", {}, `${listos}/${filas.length}`),
+      h("p", { class: "kpi__hint", style: "margin-bottom:16px" }, "obligaciones documentadas"));
   }
-  $("#addform").addEventListener("submit", e => {
-    e.preventDefault();
-    const t = $("#new-text").value.trim(); if (!t) return;
-    custom.push({ id: "c" + Date.now(), title: t, desc: "Acción agregada por RH.", area: sel.value || "Toda la planta", cat: "Propia", owner: $("#new-owner").value.trim(), due: $("#new-date").value, p: 0 });
-    store.set("custom", custom);
-    e.target.reset(); renderPlan(); toast("Acción agregada");
-  });
+  $("#imprimir").addEventListener("click", () => window.print());
+  $("#copiar").addEventListener("click", async () => { const ok = await copiar(resumenTexto()); aviso(ok ? "Resumen ejecutivo copiado" : "No se pudo copiar"); });
 
-  renderPhone();
-  if (location.hash === "#panel" || location.hash === "#plan") show(location.hash.slice(1));
+  // ── Arranque ────────────────────────────────────────────────────────────
+  pintarEncuesta(false);
+  mostrar(location.hash.slice(1) || "colaborador");
 })();
 </script>
-
 </body>
 </html>
