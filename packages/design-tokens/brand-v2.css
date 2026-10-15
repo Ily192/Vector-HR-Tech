@@ -1,0 +1,45 @@
+/**
+ * Marca Vortex Ops v2: tokens como variables CSS, sin framework.
+ * Guía y razones: docs/brand/branding-v2.md. Fuentes:
+ *   https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@500;600&display=swap
+ * Convive con theme.css (v1) hasta que career-site y hrbp migren.
+ */
+:root {
+  /* Tinta (índigo) */
+  --ink-50: #F5F6FE; --ink-100: #EAEEFE; --ink-200: #D4DCFF; --ink-300: #B3C0FE; --ink-400: #8E9DF4;
+  --ink-500: #6D7BE2; --ink-600: #5661BC; --ink-700: #434D97; --ink-800: #323973; --ink-900: #181854; --ink-950: #0C0C36;
+  /* Aqua: 300 sobre tinta, 700 para texto sobre claro */
+  --aqua-50: #DDFFFE; --aqua-100: #C1FBFB; --aqua-200: #A7EDED; --aqua-300: #3EECEB; --aqua-400: #31BABB;
+  --aqua-500: #02999B; --aqua-600: #037B7D; --aqua-700: #066263; --aqua-800: #024A4A; --aqua-900: #033233;
+  /* Flame: 500 para CTA con texto en tinta, 700 para texto */
+  --flame-50: #FFF4EF; --flame-100: #FFEADF; --flame-200: #FED4BE; --flame-300: #FEAF85; --flame-400: #FFA663;
+  --flame-500: #FE7802; --flame-600: #E05F00; --flame-700: #893B01; --flame-800: #682B02; --flame-900: #491C00;
+  /* Niebla: neutros con matiz de tinta */
+  --mist-50: #F7F8FC; --mist-100: #EFF1F7; --mist-150: #E5E7F0; --mist-200: #DBDDE8; --mist-300: #C1C3CF;
+  --mist-400: #A1A4B1; --mist-500: #828594; --mist-600: #686B78; --mist-700: #525560; --mist-800: #3D3F49; --mist-900: #292B33;
+  /* Semánticos */
+  --success-50: #E4FFEE; --success-600: #068050; --success-700: #02663E;
+  --warning-50: #FEF5E8; --warning-600: #8E6204; --warning-700: #714E04;
+  --danger-50: #FEF4F3; --danger-600: #BD3132; --danger-700: #972527;
+  --info-50: #F2F7FE; --info-600: #2F6CB6; --info-700: #245692;
+  /* Escala de riesgo: relleno / texto */
+  --risk-nulo: #C2F3F3; --risk-nulo-text: #005256;
+  --risk-bajo: #B4EEC7; --risk-bajo-text: #02572F;
+  --risk-medio: #F8D376; --risk-medio-text: #6F4502;
+  --risk-alto: #FFA666; --risk-alto-text: #6F2A01;
+  --risk-muy-alto: #F66D67; --risk-muy-alto-text: #520D0F;
+  /* Roles */
+  --color-bg: var(--mist-50); --color-surface: #FFFFFF; --color-text: var(--ink-900);
+  --color-text-muted: var(--mist-600); --color-border: var(--mist-200);
+  --color-cta: var(--flame-500); --color-on-cta: var(--ink-900);
+  --color-link: var(--aqua-700); --color-focus: var(--aqua-500);
+  --brand-gradient: linear-gradient(90deg, #FE7802, #FFC252 48%, #3EECEB);
+  /* Tipografía */
+  --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Forma */
+  --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px; --radius-xl: 28px;
+}
+@supports (background: linear-gradient(in oklch, red, blue)) {
+  :root { --brand-gradient: linear-gradient(90deg in oklch, #FE7802, #FFC252 48%, #3EECEB); }
+}
