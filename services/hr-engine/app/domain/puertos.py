@@ -19,6 +19,16 @@ from app.domain.entidades import (
 )
 
 
+class ProveedorNoDisponibleError(RuntimeError):
+    """El proveedor no puede atender ahora: caído, sin configurar, con timeouts,
+    con 429/5xx o con el circuito abierto.
+
+    Los adaptadores traducen a esta excepción los errores de disponibilidad de su
+    SDK. Los demás fallos (una respuesta inválida, un 400) no se traducen: son
+    errores de verdad y tienen que verse.
+    """
+
+
 class CandidateRepository(Protocol):
     """Lectura y escritura de candidatos, vacantes y applications de un tenant.
 
@@ -51,6 +61,12 @@ class CandidateRepository(Protocol):
 
 
 class EmbeddingProvider(Protocol):
+    """Genera el embedding de un texto.
+
+    Si el proveedor no está disponible lanza `ProveedorNoDisponibleError`. Los
+    embeddings sirven a la búsqueda del sourcer, así que la evaluación sigue sin él.
+    """
+
     async def embed(self, texto: str) -> Embedding: ...
 
 
@@ -58,7 +74,8 @@ class ScoringProvider(Protocol):
     """Puntúa el encaje de un perfil con un ICP.
 
     Recibe un `PerfilAnonimo` y no un `Candidato`: así el tipo impide que el
-    nombre llegue al modelo.
+    nombre llegue al modelo. Si ningún modelo está disponible lanza
+    `ProveedorNoDisponibleError`, y quien llama aplaza la evaluación.
     """
 
     async def score(self, perfil: PerfilAnonimo, icp: str) -> ResultadoScoring: ...
