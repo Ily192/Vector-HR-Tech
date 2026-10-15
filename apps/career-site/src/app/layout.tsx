@@ -1,18 +1,22 @@
-import type { Metadata } from "next";
-import { Inter, Lato } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Figtree, JetBrains_Mono } from "next/font/google";
+import { SiteFooter } from "../components/site-footer";
+import { SiteHeader } from "../components/site-header";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["400", "600", "700", "900"],
+// Marca v2: una sola familia (Figtree, con cursivas para la firma) y mono para etiquetas.
+const figtree = Figtree({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-figtree",
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
-const lato = Lato({
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "700", "900"],
-  style: ["normal", "italic"],
+  variable: "--font-jetbrains",
+  weight: ["500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -31,15 +35,29 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#181854",
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${inter.variable} ${lato.variable}`}>
-      <body className="min-h-screen bg-background font-body text-foreground antialiased">
-        {children}
+    <html lang="es" className={`${figtree.variable} ${jetbrains.variable}`}>
+      <body className="flex min-h-screen flex-col bg-background text-foreground antialiased">
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-ink-900 focus:px-4 focus:py-2 focus:text-white"
+        >
+          Saltar al contenido
+        </a>
+        <SiteHeader />
+        <div id="contenido" className="flex-1">
+          {children}
+        </div>
+        <SiteFooter />
       </body>
     </html>
   );

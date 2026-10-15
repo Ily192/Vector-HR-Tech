@@ -1,6 +1,6 @@
 # Marca Vortex Ops v2 · color y tipografía
 
-> Estado: **propuesta aprobada para aplicar** (2026-10-15). Primera aplicación: la demo de clima laboral y NOM-035 (`https://ily192.github.io/Vector-HR-Tech/`). Los tokens están en `packages/design-tokens/brand-v2.css`. Aplicarla a career-site y hrbp es la tarjeta de Trello "UI: tendencias 2026 y marca v2".
+> Estado: **aplicada** (2026-10-15) en la demo de clima laboral y NOM-035 (`https://ily192.github.io/Vector-HR-Tech/`), career-site, hrbp y `@vortex/ui`. Fuente: `packages/design-tokens/brand-v2.css`; `tokens.json`, el preset de Tailwind (`ink`, `aqua`, `flame`, `mist`, `risk`) y `theme.css` salen de ella. La paleta `vector-*` queda en desuso.
 
 Es una evolución, no un cambio de marca: se mantienen las tres familias (tinta índigo, naranja y cian) y la cursiva como firma. Lo que cambia es que cada color tiene escala, rol y contraste comprobado.
 

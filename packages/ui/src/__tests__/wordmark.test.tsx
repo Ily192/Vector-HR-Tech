@@ -28,20 +28,20 @@ describe("Wordmark", () => {
     expect(screen.queryByLabelText("VORTEX OPS")).not.toBeInTheDocument();
   });
 
-  it("usa cian electric como acento en Vortex y naranja en Vector", () => {
+  it("usa aqua como acento en Vortex y flame en Vector (tono claro por defecto)", () => {
     const { rerender } = render(<Wordmark brand="vortex" />);
     const acentoVortex = screen.getByLabelText("VORTEX OPS").querySelector("span:last-of-type");
-    expect(acentoVortex).toHaveClass("text-vector-cian-electric-500");
+    expect(acentoVortex).toHaveClass("text-aqua-600");
 
     rerender(<Wordmark brand="vector" />);
     const acentoVector = screen.getByLabelText("VECTOR HR TECH").querySelector("span:last-of-type");
-    expect(acentoVector).toHaveClass("text-vector-orange-500");
+    expect(acentoVector).toHaveClass("text-flame-700");
   });
 
-  it("el acento va en Lato bold itálica (font-body italic font-bold)", () => {
+  it("el acento es la firma de la marca: Figtree 800 en cursiva", () => {
     render(<Wordmark />);
     const acento = screen.getByLabelText("VORTEX OPS").querySelector("span:last-of-type");
-    expect(acento).toHaveClass("font-body", "italic", "font-bold");
+    expect(acento).toHaveClass("italic", "font-extrabold");
   });
 
   it.each([

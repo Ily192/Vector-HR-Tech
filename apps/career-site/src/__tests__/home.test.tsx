@@ -22,10 +22,17 @@ describe("career-site · Home", () => {
     expect(h1).toHaveTextContent("liberando el talento");
   });
 
-  it("muestra el wordmark Vortex en el hero y el Vector en el footer", () => {
+  it("muestra el wordmark Vortex en la vista previa del producto", () => {
     render(<Home />);
     expect(screen.getByLabelText("VORTEX OPS")).toBeInTheDocument();
-    expect(screen.getByLabelText("VECTOR HR TECH")).toBeInTheDocument();
+  });
+
+  it("cierra con una invitación a la demo que lleva a contacto", () => {
+    render(<Home />);
+    expect(screen.getByRole("link", { name: /Agendar una demo/i })).toHaveAttribute(
+      "href",
+      "/contacto",
+    );
   });
 
   it("marca la propuesta como agentic con el badge de IA", () => {
@@ -62,16 +69,10 @@ describe("career-site · Home", () => {
     render(<Home />);
 
     const velocidad = screen.getByRole("heading", { level: 3, name: "Velocidad" });
-    const card = velocidad.closest("div.rounded-lg");
+    const card = velocidad.closest("[data-pilar]");
     expect(card).not.toBeNull();
     const items = within(card as HTMLElement).getAllByRole("listitem");
     expect(items).toHaveLength(3);
-  });
-
-  it("el footer muestra el año en curso", () => {
-    render(<Home />);
-    const year = new Date().getFullYear().toString();
-    expect(screen.getByText(new RegExp(`${year}\\s+Vector HR Tech`))).toBeInTheDocument();
   });
 
   it("usa un único <h1> — jerarquía correcta para SEO", () => {

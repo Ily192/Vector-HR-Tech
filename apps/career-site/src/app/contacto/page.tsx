@@ -37,23 +37,23 @@ const CANALES = [
 
 export default function ContactoPage() {
   return (
-    <main className="container mx-auto max-w-3xl px-4 py-12">
+    <main className="container mx-auto max-w-3xl px-4 py-12 md:px-6 md:py-16">
       <Link
         href="/"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-8 inline-flex items-center gap-2 rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Volver al inicio
       </Link>
 
       <header className="mb-10">
         <div className="mb-4">
-          <Wordmark brand="vector" size="md" />
+          <Wordmark brand="vector" size="md" tone="light" />
         </div>
         <Badge variant="ai" className="mb-4">
           <Clock className="h-3 w-3" />
           Respuesta en 24 h
         </Badge>
-        <h1 className="mb-4 text-4xl font-black tracking-tighter md:text-5xl">
+        <h1 className="mb-4 text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">
           Hablemos de tu operación
         </h1>
         <p className="max-w-2xl text-lg text-muted-foreground">
@@ -66,13 +66,15 @@ export default function ContactoPage() {
         {CANALES.map((canal) => (
           <Card key={canal.title}>
             <CardHeader>
-              <canal.icon className="mb-2 h-6 w-6 text-vector-orange-500" />
+              <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-flame-50 text-flame-700">
+                <canal.icon className="h-5 w-5" />
+              </span>
               <CardTitle className="text-lg">{canal.title}</CardTitle>
               <CardDescription>{canal.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <a
-                className="text-sm font-semibold text-vector-cian-electric-700 underline-offset-4 hover:underline dark:text-vector-cian-electric-500"
+                className="text-sm font-semibold text-aqua-700 underline-offset-4 hover:underline"
                 href={canal.href}
                 rel="noreferrer noopener"
               >
@@ -94,7 +96,7 @@ export default function ContactoPage() {
         <CardContent>
           <Link
             href="/vacantes"
-            className="text-sm font-semibold text-vector-cian-electric-700 underline-offset-4 hover:underline dark:text-vector-cian-electric-500"
+            className="text-sm font-semibold text-aqua-700 underline-offset-4 hover:underline"
           >
             Ver vacantes abiertas →
           </Link>

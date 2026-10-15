@@ -59,7 +59,7 @@ describe("hrbp · App (cockpit)", () => {
 
     for (const [etapa, count] of etapas) {
       const label = screen.getByText(etapa);
-      const column = label.closest("div.rounded-lg");
+      const column = label.closest("[data-etapa]");
       expect(column, `columna de ${etapa}`).not.toBeNull();
       expect(within(column as HTMLElement).getByText(count)).toBeInTheDocument();
     }
