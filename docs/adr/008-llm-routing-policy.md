@@ -44,7 +44,7 @@ apartó de ella, manda esto:
 | Respaldo de scoring | `gpt-5-mini` vía OpenAI Responses API, con el mismo SKILL.md y esquema. No hay fallback a `gpt-4o-mini` | `fallback_scoring_model`, `_score_con_openai` |
 | Disponibilidad | Circuit breaker por proveedor en Redis; si caen todos, la evaluación se aplaza y luego pasa a revisión manual | `app/clients/circuit_breaker.py`, `app/workers/run_state.py` |
 | Siguiente paso del candidato | Lo decide una regla fija según el score, no el modelo | `app/domain/siguiente_paso.py` |
-| Tope de gasto por run | Desactivado por defecto durante la fase de medición (`ENFORCE_RUN_COST_CAP=false`) | `app/workers/cost_tracker.py` |
+| Tope de gasto por run | Desactivado por defecto durante la fase de medición (`ENFORCE_RUN_COST_CAP=false`) | `app/domain/presupuesto.py` |
 
 No existe `app/providers/`: la abstracción multi-proveedor vive en
 `app/clients/` (un módulo por función: `scoring.py`, `embeddings.py`).

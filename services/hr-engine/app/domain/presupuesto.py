@@ -1,9 +1,12 @@
-"""Cost tracker per-run: mide el gasto y, si se activa, aplica el cost_cap_usd (ADR-005).
+"""Presupuesto de gasto por run: mide lo gastado y, si se activa, aplica el tope (ADR-005).
 
 Desde 2026-10 el tope está APAGADO por defecto (`ENFORCE_RUN_COST_CAP=false`):
 Ilyra quiere medir cuánto cuesta de verdad cada ejecución antes de fijar un
 número. El gasto se sigue sumando y guardando igual; `enforce` solo decide si
-superar el cap corta la ejecución.
+superar el tope corta la ejecución.
+
+Es dominio y no un puerto: es una regla sobre números, sin I/O. Hasta el
+sprint 2 vivía en `app/workers/cost_tracker.py` como `CostTracker`.
 """
 
 from __future__ import annotations
@@ -16,9 +19,9 @@ class CostCapExceededError(RuntimeError):
 
 
 @dataclass(slots=True)
-class CostTracker:
+class CostBudget:
     cap_usd: float
-    #: False = solo medir. El cap se registra pero no corta nada.
+    #: False = solo medir. El tope se registra pero no corta nada.
     enforce: bool = True
     spent_usd: float = 0.0
     breakdown: dict[str, float] = field(default_factory=dict)

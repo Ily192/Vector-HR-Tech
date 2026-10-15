@@ -11,11 +11,11 @@ import pytest
 
 from app.clients.embeddings import EmbeddingResult
 from app.clients.scoring import CandidateFitResponse, ScoringResult
+from app.domain.presupuesto import CostCapExceededError
 from app.repositories import hr as hr_repo
 from app.repositories import runs as runs_repo
 from app.workers import cv_evaluator as cve_mod
 from app.workers import run_state
-from app.workers.cost_tracker import CostCapExceededError
 
 EMPRESA_ID = "00000000-0000-0000-0000-000000000001"
 VACANTE_ID = "00000000-0000-0000-0000-0000000000aa"

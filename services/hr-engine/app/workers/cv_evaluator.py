@@ -32,13 +32,13 @@ from app.clients.errors import is_retryable_llm_error, is_transient_error
 from app.clients.scoring import LLMUnavailableError, score_candidate_fit
 from app.config import settings
 from app.database import db_session
+from app.domain.presupuesto import CostBudget, CostCapExceededError
 from app.monitoring import bind_log_context, clear_log_context, logger
 from app.repositories import hr as hr_repo
 from app.repositories import runs as runs_repo
 from app.security.tenant_context import set_tenant_context
 from app.workers import run_state
 from app.workers.celery_app import celery_app
-from app.workers.cost_tracker import CostCapExceededError, CostTracker
 
 AGENT_SKILL = "cv-evaluator"
 
@@ -104,7 +104,7 @@ async def _ensure_candidato_embedding(
     db: AsyncSession,
     candidato_id: UUID,
     text_to_embed: str,
-    cost_tracker: CostTracker,
+    cost_tracker: CostBudget,
 ) -> None:
     cost_tracker.assert_under_cap()
     emb = await embed_text(text_to_embed)
@@ -193,7 +193,7 @@ async def _run(
     # del except y la fila se quedaba en `pending` para siempre, sin rastro.
     # Por eso el tracker se crea antes: si el claim revienta, el except lo
     # necesita. El cap definitivo lo baja el claim unas líneas más abajo.
-    cost_tracker = CostTracker(cap_usd=cost_cap_usd, enforce=settings.enforce_run_cost_cap)
+    cost_tracker = CostBudget(cap_usd=cost_cap_usd, enforce=settings.enforce_run_cost_cap)
 
     try:
         claim = await run_state.claim_run(
