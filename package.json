@@ -31,10 +31,10 @@
     "@changesets/cli": "^3.0.3",
     "@commitlint/cli": "^19.4.0",
     "@commitlint/config-conventional": "^19.4.0",
-    "@size-limit/file": "^11.2.0",
+    "@size-limit/file": "^14.2.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.2.0",
-    "size-limit": "^11.1.0",
+    "size-limit": "^14.2.0",
     "turbo": "^2.1.0",
     "typescript": "^5.5.0"
   },
