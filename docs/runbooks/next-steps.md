@@ -1,7 +1,11 @@
 # Next steps — qué falta por ejecutar
 
 > Lista viva. Actualizar al cierre de cada sesión.
-> Última actualización: **2026-09-14** (sesión 6).
+> Última actualización: **2026-10-14** (cierre del sprint 1).
+
+## TL;DR cierre del sprint 1 (2026-10-14)
+
+**F0 está cerrada:** 23 merges en main entre el 5 y el 14 de octubre, con la CI en verde sobre `8b23d5a`. El trabajo se lleva en sprints de dos semanas sobre el tablero. El sprint 2 (15-28 oct) tiene como objetivo "`EvaluateCandidate` en capas como plantilla, y career-site fuera de una versión sin soporte"; Next 16 y React 19 ya están en el PR #43. Lo aprendido en el sprint 1 está en `session-log.md`.
 
 ## TL;DR sesión 6 (2026-09-14)
 
@@ -44,37 +48,35 @@ estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
 
 ## Ruta y pendientes (desde la sesión 6)
 
-La lista de trabajo pasa al tablero de Trello **https://trello.com/b/Vxsv1fn7/vortexhr**, donde cada PR es una tarjeta que avanza de columna. Lo llena `scripts/trello_vortex.py` (rama `chore/trello-tablero`), que ya contiene las 57 tarjetas de abajo. Hasta que esté lleno, esta sección es la referencia.
+La lista de trabajo vive en el tablero de Trello **https://trello.com/b/Vxsv1fn7/vortexhr** (lleno desde el 2026-10-01 con `scripts/trello_vortex.py`), donde cada PR es una tarjeta que avanza de columna. Esta sección queda como resumen de la ruta; el estado al día es el del tablero.
 
-### 🚧 Bloqueos para retomar (lo primero de la sesión 7)
+### 🚧 Bloqueos
 
-| # | Bloqueo | Quién | Cómo se resuelve |
+| # | Bloqueo | Quién | Estado |
 |---|---|---|---|
-| 1 | **Credenciales de la API de Trello** | Ilyra | En `var-local.env` hay un `API_TOKEN_TRELLO` que es un *API token de Atlassian* (`ATATT…`, 192 caracteres, de id.atlassian.com). La API de Trello lo rechaza: 401 de las tres formas probadas. Hacen falta `TRELLO_KEY` (32 caracteres hex) y `TRELLO_TOKEN` (`ATTA…`, ~76 caracteres): https://trello.com/apps/admin → Power-Up → API key → enlace *Token* → Permitir. |
-| 2 | **Permiso de PRs en el token de GitHub** | Ilyra | Falta `Pull requests: Read and write`. Sin él, `gh pr create` responde `Resource not accessible by personal access token`. Se añade en la misma página que Contents y Workflows. |
-| 3 | Abrir los PRs de las ramas ya subidas | Claude | `chore/claude-skills`, `chore/trello-tablero` y `docs/sesion-6`, en cuanto exista el permiso del punto 2. |
-
-Con 1 y 2 resueltos: `python scripts/trello_vortex.py poblar`, adjuntar cada PR a su tarjeta y empezar por **[F0·1]**.
+| 1 | Credenciales de la API de Trello | Ilyra | ✅ Resuelto el 2026-10-01: `TRELLO_KEY` y `TRELLO_TOKEN` del Power-Up "Vortex Ops Board" en `var-local.env`. |
+| 2 | **Permiso de PRs en el token de GitHub** | Ilyra | Abierto. Falta `Pull requests: Read and write` (comentar en PRs también da 403). Mientras tanto, los PRs se abren desde la sesión web de Ilyra. Se añade en https://github.com/settings/personal-access-tokens, en la misma página que Contents y Workflows. |
+| 3 | Abrir los PRs de las ramas ya subidas | Claude | ✅ #17, #18 y #19, en main desde el 2026-10-05. |
 
 ### Metodología del tablero
 
-Shape Up (ya declarado en `docs/02_METHODOLOGY.md`) con un flujo Kanban por PR. Columnas: 📌 Cómo usar · 🧊 Aparcado · 🗺️ Ruta · 🎯 Apostado · ⛰️ Descubriendo · 🔨 Construyendo · 👀 PR en revisión · ✅ Hecho. ⛰️ y 🔨 son la *hill chart* de Shape Up: entre las dos, máximo 2 tarjetas; en revisión, máximo 3.
+Scrumban desde el 2026-09-15: flujo Kanban con límites de trabajo en curso y sprints de dos semanas con un objetivo. Columnas: 📌 Cómo usar · 🗃️ Backlog · 🎯 Listo para sprint · 🏃 Sprint N · 🔨 En curso (máx. 2) · 👀 PR en revisión (máx. 3) · 🧪 Verificación · ✅ Hecho · 📜 Histórico. Las reglas, la DoR y la DoD están en las tarjetas de 📌; el cierre de cada sprint se anota en `session-log.md`.
 
 ### La ruta, por prioridad
 
-**F0 · Tapar lo silencioso** — se sale cuando el test de regresión del event loop está en verde y ningún siguiente paso se decide sin política.
+**F0 · Tapar lo silencioso** — se sale cuando el test de regresión del event loop está en verde y ningún siguiente paso se decide sin política. **Cerrada en el sprint 1.**
 
 | Tarjeta | Qué |
 |---|---|
-| F0·0 | Skills del taller y de ingeniería como Claude skills — **hecho, PR por abrir** |
-| F0·0b | Tablero de Trello como código — **rama subida, falta ejecutarlo contra el tablero** |
-| F0·1 | Motor sin pool (`NullPool`) para los workers de Celery + test de regresión |
-| F0·2 | Un run nunca se queda en `pending` si falla antes del claim |
-| F0·3 | El prompt sale del SKILL.md, con calibración y regla anti-sesgo |
-| F0·4 | Política determinista del siguiente paso según el score |
-| F0·5 | Contrato de `CvEvaluation` igual en Zod y Pydantic (hoy `candidate_id` ≠ `candidato_id`) |
-| F0·6 | ~~Deriva docs↔código~~ Corregida el 2026-10-14 (ADR-008 con actualización, README, 03, 05, 12, docstring de `run_state`). Quedan las dependencias sin uso en hrbp (`@supabase/supabase-js`, `@tanstack/react-router`, `zustand`, `@vortex/types`): se mantienen porque las usará el kanban con Realtime |
-| F0·7 | El runbook de la base de pruebas usa un puerto propio y falla si no arranca |
+| F0·0 | Skills del taller y de ingeniería como Claude skills — ✅ #17 |
+| F0·0b | Tablero de Trello como código — ✅ #18, tablero lleno el 2026-10-01 |
+| F0·1 | Motor sin pool (`NullPool`) para los workers de Celery + test de regresión — ✅ #20 |
+| F0·2 | Un run nunca se queda en `pending` si falla antes del claim — ✅ #21 |
+| F0·3 | El prompt sale del SKILL.md, con calibración y regla anti-sesgo — ✅ #23 |
+| F0·4 | Política determinista del siguiente paso según el score — ✅ #40 |
+| F0·5 | Contrato de `CvEvaluation` igual en Zod y Pydantic — ✅ #41 |
+| F0·6 | Deriva docs↔código — ✅ #42 (ADR-008 con actualización, README, 03, 05, 12, docstring de `run_state`). Quedan las dependencias sin uso en hrbp (`@supabase/supabase-js`, `@tanstack/react-router`, `zustand`, `@vortex/types`): se mantienen porque las usará el kanban con Realtime |
+| F0·7 | El runbook de la base de pruebas usa un puerto propio y falla si no arranca — ✅ #42 |
 
 **F1 · Clean Architecture** — el caso de uso `EvaluateCandidate` en capas Domain / Application / Infrastructure, como plantilla para el resto: dominio (F1·1), caso de uso (F1·2), adaptadores y worker fino (F1·3), sourcer (F1·4) y SKILL.md de producto alineados con el estándar Agent Skills (F1·5).
 
