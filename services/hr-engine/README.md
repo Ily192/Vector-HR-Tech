@@ -100,6 +100,8 @@ app/
 ├── config.py          Settings tipadas + hardening de producción
 ├── database.py        Async session factory + tenant_guard
 ├── monitoring.py      structlog + Sentry + OTel + hash_pii
+├── domain/            Entidades, políticas y puertos de la evaluación (solo stdlib)
+├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate)
 ├── api/               Endpoints HTTP (+ rate_limit.py, common.py)
 ├── clients/           LLMs (openai, google-genai) + errors.py (retryables)
 ├── repositories/      SQL raw: hr.py (dominio) + runs.py (estado de runs)
@@ -109,6 +111,8 @@ app/
 
 ## Convenciones
 
+- Regla de dependencias: `domain/` solo importa la stdlib, y `application/` la
+  stdlib y el dominio. Lo comprueba `tests/unit/test_regla_de_dependencias.py`.
 - Cada worker = `async def _run(...)` testeable + `@celery_app.task` wrapper con
   `bind=True` y `self.retry()` solo para errores transitorios.
 - Settings tipadas. Nada de `os.getenv` suelto.
