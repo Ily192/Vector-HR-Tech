@@ -1,21 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import "./globals.css";
 
-// Marca v2: una sola familia (Figtree, con cursivas para la firma) y mono para etiquetas.
-const figtree = Figtree({
-  subsets: ["latin", "latin-ext"],
+// Marca v2: Figtree (con cursivas para la firma) y JetBrains Mono para etiquetas.
+// Autoalojadas (OFL, licencias junto a los ficheros): el build no depende de
+// descargar Google Fonts, que fallaba de forma intermitente en la CI.
+const figtree = localFont({
+  src: [
+    { path: "./fonts/figtree-normal.woff2", weight: "300 900", style: "normal" },
+    { path: "./fonts/figtree-italic.woff2", weight: "300 900", style: "italic" },
+  ],
   variable: "--font-figtree",
-  style: ["normal", "italic"],
   display: "swap",
 });
 
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
+const jetbrains = localFont({
+  src: "./fonts/jetbrains-mono-normal.woff2",
+  weight: "500 600",
   variable: "--font-jetbrains",
-  weight: ["500", "600"],
   display: "swap",
 });
 
