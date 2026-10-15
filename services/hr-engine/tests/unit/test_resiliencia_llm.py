@@ -30,6 +30,7 @@ from app.clients import scoring
 from app.clients.por_loop import por_event_loop
 from app.clients.scoring import CandidateFitResponse, LLMUnavailableError, ScoringResult
 from app.config import settings
+from app.infrastructure import evaluacion as evaluacion_mod
 from app.workers import cv_evaluator as cve_mod
 from app.workers import run_state
 from tests.unit.test_cv_evaluator import patched  # noqa: F401 - fixture
@@ -259,7 +260,7 @@ async def test_sin_llm_el_run_no_se_marca_fallido(
     async def sin_llm(_c: dict[str, Any], _icp: str) -> ScoringResult:
         raise LLMUnavailableError("ningún proveedor")
 
-    monkeypatch.setattr(cve_mod, "score_candidate_fit", sin_llm)
+    monkeypatch.setattr(evaluacion_mod, "score_candidate_fit", sin_llm)
     with pytest.raises(LLMUnavailableError) as info:
         await cve_mod._run(
             run_id="00000000-0000-0000-0000-000000000020",
@@ -354,7 +355,7 @@ async def test_si_caen_los_embeddings_el_cv_se_puntua_igual(
         raise _caida()
 
     monkeypatch.setattr(hr_repo, "get_vacante", vacante_sin_embedding)
-    monkeypatch.setattr(cve_mod, "embed_text", embeddings_caidos)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", embeddings_caidos)
     result = await cve_mod._run(
         run_id="00000000-0000-0000-0000-000000000020",
         empresa_id="00000000-0000-0000-0000-000000000001",

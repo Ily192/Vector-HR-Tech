@@ -102,19 +102,23 @@ app/
 ├── monitoring.py      structlog + Sentry + OTel + hash_pii
 ├── domain/            Entidades, políticas y puertos de la evaluación (solo stdlib)
 ├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate)
+├── infrastructure/    Adaptadores de los puertos (SQL, OpenAI, Gemini) y cola por nombre
 ├── api/               Endpoints HTTP (+ rate_limit.py, common.py)
 ├── clients/           LLMs (openai, google-genai) + errors.py (retryables)
 ├── repositories/      SQL raw: hr.py (dominio) + runs.py (estado de runs)
 ├── security/          run_token.py (ADR-005) + tenant_context.py (RLS)
-└── workers/           Celery tasks — patrón _run + @task wrapper
+└── workers/           Tareas de Celery finas + ejecucion.py (ciclo de vida del run)
 ```
 
 ## Convenciones
 
 - Regla de dependencias: `domain/` solo importa la stdlib, y `application/` la
   stdlib y el dominio. Lo comprueba `tests/unit/test_regla_de_dependencias.py`.
-- Cada worker = `async def _run(...)` testeable + `@celery_app.task` wrapper con
-  `bind=True` y `self.retry()` solo para errores transitorios.
+- Cada worker traduce la petición y llama a su caso de uso dentro de
+  `ejecucion.ejecutar_run` (lock, presupuesto, estado final); la tarea de Celery
+  delega en `ejecucion.correr_tarea` (aplaza sin LLM, reintenta solo lo transitorio).
+- La API encola por nombre (`app/infrastructure/cola.py`) y no importa los workers.
+- El SQL vive en `app/repositories`; lo comprueba `tests/unit/test_infraestructura.py`.
 - Settings tipadas. Nada de `os.getenv` suelto.
 - Logs JSON estructurados con `structlog`. **Sin PII**: nombres y salidas crudas
   de LLM se hashean con `monitoring.hash_pii`.

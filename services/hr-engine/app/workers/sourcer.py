@@ -25,14 +25,13 @@ en la sesión Postgres antes de cualquier query del dominio.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, TypedDict
 from uuid import UUID
 
 from celery import Task
 
 from app.clients.embeddings import EmbeddingResult, embed_text
-from app.clients.errors import is_retryable_llm_error, is_transient_error
+from app.clients.errors import is_retryable_llm_error
 from app.clients.scoring import LLMUnavailableError, score_candidate_fit
 from app.config import settings
 from app.database import db_session
@@ -43,6 +42,7 @@ from app.repositories import runs as runs_repo
 from app.security.tenant_context import set_tenant_context
 from app.workers import run_state
 from app.workers.celery_app import celery_app
+from app.workers.ejecucion import correr_tarea
 
 AGENT_SKILL = "sourcer"
 
@@ -364,53 +364,19 @@ def run(
     cost_cap_usd: float = 0.05,
     aplazamientos: int = 0,
 ) -> SourcerResult:
-    """Celery wrapper. Llama `_run` async y devuelve dict JSON-serializable."""
-    try:
-        return asyncio.run(
-            _run(
-                run_id=run_id,
-                empresa_id=empresa_id,
-                vacante_id=vacante_id,
-                icp_text=icp_text,
-                target=target,
-                sources=sources,
-                cost_cap_usd=cost_cap_usd,
-            ),
-        )
-    except LLMUnavailableError as exc:
-        espera = run_state.siguiente_aplazamiento(aplazamientos)
-        if espera is None:
-            logger.error("sourcer.run.manual_review", run_id=run_id, aplazamientos=aplazamientos)
-            asyncio.run(
-                run_state.send_to_manual_review(run_id=run_id, exc=exc, cost_usd=exc.cost_usd)
-            )
-            raise
-        asyncio.run(
-            run_state.defer_run(
-                run_id=run_id, exc=exc, cost_usd=exc.cost_usd, aplazamiento=aplazamientos + 1
-            )
-        )
-        logger.warning(
-            "sourcer.run.aplazada",
+    """Celery wrapper: aplazamientos y reintentos en `ejecucion.correr_tarea`."""
+    return correr_tarea(
+        self,
+        run_id=run_id,
+        aplazamientos=aplazamientos,
+        evento="sourcer",
+        trabajo=lambda: _run(
             run_id=run_id,
-            en_segundos=espera,
-            aplazamiento=aplazamientos + 1,
-        )
-        raise self.retry(
-            exc=exc,
-            countdown=espera,
-            kwargs={**(self.request.kwargs or {}), "aplazamientos": aplazamientos + 1},
-            # Los aplazamientos no gastan el cupo de reintentos transitorios.
-            max_retries=(self.request.retries or 0) + 1,
-        ) from exc
-    except Exception as exc:
-        retries = self.request.retries or 0
-        if is_transient_error(exc) and retries < (self.max_retries or 0):
-            logger.warning(
-                "sourcer.run.retrying",
-                run_id=run_id,
-                attempt=retries + 1,
-                error_type=type(exc).__name__,
-            )
-            raise self.retry(exc=exc, countdown=run_state.retry_countdown(retries)) from exc
-        raise
+            empresa_id=empresa_id,
+            vacante_id=vacante_id,
+            icp_text=icp_text,
+            target=target,
+            sources=sources,
+            cost_cap_usd=cost_cap_usd,
+        ),
+    )

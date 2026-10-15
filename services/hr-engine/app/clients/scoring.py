@@ -42,6 +42,7 @@ from app.clients.circuit_breaker import CircuitBreaker
 from app.clients.errors import is_retryable_llm_error, log_retry_attempt
 from app.clients.por_loop import por_event_loop
 from app.config import settings
+from app.domain.puertos import ProveedorNoDisponibleError
 from app.domain.siguiente_paso import siguiente_paso
 from app.monitoring import hash_pii, logger
 from app.skills import load_skill
@@ -281,7 +282,7 @@ async def _score_con_openai(candidate: dict[str, Any], icp_text: str) -> Scoring
     )
 
 
-class LLMUnavailableError(RuntimeError):
+class LLMUnavailableError(ProveedorNoDisponibleError):
     """Ningún proveedor pudo puntuar por un problema de DISPONIBILIDAD.
 
     Caída, timeouts, 429/5xx o circuito abierto. Es la señal para que el worker

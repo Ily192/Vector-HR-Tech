@@ -92,6 +92,62 @@ async def update_vacante_embedding(
     )
 
 
+@dataclass(slots=True)
+class CandidatoRow:
+    id: UUID
+    full_name: str
+    headline: str | None
+    summary: str | None
+    tiene_embedding: bool
+
+
+async def get_candidato(db: AsyncSession, candidato_id: UUID | str) -> CandidatoRow | None:
+    """El candidato bajo RLS: uno de otro tenant se comporta como inexistente."""
+    row = (
+        (
+            await db.execute(
+                text(
+                    """
+                select full_name, headline, summary, cv_embedding::text as emb
+                  from candidatos
+                 where id = :id
+                """,
+                ),
+                {"id": str(candidato_id)},
+            )
+        )
+        .mappings()
+        .first()
+    )
+    if not row:
+        return None
+    return CandidatoRow(
+        id=UUID(str(candidato_id)),
+        full_name=row["full_name"],
+        headline=row["headline"],
+        summary=row["summary"],
+        tiene_embedding=bool(row["emb"]),
+    )
+
+
+async def update_candidato_embedding(
+    db: AsyncSession,
+    candidato_id: UUID | str,
+    embedding: list[float],
+) -> None:
+    await db.execute(
+        text(
+            """
+            update candidatos
+               set cv_embedding = cast(:emb as vector),
+                   updated_at = now()
+             where id = :id
+            """,
+        ),
+        {"id": str(candidato_id), "emb": _vec_literal(embedding)},
+    )
+
+
 async def match_candidates(
     db: AsyncSession,
     icp_embedding: list[float],

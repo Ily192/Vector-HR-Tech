@@ -1,346 +1,65 @@
-"""CV evaluator worker — evalúa un candidato↔vacante específico.
+"""Tarea de cv-evaluator: traduce la petición y llama al caso de uso EvaluateCandidate.
 
-Diferencia vs sourcer:
-- Sourcer: batch sobre N candidatos top-K vector.
-- CV evaluator: single (candidato_id, vacante_id) — usado cuando un candidato
-  aplica desde career-site (paso 1 del pipeline post-apply).
-
-Pipeline:
-  1. Toma el lock del run (`runs`) — idempotencia ante redelivery.
-  2. Lee candidato + vacante (ambas tienen que estar bajo el mismo tenant).
-  3. Si la vacante no tiene embedding o el candidato no tiene cv_embedding,
-     los genera.
-  4. Score con Gemini Flash (mismo schema que sourcer).
-  5. Upsert application status='evaluated' + persiste costo/estado en `runs`.
-
-Output strict schema: `app.clients.scoring.CandidateFitResponse` que mirror-ea
-`packages/types/src/hr.ts::CvEvaluationSchema` (contrato: `app.clients.scoring.CvEvaluation`).
+La lógica está en `app/application`, el ciclo de vida del run en `ejecucion` y
+los adaptadores en `app/infrastructure`.
 """
 
 from __future__ import annotations
 
-import asyncio
-from typing import Any, TypedDict
+from typing import Any
 from uuid import UUID
 
 from celery import Task
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.clients.embeddings import embed_text
-from app.clients.errors import is_retryable_llm_error, is_transient_error
-from app.clients.scoring import LLMUnavailableError, score_candidate_fit
-from app.config import settings
+from app.application.evaluate_candidate import EvaluateCandidate
 from app.database import db_session
-from app.domain.presupuesto import CostBudget, CostCapExceededError
-from app.monitoring import bind_log_context, clear_log_context, logger
-from app.repositories import hr as hr_repo
-from app.repositories import runs as runs_repo
+from app.domain.presupuesto import CostBudget
+from app.infrastructure.evaluacion import LlmScoring, OpenAIEmbeddings, SqlCandidateRepository
+from app.monitoring import logger
 from app.security.tenant_context import set_tenant_context
-from app.workers import run_state
 from app.workers.celery_app import celery_app
+from app.workers.ejecucion import correr_tarea, ejecutar_run
 
 AGENT_SKILL = "cv-evaluator"
 
 
-class CvEvaluatorResult(TypedDict):
-    run_id: str
-    empresa_id: str
-    vacante_id: str
-    candidato_id: str
-    application_id: str
-    score: float
-    rationale: str
-    gaps: list[str]
-    strengths: list[str]
-    recommended_next_step: str
-    cost_usd: float
-    cost_breakdown: dict[str, float]
-    deduplicated: bool
-
-
-class _Candidato(TypedDict):
-    full_name: str
-    headline: str | None
-    summary: str | None
-    emb: str | None
-
-
-async def _get_candidato(db: AsyncSession, candidato_id: UUID) -> _Candidato:
-    """Lee el candidato bajo RLS. Falla si no existe o es de otro tenant."""
-    row = (
-        (
-            await db.execute(
-                text(
-                    """
-                select full_name, headline, summary, cv_embedding::text as emb
-                  from candidatos
-                 where id = :id
-                """,
-                ),
-                {"id": str(candidato_id)},
-            )
-        )
-        .mappings()
-        .first()
-    )
-    if not row:
-        raise ValueError(f"candidato {candidato_id} no existe (o RLS lo oculta)")
-    return {
-        "full_name": row["full_name"],
-        "headline": row["headline"],
-        "summary": row["summary"],
-        "emb": row["emb"],
-    }
-
-
-def _texto_para_embedding(candidato: _Candidato) -> str:
-    """Sin el nombre: el vector decide a quién encuentra el sourcer, y el nombre no
-    dice nada del perfil (sí puede arrastrar sesgo de género u origen)."""
-    return "\n".join(p for p in (candidato["headline"], candidato["summary"]) if p)
-
-
-async def _ensure_candidato_embedding(
-    db: AsyncSession,
-    candidato_id: UUID,
-    text_to_embed: str,
-    cost_tracker: CostBudget,
-) -> None:
-    cost_tracker.assert_under_cap()
-    emb = await embed_text(text_to_embed)
-    cost_tracker.add(emb.cost_usd, "embedding_candidato")
-    await db.execute(
-        text(
-            """
-            update candidatos
-               set cv_embedding = cast(:emb as vector),
-                   updated_at = now()
-             where id = :id
-            """,
-        ),
-        {
-            "id": str(candidato_id),
-            "emb": "[" + ",".join(f"{v:.7f}" for v in emb.vector) + "]",
-        },
-    )
-
-
-def _embedding_aplazable(exc: BaseException) -> bool:
-    """Caída del proveedor de embeddings (o sin configurar): se puede seguir sin él.
-
-    El tope de gasto también es RuntimeError, pero ese sí tiene que cortar.
-    """
-    if isinstance(exc, CostCapExceededError):
-        return False
-    return is_retryable_llm_error(exc) or isinstance(exc, RuntimeError)
-
-
-def _deduplicated_result(
-    *,
-    run_id: str,
-    empresa_id: UUID,
-    vacante_id: UUID,
-    candidato_id: UUID,
-    run: runs_repo.RunRow,
-) -> CvEvaluatorResult:
-    """Resultado slim de un run ya ejecutado.
-
-    El rationale/gaps NO se re-materializan: viven en `applications` y no
-    queremos duplicar texto sobre una persona en el result backend.
-    """
-    payload = run.payload or {}
-    return {
-        "run_id": run_id,
-        "empresa_id": str(empresa_id),
-        "vacante_id": str(vacante_id),
-        "candidato_id": str(candidato_id),
-        "application_id": str(payload.get("application_id", "")),
-        "score": float(payload.get("score", 0.0)),
-        "rationale": "",
-        "gaps": [],
-        "strengths": [],
-        "recommended_next_step": str(payload.get("recommended_next_step", "")),
-        "cost_usd": round(run.cost_usd, 6),
-        "cost_breakdown": {},
-        "deduplicated": True,
-    }
-
-
 async def _run(
-    *,
-    run_id: str,
-    empresa_id: str,
-    vacante_id: str,
-    candidato_id: str,
-    cost_cap_usd: float = 0.05,
-) -> CvEvaluatorResult:
-    bind_log_context(run_id=run_id, empresa_id=empresa_id, agent_skill=AGENT_SKILL)
-    log = logger.bind(
+    *, run_id: str, empresa_id: str, vacante_id: str, candidato_id: str, cost_cap_usd: float = 0.05
+) -> dict[str, Any]:
+    async def evaluar(presupuesto: CostBudget) -> tuple[dict[str, Any], dict[str, Any]]:
+        async with db_session() as db:
+            await set_tenant_context(db, UUID(empresa_id), role="HR")
+            caso = EvaluateCandidate(SqlCandidateRepository(db), OpenAIEmbeddings(), LlmScoring())
+            r = await caso.ejecutar(
+                vacante_id=UUID(vacante_id),
+                candidato_id=UUID(candidato_id),
+                presupuesto=presupuesto,
+            )
+            await db.commit()
+        for cual in r.embeddings_aplazados:
+            logger.warning("cv_evaluator.embedding_aplazado", cual=cual)
+        fit = {"score": r.fit.score, "recommended_next_step": r.fit.siguiente_paso}
+        guardado = {**fit, "application_id": str(r.application_id)}
+        texto = {
+            "rationale": r.fit.rationale,
+            "gaps": list(r.fit.gaps),
+            "strengths": list(r.fit.strengths),
+        }
+        return {**guardado, **texto}, {**guardado, "model": r.model}
+
+    return await ejecutar_run(
         run_id=run_id,
         empresa_id=empresa_id,
         agent_skill=AGENT_SKILL,
-        vacante_id=vacante_id,
-        candidato_id=candidato_id,
+        cost_cap_usd=cost_cap_usd,
+        ids={"vacante_id": vacante_id, "candidato_id": candidato_id},
+        trabajo=evaluar,
+        del_payload=("score", "application_id", "recommended_next_step"),
+        sin_guardar={"rationale": "", "gaps": [], "strengths": []},
     )
-    log.info("cv_evaluator.run.started")
-
-    empresa_uuid = UUID(empresa_id)
-    vacante_uuid = UUID(vacante_id)
-    candidato_uuid = UUID(candidato_id)
-
-    # El claim va DENTRO del try. Si falla —Postgres caído, timeout— el run
-    # tiene que quedar `failed`: estando fuera, la excepción pasaba por encima
-    # del except y la fila se quedaba en `pending` para siempre, sin rastro.
-    # Por eso el tracker se crea antes: si el claim revienta, el except lo
-    # necesita. El cap definitivo lo baja el claim unas líneas más abajo.
-    cost_tracker = CostBudget(cap_usd=cost_cap_usd, enforce=settings.enforce_run_cost_cap)
-
-    try:
-        claim = await run_state.claim_run(
-            run_id=run_id,
-            empresa_id=empresa_uuid,
-            agent_skill=AGENT_SKILL,
-            cost_cap_usd=cost_cap_usd,
-        )
-        if claim.outcome is not runs_repo.ClaimOutcome.CLAIMED:
-            log.warning("cv_evaluator.run.skipped", outcome=str(claim.outcome))
-            return _deduplicated_result(
-                run_id=run_id,
-                empresa_id=empresa_uuid,
-                vacante_id=vacante_uuid,
-                candidato_id=candidato_uuid,
-                run=claim.run,
-            )
-
-        # El cap efectivo nunca supera el que quedó grabado al encolar.
-        cost_tracker.cap_usd = min(cost_cap_usd, claim.run.cost_cap_usd or cost_cap_usd)
-
-        async with db_session() as db:
-            await set_tenant_context(db, empresa_uuid, role="HR")
-
-            vacante = await hr_repo.get_vacante(db, vacante_uuid)
-            if vacante is None:
-                raise ValueError(f"vacante {vacante_uuid} no existe (o RLS la oculta)")
-            icp_source = vacante.icp_text or vacante.jd
-
-            # Los embeddings sirven para la búsqueda vectorial del sourcer, no para
-            # esta puntuación. Si su proveedor está caído, se puntúa igual y el
-            # embedding se completa en otra ejecución.
-            try:
-                if not vacante.icp_embedding:
-                    cost_tracker.assert_under_cap()
-                    emb = await embed_text(icp_source)
-                    cost_tracker.add(emb.cost_usd, "embedding_icp")
-                    await hr_repo.update_vacante_embedding(db, vacante_uuid, emb.vector)
-            except Exception as exc:
-                if not _embedding_aplazable(exc):
-                    raise
-                log.warning(
-                    "cv_evaluator.embedding_aplazado", cual="icp", error_type=type(exc).__name__
-                )
-
-            candidato = await _get_candidato(db, candidato_uuid)
-            if not candidato["emb"]:
-                try:
-                    await _ensure_candidato_embedding(
-                        db, candidato_uuid, _texto_para_embedding(candidato), cost_tracker
-                    )
-                except Exception as exc:
-                    if not _embedding_aplazable(exc):
-                        raise
-                    log.warning(
-                        "cv_evaluator.embedding_aplazado",
-                        cual="candidato",
-                        error_type=type(exc).__name__,
-                    )
-
-            cost_tracker.assert_under_cap()
-            scoring = await score_candidate_fit(
-                {
-                    # Solo para el hash de los logs: el prompt va sin nombre.
-                    "full_name": candidato["full_name"],
-                    "headline": candidato["headline"],
-                    "summary": candidato["summary"],
-                },
-                icp_source,
-            )
-            cost_tracker.add(scoring.cost_usd, "scoring")
-
-            application_id = await hr_repo.upsert_application(
-                db,
-                empresa_id=empresa_uuid,
-                vacante_id=vacante_uuid,
-                candidato_id=candidato_uuid,
-                fit_score=scoring.response.score,
-                fit_rationale=scoring.response.rationale,
-                fit_gaps=list(scoring.response.gaps),
-            )
-            await db.commit()
-
-        await run_state.finish_run(
-            run_id=run_id,
-            status=runs_repo.STATUS_COMPLETED,
-            cost_usd=cost_tracker.spent_usd,
-            payload={
-                "score": scoring.response.score,
-                "application_id": str(application_id),
-                "recommended_next_step": scoring.response.recommended_next_step,
-                # Para medir el coste real: qué paso gastó cuánto y con qué modelo.
-                "cost_breakdown": {k: round(v, 6) for k, v in cost_tracker.breakdown.items()},
-                "model": scoring.model,
-            },
-        )
-    except Exception as exc:
-        if isinstance(exc, LLMUnavailableError):
-            # No es un fallo: la tarea de Celery la aplaza (ver `run`).
-            exc.cost_usd = cost_tracker.spent_usd
-            raise
-        log.error(
-            "cv_evaluator.run.failed",
-            error_type=type(exc).__name__,
-            cost_usd=round(cost_tracker.spent_usd, 6),
-        )
-        await run_state.record_failure(
-            run_id=run_id,
-            exc=exc,
-            cost_usd=cost_tracker.spent_usd,
-        )
-        raise
-    finally:
-        clear_log_context()
-
-    result: CvEvaluatorResult = {
-        "run_id": run_id,
-        "empresa_id": str(empresa_uuid),
-        "vacante_id": str(vacante_uuid),
-        "candidato_id": str(candidato_uuid),
-        "application_id": str(application_id),
-        "score": scoring.response.score,
-        "rationale": scoring.response.rationale,
-        "gaps": list(scoring.response.gaps),
-        "strengths": list(scoring.response.strengths),
-        "recommended_next_step": scoring.response.recommended_next_step,
-        "cost_usd": round(cost_tracker.spent_usd, 6),
-        "cost_breakdown": {k: round(v, 6) for k, v in cost_tracker.breakdown.items()},
-        "deduplicated": False,
-    }
-    log.info(
-        "cv_evaluator.run.completed",
-        score=result["score"],
-        cost_usd=result["cost_usd"],
-    )
-    return result
 
 
-@celery_app.task(
-    bind=True,
-    name="cv_evaluator.run",
-    acks_late=True,
-    max_retries=3,
-    retry_backoff=True,
-    retry_backoff_max=60,
-    retry_jitter=True,
-)
+@celery_app.task(bind=True, name="cv_evaluator.run", acks_late=True, max_retries=3)
 def run(
     self: Task[Any, Any],
     run_id: str,
@@ -349,57 +68,12 @@ def run(
     candidato_id: str,
     cost_cap_usd: float = 0.05,
     aplazamientos: int = 0,
-) -> CvEvaluatorResult:
-    try:
-        return asyncio.run(
-            _run(
-                run_id=run_id,
-                empresa_id=empresa_id,
-                vacante_id=vacante_id,
-                candidato_id=candidato_id,
-                cost_cap_usd=cost_cap_usd,
-            ),
-        )
-    except LLMUnavailableError as exc:
-        espera = run_state.siguiente_aplazamiento(aplazamientos)
-        if espera is None:
-            logger.error(
-                "cv_evaluator.run.manual_review", run_id=run_id, aplazamientos=aplazamientos
-            )
-            asyncio.run(
-                run_state.send_to_manual_review(run_id=run_id, exc=exc, cost_usd=exc.cost_usd)
-            )
-            raise
-        asyncio.run(
-            run_state.defer_run(
-                run_id=run_id, exc=exc, cost_usd=exc.cost_usd, aplazamiento=aplazamientos + 1
-            )
-        )
-        logger.warning(
-            "cv_evaluator.run.aplazada",
-            run_id=run_id,
-            en_segundos=espera,
-            aplazamiento=aplazamientos + 1,
-        )
-        raise self.retry(
-            exc=exc,
-            countdown=espera,
-            kwargs={**(self.request.kwargs or {}), "aplazamientos": aplazamientos + 1},
-            # Los aplazamientos no gastan el cupo de reintentos transitorios.
-            max_retries=(self.request.retries or 0) + 1,
-        ) from exc
-    except Exception as exc:
-        retries = self.request.retries or 0
-        if is_transient_error(exc) and retries < (self.max_retries or 0):
-            logger.warning(
-                "cv_evaluator.run.retrying",
-                run_id=run_id,
-                attempt=retries + 1,
-                error_type=type(exc).__name__,
-            )
-            raise self.retry(exc=exc, countdown=run_state.retry_countdown(retries)) from exc
-        raise
-
-
-# Re-export para que callers puedan capturar el cap exceeded.
-__all__ = ["CostCapExceededError", "CvEvaluatorResult", "_run", "run"]
+) -> dict[str, Any]:
+    ids = {"run_id": run_id, "empresa_id": empresa_id, "vacante_id": vacante_id}
+    return correr_tarea(
+        self,
+        run_id=run_id,
+        aplazamientos=aplazamientos,
+        evento="cv_evaluator",
+        trabajo=lambda: _run(**ids, candidato_id=candidato_id, cost_cap_usd=cost_cap_usd),
+    )
