@@ -30,16 +30,11 @@ beforeEach(() => {
 });
 
 /**
- * Renderiza silenciando el `console.error` que React emite al propagar el throw
- * de `notFound()` — el error esperado se afirma con `toThrow`, no con el log.
+ * El detalle es un Server Component async (`params` llega como Promise), así que
+ * se invoca como función y se renderiza el JSX que resuelve.
  */
-function renderEsperandoError(ui: React.ReactElement) {
-  const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-  try {
-    return render(ui);
-  } finally {
-    spy.mockRestore();
-  }
+function detalle(slug: string) {
+  return VacanteDetail({ params: Promise.resolve({ slug }) });
 }
 
 describe("career-site · /vacantes", () => {
@@ -94,8 +89,8 @@ describe("career-site · /vacantes", () => {
 });
 
 describe("career-site · /vacantes/[slug]", () => {
-  it("renderiza el detalle de una vacante existente", () => {
-    render(<VacanteDetail params={{ slug: "senior-software-engineer" }} />);
+  it("renderiza el detalle de una vacante existente", async () => {
+    render(await detalle("senior-software-engineer"));
 
     expect(
       screen.getByRole("heading", { level: 1, name: "Senior Software Engineer" }),
@@ -105,41 +100,36 @@ describe("career-site · /vacantes/[slug]", () => {
     expect(notFound).not.toHaveBeenCalled();
   });
 
-  it("muestra badges de estado, modalidad y ubicación", () => {
-    render(<VacanteDetail params={{ slug: "hr-business-partner" }} />);
+  it("muestra badges de estado, modalidad y ubicación", async () => {
+    render(await detalle("hr-business-partner"));
 
     expect(screen.getByText("Open")).toBeInTheDocument();
     expect(screen.getByText("hybrid")).toBeInTheDocument();
     expect(screen.getByText("CDMX · Híbrido")).toBeInTheDocument();
   });
 
-  it("ofrece el CTA de aplicar deshabilitado (upload llega en cycle 1)", () => {
-    render(<VacanteDetail params={{ slug: "senior-software-engineer" }} />);
+  it("ofrece el CTA de aplicar deshabilitado (upload llega en cycle 1)", async () => {
+    render(await detalle("senior-software-engineer"));
 
     const cta = screen.getByRole("button", { name: /Subir CV/i });
     expect(cta).toBeDisabled();
   });
 
-  it("incluye el link de vuelta al listado", () => {
-    render(<VacanteDetail params={{ slug: "senior-software-engineer" }} />);
+  it("incluye el link de vuelta al listado", async () => {
+    render(await detalle("senior-software-engineer"));
     expect(screen.getByRole("link", { name: /Volver a vacantes/i })).toHaveAttribute(
       "href",
       "/vacantes",
     );
   });
 
-  it("llama a notFound() cuando el slug no existe", () => {
-    // React reintenta el render al capturar el throw: solo verificamos que se invocó.
-    expect(() => renderEsperandoError(<VacanteDetail params={{ slug: "no-existe" }} />)).toThrow(
-      "NEXT_NOT_FOUND",
-    );
-    expect(notFound).toHaveBeenCalled();
+  it("llama a notFound() cuando el slug no existe", async () => {
+    await expect(detalle("no-existe")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFound).toHaveBeenCalledTimes(1);
   });
 
-  it("no confunde slugs parecidos — el lookup es case-sensitive", () => {
-    expect(() =>
-      renderEsperandoError(<VacanteDetail params={{ slug: "Senior-Software-Engineer" }} />),
-    ).toThrow("NEXT_NOT_FOUND");
-    expect(notFound).toHaveBeenCalled();
+  it("no confunde slugs parecidos — el lookup es case-sensitive", async () => {
+    await expect(detalle("Senior-Software-Engineer")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFound).toHaveBeenCalledTimes(1);
   });
 });

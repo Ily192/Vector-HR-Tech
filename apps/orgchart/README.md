@@ -1,7 +1,7 @@
 # orgchart
 
 > **Cycle 2 — Org Chart Vortex (mirror Paperclip).**
-> Next.js 14 — visualización del organigrama vivo del tenant.
+> Next.js 16 — visualización del organigrama vivo del tenant.
 
 Scaffold pendiente. Bloqueado por:
 
@@ -10,7 +10,7 @@ Scaffold pendiente. Bloqueado por:
 
 Stack planeado:
 
-- Next.js 14 App Router + TypeScript estricto
+- Next.js 16 App Router + TypeScript estricto
 - `@vortex/ui` + `@vortex/design-tokens`
 - `react-flow` para el árbol interactivo (zoom + drag + expand/collapse)
 - Server Components + suspense streaming desde Paperclip

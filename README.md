@@ -6,7 +6,7 @@ Operations Engine agentic, multi-tenant, self-hostable. Un solo control plane or
 
 ```
 ┌─ Capa 4 ────────────────────────────────────────────┐
-│ Frontends (Next.js 14 + Vite + shadcn/ui)           │
+│ Frontends (Next.js 16 + Vite + shadcn/ui)           │
 │  career-site · candidate · hrbp · orgchart          │
 ├─ Capa 3 ────────────────────────────────────────────┤
 │ Execution engines (FastAPI + Celery + Redis)        │
@@ -36,10 +36,10 @@ pnpm e2e          # Playwright E2E
 ```
 vortex-ops/
 ├── apps/                    Frontends (cada uno deploy independiente)
-│   ├── career-site/         Next.js 14 — landing pública
+│   ├── career-site/         Next.js 16 — landing pública
 │   ├── candidate/           Vite + React — portal candidato + tests psicométricos
 │   ├── hrbp/                Vite + React — cockpit HRBP
-│   └── orgchart/            Next.js 14 — Org Chart Vortex (mirror Paperclip)
+│   └── orgchart/            Next.js 16 — Org Chart Vortex (mirror Paperclip)
 │
 ├── services/                Backends
 │   ├── control-plane/       Paperclip (Node.js) — governance
@@ -87,7 +87,7 @@ Empieza por **[docs/00_README.md](docs/00_README.md)**. El plan completo está e
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Next.js 14 (App Router) · Vite · React 18 · TypeScript 5.5 · Tailwind 3 · shadcn/ui · TanStack Query · Zustand |
+| Frontend | Next.js 16 (App Router) · Vite · React 19 · TypeScript 5.5 · Tailwind 3 · shadcn/ui · TanStack Query · Zustand |
 | Backend | FastAPI · SQLAlchemy 2 async · Alembic · Celery · Redis |
 | Control plane | Paperclip (Node.js + Postgres) |
 | Agent plane | OpenClaw (TS ESM strict) + gstack SKILL.md |

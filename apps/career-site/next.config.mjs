@@ -2,9 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@vortex/ui", "@vortex/design-tokens", "@vortex/types"],
-  experimental: {
-    typedRoutes: true,
-  },
+  typedRoutes: true,
   async headers() {
     return [
       {

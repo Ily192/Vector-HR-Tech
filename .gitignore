@@ -73,6 +73,10 @@ docker-compose.override.yml
 
 # TS build artifacts
 *.tsbuildinfo
+# Lo genera Next (dev, build o typegen) y su contenido cambia entre versiones: la
+# documentación de Next 16 pide no versionarlo. Va aquí y no en el .gitignore de
+# cada app porque Biome 1.x solo lee el de la raíz.
+next-env.d.ts
 
 # Material fuente de skills: PDFs, zips y rars del taller "skills claude crear
 # SaaS", sin licencia de redistribucion, y las notas originales de las skills

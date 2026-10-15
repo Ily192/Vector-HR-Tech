@@ -59,7 +59,7 @@ Layout (mobile-first, container `max-w-2xl`):
 
 1. Validación client-side con Zod (`@vortex/types::ApplicationCreateSchema` — agregar).
 2. Upload del CV a Supabase Storage bucket `cvs/` con path `{empresa_id}/{candidato_id}/{file.ext}`. RLS: anon puede insert solo en su propio path.
-3. Post: crear `candidatos` + `applications` row (status='applied'). Server Action de Next 14.
+3. Post: crear `candidatos` + `applications` row (status='applied'). Server Action de Next 16.
 4. Tras submit → redirect a `/aplicar/success?token={magic_link}` con magic link al portal candidato.
 5. Trigger Celery task `cv_evaluator.run` async para scoring.
 6. Email transaccional vía Supabase Auth magic link.

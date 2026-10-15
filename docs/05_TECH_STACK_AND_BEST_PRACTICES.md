@@ -8,8 +8,8 @@
 
 | Capa | Elección | Versión | Por qué |
 |---|---|---|---|
-| Framework SSR | **Next.js 14** (App Router, RSC) | 14.2+ | Estándar de facto. RSC reduce JS al cliente. SEO nativo. Vercel deploy. |
-| Framework SPA | **Vite + React 18** | 5.x / 18.x | Para portales internos no necesitamos SSR. HMR < 100 ms. |
+| Framework SSR | **Next.js 16** (App Router, RSC) | 16.4.1+ | Estándar de facto. RSC reduce JS al cliente. SEO nativo. Vercel deploy. |
+| Framework SPA | **Vite + React 19** | 5.x / 19.x | Para portales internos no necesitamos SSR. HMR < 100 ms. |
 | Lenguaje | **TypeScript 5.5+** strict | 5.5+ | `strict: true`, `noUncheckedIndexedAccess: true` |
 | Styling | **Tailwind CSS 3.4** + design tokens | 3.4+ | Estándar industrial. Tokens en preset compartido. |
 | UI primitives | **Radix UI** via **shadcn/ui** | latest | Headless + a11y. Linear y Vercel lo usan. |

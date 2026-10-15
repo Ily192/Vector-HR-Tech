@@ -1,11 +1,11 @@
 # candidate
 
 > **Cycle 1 · Semana 2 (entregable 2.2).**
-> Vite + React 18 SPA — portal del candidato (dashboard + status + test psicométrico embebido).
+> Vite + React 19 SPA — portal del candidato (dashboard + status + test psicométrico embebido).
 
 Scaffold pendiente. Stack alineado a `apps/hrbp/`:
 
-- Vite 5 + React 18 + TypeScript estricto
+- Vite 5 + React 19 + TypeScript estricto
 - Tailwind con `@vortex/design-tokens` preset
 - `@vortex/ui` para componentes
 - TanStack Query + Zustand

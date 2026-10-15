@@ -78,7 +78,7 @@ Shape Up (ya declarado en `docs/02_METHODOLOGY.md`) con un flujo Kanban por PR. 
 
 **F1 · Clean Architecture** — el caso de uso `EvaluateCandidate` en capas Domain / Application / Infrastructure, como plantilla para el resto: dominio (F1·1), caso de uso (F1·2), adaptadores y worker fino (F1·3), sourcer (F1·4) y SKILL.md de producto alineados con el estándar Agent Skills (F1·5).
 
-**F2 · Next 16 + Supabase + 2.1** — Next 14 → 16 con los codemods oficiales (rompe el `params` síncrono de `vacantes/[slug]`), Supabase Cloud con 0001..0006, secrets, hr-engine en Fly.io, formulario de aplicación, rate limit y captcha, y el E2E del DoD del Cycle 1.
+**F2 · Next 16 + Supabase + 2.1** — ~~Next 14 → 16~~ hecho en el sprint 2 (Next 16.4.1 y React 19; sin codemods, porque el único punto de ruptura era el `params` síncrono de `vacantes/[slug]`). Falta: Supabase Cloud con 0001..0006, secrets, hr-engine en Fly.io, formulario de aplicación, rate limit y captcha, y el E2E del DoD del Cycle 1.
 
 **F3 · Validación con Siete** — plan de validación con criterios de negocio, mapa de onboarding, backups y staging, consentimiento y retención (LGPD), 5 a 10 entrevistas de descubrimiento y la demo en Loom.
 
