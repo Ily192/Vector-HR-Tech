@@ -1,5 +1,7 @@
 # 04 · Brand & Design System
 
+> **Marca v2 (2026-10-15):** color, tipografía y escala de riesgo actualizados en [`brand/branding-v2.md`](brand/branding-v2.md). Donde este documento contradiga a esa guía, manda la v2.
+
 ## 1. Marca
 
 **Vector HR Tech** opera **Vortex Ops**.

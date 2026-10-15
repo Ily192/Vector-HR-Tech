@@ -8,7 +8,8 @@
 |---|---|
 | `tokens.json` | Tokens crudos (Style Dictionary format) — fuente de verdad. |
 | `tailwind.preset.js` | Preset Tailwind para todas las apps. |
-| `theme.css` | Variables CSS para shadcn/ui (light + dark). |
+| `theme.css` | Variables CSS para shadcn/ui (light + dark), marca v1. |
+| `brand-v2.css` | Marca v2 (color, tipografía y escala de riesgo) como variables CSS. Ver `docs/brand/branding-v2.md`. |
 | `dist/tokens.{js,d.ts,css}` | Generados por `pnpm build` (Style Dictionary). |
 
 ## Uso en una app
