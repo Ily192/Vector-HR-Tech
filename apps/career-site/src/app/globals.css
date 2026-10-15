@@ -6,18 +6,21 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Variables locales del career-site (light por default) */
+/* next/font autoaloja Figtree y JetBrains Mono bajo su propio nombre de familia:
+   aquí se conectan con las variables que usa el preset de la marca. */
 :root {
-  --font-display-fallback: "Inter", system-ui, sans-serif;
-  --font-body-fallback: "Lato", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: var(--font-figtree), "Figtree", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
   }
   body {
-    font-family: var(--font-body), var(--font-body-fallback);
+    @apply font-sans text-base leading-normal;
+    text-rendering: optimizeLegibility;
   }
   h1,
   h2,
@@ -25,7 +28,7 @@
   h4,
   h5,
   h6 {
-    font-family: var(--font-display), var(--font-display-fallback);
-    @apply font-black tracking-tighter;
+    @apply font-display font-extrabold tracking-tight;
+    text-wrap: balance;
   }
 }

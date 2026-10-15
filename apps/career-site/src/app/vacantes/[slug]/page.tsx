@@ -32,21 +32,21 @@ export default async function VacanteDetail({
   if (!v) notFound();
 
   return (
-    <main className="container mx-auto max-w-3xl px-4 py-12">
+    <main className="container mx-auto max-w-3xl px-4 py-12 md:px-6 md:py-16">
       <Link
         href="/vacantes"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-8 inline-flex items-center gap-2 rounded-full text-sm font-semibold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> Volver a vacantes
       </Link>
 
       <header className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Badge variant="ai">Open</Badge>
           <Badge variant="outline">{v.modality}</Badge>
           <Badge variant="outline">{v.location}</Badge>
         </div>
-        <h1 className="text-4xl font-black tracking-tighter">{v.title}</h1>
+        <h1 className="text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">{v.title}</h1>
       </header>
 
       <Card className="mb-6">
@@ -54,11 +54,11 @@ export default async function VacanteDetail({
           <CardTitle className="text-lg">Sobre el rol</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="leading-relaxed text-muted-foreground">{v.jd}</p>
+          <p className="text-[15.5px] leading-relaxed text-mist-700">{v.jd}</p>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-ink-100 bg-[linear-gradient(180deg,theme(colors.ink.50),#fff_70%)]">
         <CardHeader>
           <CardTitle className="text-lg">Aplicar</CardTitle>
         </CardHeader>

@@ -22,17 +22,18 @@ describe("Button", () => {
     expect(screen.getByRole("button")).toHaveAttribute("type", "submit");
   });
 
-  it("usa la variante y el tamaño por defecto (naranja Vortex, h-10)", () => {
+  it("usa la variante y el tamaño por defecto (flame, h-11)", () => {
     render(<Button>CTA</Button>);
     const button = screen.getByRole("button");
-    expect(button).toHaveClass("bg-vector-orange-500");
-    expect(button).toHaveClass("h-10");
+    expect(button).toHaveClass("bg-flame-500");
+    expect(button).toHaveClass("h-11");
   });
 
   it.each([
-    ["default", "bg-vector-orange-500"],
-    ["secondary", "border-vector-cian-electric-500"],
-    ["ghost", "hover:bg-vector-cian-dark-500/5"],
+    ["default", "bg-flame-500"],
+    ["ink", "bg-ink-900"],
+    ["secondary", "border-mist-200"],
+    ["ghost", "hover:bg-mist-100"],
     ["destructive", "bg-danger-500"],
     ["link", "underline-offset-4"],
   ] as const)("la variante %s aplica su clase distintiva", (variant, expectedClass) => {
@@ -42,7 +43,7 @@ describe("Button", () => {
 
   it.each([
     ["sm", "h-9"],
-    ["default", "h-10"],
+    ["default", "h-11"],
     ["lg", "h-12"],
     ["icon", "w-10"],
   ] as const)("el tamaño %s aplica su clase de altura", (size, expectedClass) => {
@@ -62,7 +63,7 @@ describe("Button", () => {
       expect(link.tagName).toBe("A");
       expect(link).toHaveAttribute("href", "/vacantes");
       expect(link).toHaveClass("h-12");
-      expect(link).toHaveClass("border-vector-cian-electric-500");
+      expect(link).toHaveClass("border-mist-200");
       // No debe existir ningún <button> envolviendo al link.
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
@@ -83,8 +84,8 @@ describe("Button", () => {
     expect(button).toHaveClass("h-20");
     expect(button).toHaveClass("bg-black");
     // tailwind-merge elimina las clases en conflicto.
-    expect(button).not.toHaveClass("h-10");
-    expect(button).not.toHaveClass("bg-vector-orange-500");
+    expect(button).not.toHaveClass("h-11");
+    expect(button).not.toHaveClass("bg-flame-500");
   });
 
   it("dispara onClick y lo bloquea cuando está disabled", async () => {
@@ -126,7 +127,7 @@ describe("buttonVariants", () => {
 
   it("devuelve los defaults cuando no recibe argumentos", () => {
     const classes = buttonVariants();
-    expect(classes).toContain("bg-vector-orange-500");
-    expect(classes).toContain("h-10");
+    expect(classes).toContain("bg-flame-500");
+    expect(classes).toContain("h-11");
   });
 });

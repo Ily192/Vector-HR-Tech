@@ -7,8 +7,7 @@
 
 @layer base {
   body {
-    font-family: "Lato", "Helvetica Neue", Arial, sans-serif;
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
   }
   h1,
   h2,
@@ -16,7 +15,6 @@
   h4,
   h5,
   h6 {
-    font-family: "Inter", system-ui, sans-serif;
-    @apply font-black tracking-tighter;
+    @apply font-display font-extrabold tracking-tight;
   }
 }

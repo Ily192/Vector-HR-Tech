@@ -12,9 +12,9 @@ const tokens = require("./tokens.json");
 
 const flatColor = (group) =>
   Object.fromEntries(
-    Object.entries(group).map(([k, v]) =>
-      typeof v.value === "string" ? [k, v.value] : [k, flatColor(v)],
-    ),
+    Object.entries(group)
+      .filter(([k]) => !k.startsWith("$"))
+      .map(([k, v]) => (typeof v.value === "string" ? [k, v.value] : [k, flatColor(v)])),
   );
 
 module.exports = {
@@ -33,6 +33,13 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Marca v2 (docs/brand/branding-v2.md)
+        ink: flatColor(tokens.color.ink),
+        aqua: flatColor(tokens.color.aqua),
+        flame: flatColor(tokens.color.flame),
+        mist: flatColor(tokens.color.mist),
+        risk: flatColor(tokens.color.risk),
+        // Marca v1, en desuso
         vector: flatColor(tokens.color.vector),
         success: flatColor(tokens.color.semantic.success),
         warning: flatColor(tokens.color.semantic.warning),
@@ -71,11 +78,13 @@ module.exports = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      // Marca v2: Figtree y JetBrains Mono vía variables CSS (next/font las sobrescribe
+      // con su familia autoalojada; theme.css da el valor por defecto).
       fontFamily: {
-        display: tokens.font.family.display.value.split(",").map((s) => s.trim()),
-        sans: tokens.font.family.body.value.split(",").map((s) => s.trim()),
-        body: tokens.font.family.body.value.split(",").map((s) => s.trim()),
-        mono: tokens.font.family.mono.value.split(",").map((s) => s.trim()),
+        display: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        body: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       fontSize: Object.fromEntries(Object.entries(tokens.font.size).map(([k, v]) => [k, v.value])),
       fontWeight: Object.fromEntries(
@@ -93,7 +102,17 @@ module.exports = {
         // shadcn/ui uses --radius
         DEFAULT: "var(--radius)",
       },
-      boxShadow: Object.fromEntries(Object.entries(tokens.shadow).map(([k, v]) => [k, v.value])),
+      boxShadow: {
+        ...Object.fromEntries(Object.entries(tokens.shadow).map(([k, v]) => [k, v.value])),
+        // Sombras de la marca v2: suaves y teñidas de tinta.
+        soft: "0 1px 2px rgb(24 24 84 / 0.06), 0 1px 1px rgb(24 24 84 / 0.04)",
+        lift: "0 10px 30px -12px rgb(24 24 84 / 0.18), 0 2px 6px rgb(24 24 84 / 0.05)",
+        float: "0 40px 80px -30px rgb(12 12 54 / 0.45), 0 12px 30px -12px rgb(12 12 54 / 0.25)",
+        cta: "0 6px 18px -8px rgb(254 120 2 / 0.7)",
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(90deg, #FE7802, #FFC252 48%, #3EECEB)",
+      },
       transitionDuration: Object.fromEntries(
         Object.entries(tokens.motion.duration).map(([k, v]) => [k, v.value]),
       ),
@@ -115,8 +134,8 @@ module.exports = {
           "100%": { backgroundPosition: "200% 0" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(0, 255, 255, 0.4)" },
-          "50%": { boxShadow: "0 0 24px 8px rgba(0, 255, 255, 0.15)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(62, 236, 235, 0.4)" },
+          "50%": { boxShadow: "0 0 24px 8px rgba(62, 236, 235, 0.15)" },
         },
       },
       animation: {

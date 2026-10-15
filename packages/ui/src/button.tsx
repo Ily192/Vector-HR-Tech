@@ -4,27 +4,25 @@ import * as React from "react";
 import { cn } from "./utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold ring-offset-background transition-all duration-fast ease-out-quint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border-[1.5px] border-transparent font-bold transition-[transform,background-color,border-color,box-shadow] duration-fast ease-out-quint active:translate-y-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-55",
   {
     variants: {
       variant: {
-        // Primary CTA: Vortex orange — energía, rebeldía, jovialidad
-        default:
-          "bg-vector-orange-500 text-vector-cian-dark-500 hover:bg-vector-orange-400 hover:shadow-glow-orange active:bg-vector-orange-600",
-        // Secondary: outline cian electric — tech accent
+        // CTA: flame con texto en tinta (6,1:1). Uno por pantalla.
+        default: "bg-flame-500 text-ink-900 shadow-cta hover:bg-flame-400 active:bg-flame-600",
+        // Primario sobrio: tinta. En oscuro se invierte.
+        ink: "bg-ink-900 text-white hover:bg-ink-800 dark:bg-ink-50 dark:text-ink-900 dark:hover:bg-white",
+        // Secundario: superficie con borde, como los "fantasma" de la demo.
         secondary:
-          "border border-vector-cian-electric-500 bg-transparent text-vector-cian-electric-700 hover:bg-vector-cian-electric-500/10 dark:text-vector-cian-electric-500",
-        // Ghost: transparent
-        ghost: "hover:bg-vector-cian-dark-500/5 dark:hover:bg-vector-cian-electric-500/10",
-        // Destructive
+          "border-mist-200 bg-card text-foreground hover:border-ink-300 hover:bg-ink-50 dark:border-white/20 dark:bg-transparent dark:hover:border-white/50 dark:hover:bg-white/10",
+        ghost: "text-foreground hover:bg-mist-100 dark:hover:bg-white/10",
         destructive: "bg-danger-500 text-white hover:bg-danger-700",
-        // Link
-        link: "text-vector-orange-500 underline-offset-4 hover:underline",
+        link: "rounded-md px-0 text-aqua-700 underline-offset-4 hover:underline dark:text-aqua-300",
       },
       size: {
-        sm: "h-9 px-3 text-xs",
-        default: "h-10 px-4 py-2",
-        lg: "h-12 px-8 text-base",
+        sm: "h-9 px-4 text-sm",
+        default: "h-11 px-5 text-[15px]",
+        lg: "h-12 px-7 text-base",
         icon: "h-10 w-10",
       },
     },

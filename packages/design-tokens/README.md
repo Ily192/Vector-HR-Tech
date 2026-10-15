@@ -29,29 +29,14 @@ export default {
 import "@vortex/design-tokens/theme.css";
 ```
 
-## Paleta
+## Paleta (marca v2)
 
-| Token | Hex |
-|---|---|
-| `vector-cian-dark-500` | `#1E1B4B` |
-| `vector-cian-electric-500` | `#00FFFF` |
-| `vector-orange-500` | `#FF7F00` |
-| `vector-white` | `#FFFFFF` |
+| Clase Tailwind | Hex | Uso |
+|---|---|---|
+| `ink-900` | `#181854` | Texto, superficies oscuras, botón `ink` |
+| `flame-500` | `#FE7802` | CTA (texto en `ink-900`) |
+| `aqua-300` / `aqua-700` | `#3EECEB` / `#066263` | Acento sobre tinta / enlaces sobre claro |
+| `mist-50` · `mist-200` · `mist-600` | `#F7F8FC` · `#DBDDE8` · `#686B78` | Fondo · bordes · texto secundario |
+| `risk-{nulo,bajo,medio,alto,muy-alto}` | ver guía | Semáforos (relleno + `.text`) |
 
-Cada color tiene escala 50-900. Detalle en `tokens.json` y `docs/04_BRAND_AND_DESIGN_SYSTEM.md`.
-
-## Tipografía
-
-- **Display:** Proxima Nova (Black/Bold) — fallback: Inter, system-ui
-- **Body:** Lato (Bold Italic / Regular) — fallback: Helvetica Neue, Arial
-- **Mono:** JetBrains Mono
-
-> Nota: Proxima Nova requiere licencia. Comprar antes de producción o sustituir por Inter.
-
-## Build
-
-```bash
-pnpm --filter @vortex/design-tokens build
-```
-
-Genera `dist/` con outputs CSS/TS/JS para consumo en cualquier app.
+Utilidades: `bg-brand-gradient`, `shadow-soft|lift|float|cta`, `.eyebrow` y `.brand-underline` (en `theme.css`). Tipografía: Figtree vía `--font-sans` y JetBrains Mono vía `--font-mono`. La paleta `vector-*` (v1) sigue en `tokens.json` pero está en desuso. Guía completa: `docs/brand/branding-v2.md`.

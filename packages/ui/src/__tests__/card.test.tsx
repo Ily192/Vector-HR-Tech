@@ -43,10 +43,10 @@ describe("Card", () => {
   it("Card lleva las clases de superficie (borde, radio, sombra)", () => {
     render(<Card data-testid="card">contenido</Card>);
     const card = screen.getByTestId("card");
-    expect(card).toHaveClass("rounded-lg");
+    expect(card).toHaveClass("rounded-[20px]");
     expect(card).toHaveClass("border");
     expect(card).toHaveClass("bg-card");
-    expect(card).toHaveClass("shadow-sm");
+    expect(card).toHaveClass("shadow-soft");
   });
 
   it("CardFooter distribuye su contenido en fila", () => {
@@ -61,18 +61,18 @@ describe("Card", () => {
     render(
       <Card data-testid="card" className="mb-6">
         <CardHeader data-testid="header" className="pb-3">
-          <CardTitle className="text-xl">Título</CardTitle>
+          <CardTitle className="text-2xl">Título</CardTitle>
         </CardHeader>
       </Card>,
     );
-    expect(screen.getByTestId("card")).toHaveClass("mb-6", "rounded-lg");
+    expect(screen.getByTestId("card")).toHaveClass("mb-6", "rounded-[20px]");
     const header = screen.getByTestId("header");
     expect(header).toHaveClass("pb-3", "flex");
     // p-6 sobrevive porque pb-3 solo pisa el padding-bottom.
     expect(header).toHaveClass("p-6");
     const title = screen.getByRole("heading", { level: 3 });
-    expect(title).toHaveClass("text-xl");
-    expect(title).not.toHaveClass("text-2xl");
+    expect(title).toHaveClass("text-2xl");
+    expect(title).not.toHaveClass("text-xl");
   });
 
   it("propaga refs en Card y CardTitle", () => {

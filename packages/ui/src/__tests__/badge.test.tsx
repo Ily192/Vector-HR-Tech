@@ -11,15 +11,16 @@ describe("Badge", () => {
     expect(badge.tagName).toBe("SPAN");
   });
 
-  it("usa la variante default (cian dark) cuando no se especifica", () => {
+  it("usa la variante default (tinta) cuando no se especifica", () => {
     render(<Badge data-testid="badge">Default</Badge>);
-    expect(screen.getByTestId("badge")).toHaveClass("bg-vector-cian-dark-500");
+    expect(screen.getByTestId("badge")).toHaveClass("bg-ink-900");
   });
 
   it.each([
-    ["default", "bg-vector-cian-dark-500"],
-    ["ai", "bg-vector-cian-electric-500"],
-    ["manual", "bg-neutral-100"],
+    ["default", "bg-ink-900"],
+    ["ai", "bg-aqua-50"],
+    ["brand", "bg-flame-50"],
+    ["manual", "bg-mist-100"],
     ["success", "bg-success-50"],
     ["warning", "bg-warning-50"],
     ["danger", "bg-danger-50"],
@@ -49,7 +50,7 @@ describe("Badge", () => {
     );
     const badge = screen.getByTestId("badge");
     expect(badge).toHaveClass("bg-black");
-    expect(badge).not.toHaveClass("bg-vector-cian-electric-500");
+    expect(badge).not.toHaveClass("bg-aqua-50");
   });
 
   it("propaga atributos HTML arbitrarios", () => {
@@ -84,6 +85,6 @@ describe("Badge", () => {
 describe("badgeVariants", () => {
   it("expone las clases sin necesidad de renderizar el componente", () => {
     expect(badgeVariants({ variant: "success" })).toContain("bg-success-50");
-    expect(badgeVariants()).toContain("bg-vector-cian-dark-500");
+    expect(badgeVariants()).toContain("bg-ink-900");
   });
 });
