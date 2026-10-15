@@ -15,10 +15,10 @@ from pydantic import Field
 from app.api.common import RunAcceptedResponse, RunRequestBase, register_run
 from app.api.rate_limit import RUN_RATE_LIMIT, limiter
 from app.database import DbSession, TenantId
+from app.infrastructure.cola import sourcer_task
 from app.monitoring import logger
 from app.repositories import runs as runs_repo
 from app.security.run_token import RunTokenClaims, require_sourcer_token
-from app.workers.sourcer import run as sourcer_task
 
 router = APIRouter()
 

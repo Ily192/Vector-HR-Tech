@@ -14,10 +14,10 @@ from fastapi import APIRouter, Depends, Request, Response
 from app.api.common import RunAcceptedResponse, RunRequestBase, register_run
 from app.api.rate_limit import RUN_RATE_LIMIT, limiter
 from app.database import DbSession, TenantId
+from app.infrastructure.cola import cv_evaluator_task
 from app.monitoring import logger
 from app.repositories import runs as runs_repo
 from app.security.run_token import RunTokenClaims, require_cv_evaluator_token
-from app.workers.cv_evaluator import run as cv_evaluator_task
 
 router = APIRouter()
 

@@ -11,7 +11,9 @@ import pytest
 
 from app.clients.embeddings import EmbeddingResult
 from app.clients.scoring import CandidateFitResponse, ScoringResult
+from app.config import settings
 from app.domain.presupuesto import CostCapExceededError
+from app.infrastructure import evaluacion as evaluacion_mod
 from app.repositories import hr as hr_repo
 from app.repositories import runs as runs_repo
 from app.workers import cv_evaluator as cve_mod
@@ -135,8 +137,8 @@ def patched(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
 
     monkeypatch.setattr(cve_mod, "db_session", _fake_db_session)
     monkeypatch.setattr(cve_mod, "set_tenant_context", fake_set_tenant_context)
-    monkeypatch.setattr(cve_mod, "embed_text", fake_embed)
-    monkeypatch.setattr(cve_mod, "score_candidate_fit", fake_score)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", fake_embed)
+    monkeypatch.setattr(evaluacion_mod, "score_candidate_fit", fake_score)
     monkeypatch.setattr(hr_repo, "get_vacante", fake_get_vacante)
     monkeypatch.setattr(hr_repo, "update_vacante_embedding", fake_update_vacante_embedding)
     monkeypatch.setattr(hr_repo, "upsert_application", fake_upsert)
@@ -185,8 +187,8 @@ async def test_completed_run_is_not_reexecuted(
     async def explode(*_a: object, **_kw: object) -> None:
         raise AssertionError("no debería llamarse a ningún LLM")
 
-    monkeypatch.setattr(cve_mod, "embed_text", explode)
-    monkeypatch.setattr(cve_mod, "score_candidate_fit", explode)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", explode)
+    monkeypatch.setattr(evaluacion_mod, "score_candidate_fit", explode)
     _patch_run_state(
         monkeypatch,
         patched,
@@ -221,7 +223,7 @@ async def test_cost_cap_exceeded_marks_run_failed(
 ) -> None:
     """CostCapExceededError ahora deja `status='failed'` + `error_message`."""
 
-    monkeypatch.setattr(cve_mod.settings, "enforce_run_cost_cap", True)
+    monkeypatch.setattr(settings, "enforce_run_cost_cap", True)
 
     async def vacante_sin_embedding(_db: object, _id: object) -> hr_repo.VacanteRow:
         return hr_repo.VacanteRow(
@@ -243,7 +245,7 @@ async def test_cost_cap_exceeded_marks_run_failed(
         )
 
     monkeypatch.setattr(hr_repo, "get_vacante", vacante_sin_embedding)
-    monkeypatch.setattr(cve_mod, "embed_text", pricey_embed)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", pricey_embed)
 
     with pytest.raises(CostCapExceededError):
         await cve_mod._run(
@@ -338,7 +340,7 @@ async def test_sin_tope_el_gasto_se_mide_pero_no_corta(
     Un embedding de 1 USD con cap de 0.05 antes cortaba la ejecución; ahora
     termina y deja el gasto real desglosado en el run para poder medirlo.
     """
-    assert cve_mod.settings.enforce_run_cost_cap is False
+    assert settings.enforce_run_cost_cap is False
 
     async def vacante_sin_embedding(_db: object, _id: object) -> hr_repo.VacanteRow:
         return hr_repo.VacanteRow(
@@ -360,7 +362,7 @@ async def test_sin_tope_el_gasto_se_mide_pero_no_corta(
         )
 
     monkeypatch.setattr(hr_repo, "get_vacante", vacante_sin_embedding)
-    monkeypatch.setattr(cve_mod, "embed_text", pricey_embed)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", pricey_embed)
 
     result = await cve_mod._run(
         run_id=RUN_ID,
@@ -426,8 +428,8 @@ async def test_evaluacion_a_ciegas_sin_nombre_en_el_texto_del_modelo(
         )
 
     monkeypatch.setattr(cve_mod, "db_session", db_sin_embedding)
-    monkeypatch.setattr(cve_mod, "embed_text", embed_que_graba)
-    monkeypatch.setattr(cve_mod, "score_candidate_fit", score_que_graba)
+    monkeypatch.setattr(evaluacion_mod, "embed_text", embed_que_graba)
+    monkeypatch.setattr(evaluacion_mod, "score_candidate_fit", score_que_graba)
 
     await cve_mod._run(
         run_id=RUN_ID,
