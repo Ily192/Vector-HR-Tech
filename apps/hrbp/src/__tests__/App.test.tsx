@@ -32,7 +32,7 @@ describe("hrbp · App (cockpit)", () => {
       ["Vacantes activas", "8", "+2 esta semana"],
       ["Candidatos en pipeline", "142", "+34 hoy"],
       ["Runs de agentes (24h)", "327", "98% éxito"],
-      ["Costo IA hoy (USD)", "$1.42", "12% del cap"],
+      ["Costo IA hoy (USD)", "$1.42", "12% del tope mensual"],
     ];
 
     for (const [label, value, delta] of kpis) {

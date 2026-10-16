@@ -1,25 +1,10 @@
+import { ETIQUETA_ESTADO_VACANTE, ETIQUETA_MODALIDAD } from "@vortex/types/etiquetas";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-const VACANTES_MOCK: Record<
-  string,
-  { title: string; jd: string; modality: string; location: string }
-> = {
-  "senior-software-engineer": {
-    title: "Senior Software Engineer",
-    modality: "remote",
-    location: "Remote · LATAM",
-    jd: "Liderarás el diseño e implementación de servicios Python/FastAPI multi-tenant. Trabajarás en pair con Claude/Cursor en código que se despliega varias veces al día. Stack: FastAPI, SQLAlchemy 2 async, Celery, Supabase, OpenTelemetry.",
-  },
-  "hr-business-partner": {
-    title: "HR Business Partner",
-    modality: "hybrid",
-    location: "CDMX · Híbrido",
-    jd: "Serás el puente entre los líderes técnicos y el ciclo de talento. Operarás Vortex Ops como producto interno, definiendo ICPs, validando candidatos shortlisted por el agente Sourcer y cerrando contratación.",
-  },
-};
+import { obtenerVacante } from "../../../lib/vacantes";
 
 // Desde Next 15 `params` llega como Promise, y Next 16 retiró el acceso síncrono.
 export default async function VacanteDetail({
@@ -28,7 +13,7 @@ export default async function VacanteDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const v = VACANTES_MOCK[slug];
+  const v = await obtenerVacante(slug);
   if (!v) notFound();
 
   return (
@@ -42,9 +27,9 @@ export default async function VacanteDetail({
 
       <header className="mb-8">
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <Badge variant="ai">Open</Badge>
-          <Badge variant="outline">{v.modality}</Badge>
-          <Badge variant="outline">{v.location}</Badge>
+          <Badge variant="ai">{ETIQUETA_ESTADO_VACANTE.open}</Badge>
+          <Badge variant="outline">{ETIQUETA_MODALIDAD[v.modality]}</Badge>
+          {v.location && <Badge variant="outline">{v.location}</Badge>}
         </div>
         <h1 className="text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">{v.title}</h1>
       </header>
@@ -64,8 +49,8 @@ export default async function VacanteDetail({
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">
-            Sube tu CV. El agente Sourcer-Bot lo evaluará y, si hay match, te enviará un test
-            psicométrico breve. Sin formularios eternos.
+            Sube tu CV. Lo evaluamos sin usar tu nombre y te avisamos por correo del siguiente paso:
+            una entrevista, un test psicométrico breve o una respuesta clara si no encaja.
           </p>
           <Button size="lg" disabled>
             <Upload className="h-4 w-4" /> Subir CV (próximamente)

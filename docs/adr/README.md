@@ -16,11 +16,13 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [008](008-llm-routing-policy.md) | Routing LLMs (Gemini default, gpt-4o reasoning, Claude code) | Accepted |
 | [009](009-vendoring-paperclip-openclaw.md) | Vendoring (no submodule) de paperclip-master y openclaw-main | Accepted |
 | [010](010-vercel-frontends.md) | Frontends en Vercel + subdominio default hasta revenue | Accepted |
-| [011](011-typography-inter.md) | Tipografía Inter (display) + Lato (body), free | Accepted |
+| [011](011-typography-inter.md) | Tipografía Inter (display) + Lato (body), free | Superseded por la marca v2 ([branding-v2](../brand/branding-v2.md): Figtree + JetBrains Mono) |
 | [012](012-backend-hosting-deferred.md) | Backends en Fly.io (Cycle 2+); Coolify diferido | Accepted |
 | [013](013-brand-placeholder.md) | Wordmark + Lucide como brand visual; logo diferido | Accepted |
 | [014](014-test-psicometrico-iframe.md) | Test psicométrico vía iframe del HTML legacy (v0) | Accepted |
 | [015](015-tenant-identity-in-app-metadata.md) | Identidad de tenant en `app_metadata`; privilegio de plataforma fuera de `profiles` | Accepted |
+| [016](016-logica-de-negocio-fuera-de-la-ui.md) | La lógica de negocio vive en el backend; la UI solo la presenta | Accepted |
+| [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Proposed |
 
 ## Cómo escribir una ADR
 

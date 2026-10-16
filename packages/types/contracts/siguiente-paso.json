@@ -1,0 +1,17 @@
+{
+  "$comment": "Política del siguiente paso según el score de cv-evaluator. La dueña es services/hr-engine/app/domain/siguiente_paso.py; packages/types/src/reglas.ts la espeja para mostrarla en la UI. Los dos lados se prueban contra este fichero: si cambias un umbral aquí, cambia los dos.",
+  "umbrales": {
+    "psicometrico": 4.0,
+    "entrevista": 7.0
+  },
+  "casos": [
+    { "score": 0, "paso": "rechazar" },
+    { "score": 3.9, "paso": "rechazar" },
+    { "score": 4, "paso": "psicometrico" },
+    { "score": 6.5, "paso": "psicometrico" },
+    { "score": 6.99, "paso": "psicometrico" },
+    { "score": 7, "paso": "entrevista" },
+    { "score": 8.5, "paso": "entrevista" },
+    { "score": 10, "paso": "entrevista" }
+  ]
+}

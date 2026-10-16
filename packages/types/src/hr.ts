@@ -3,6 +3,19 @@ import { z } from "zod";
 export const VacanteStatusSchema = z.enum(["draft", "open", "paused", "closed", "filled"]);
 export type VacanteStatus = z.infer<typeof VacanteStatusSchema>;
 
+export const SenioritySchema = z.enum([
+  "junior",
+  "semi-senior",
+  "senior",
+  "lead",
+  "manager",
+  "director",
+]);
+export type Seniority = z.infer<typeof SenioritySchema>;
+
+export const ModalitySchema = z.enum(["onsite", "hybrid", "remote"]);
+export type Modality = z.infer<typeof ModalitySchema>;
+
 export const VacanteSchema = z.object({
   id: z.string().uuid(),
   empresa_id: z.string().uuid(),
@@ -10,8 +23,8 @@ export const VacanteSchema = z.object({
   title: z.string().min(1),
   jd: z.string().min(1),
   icp_text: z.string().nullable(),
-  seniority: z.enum(["junior", "semi-senior", "senior", "lead", "manager", "director"]).nullable(),
-  modality: z.enum(["onsite", "hybrid", "remote"]),
+  seniority: SenioritySchema.nullable(),
+  modality: ModalitySchema,
   location: z.string().nullable(),
   salary_min: z.number().nonnegative().nullable(),
   salary_max: z.number().nonnegative().nullable(),
@@ -21,6 +34,23 @@ export const VacanteSchema = z.object({
   closed_at: z.string().datetime().nullable(),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;
+
+/**
+ * Fila de la vista `vacantes_publicas` (infra/supabase/migrations/0004), lo único
+ * que el career-site puede leer. La vista ya filtra `status = 'open'` y no expone
+ * `empresa_id`: el career-site no decide qué vacante es pública.
+ */
+export const VacantePublicaSchema = VacanteSchema.pick({
+  id: true,
+  slug: true,
+  title: true,
+  jd: true,
+  seniority: true,
+  modality: true,
+  location: true,
+  created_at: true,
+});
+export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 
 export const CandidatoSchema = z.object({
   id: z.string().uuid(),
@@ -77,4 +107,5 @@ export const CvEvaluationSchema = z.object({
   strengths: z.array(z.string()),
   recommended_next_step: z.enum(["psicometrico", "entrevista", "rechazar"]),
 });
+export type SiguientePaso = CvEvaluation["recommended_next_step"];
 export type CvEvaluation = z.infer<typeof CvEvaluationSchema>;

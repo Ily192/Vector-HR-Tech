@@ -9,7 +9,9 @@
     ".": "./src/index.ts",
     "./hr": "./src/hr.ts",
     "./sales": "./src/sales.ts",
-    "./tenant": "./src/tenant.ts"
+    "./tenant": "./src/tenant.ts",
+    "./reglas": "./src/reglas.ts",
+    "./etiquetas": "./src/etiquetas.ts"
   },
   "scripts": {
     "lint": "biome check src",

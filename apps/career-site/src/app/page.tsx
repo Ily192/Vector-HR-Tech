@@ -27,7 +27,7 @@ const PILARES = [
     puntos: [
       "Skills versionadas con evals",
       "Multi-modelo (OpenAI + Gemini + Claude)",
-      "Cost cap por tenant",
+      "Costo de cada run registrado",
     ],
   },
   {

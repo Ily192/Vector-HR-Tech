@@ -1,6 +1,6 @@
 # ADR-011 · Tipografía: Inter como display + Lato como body (free)
 
-- **Status:** Accepted
+- **Status:** Superseded por la marca v2 (`docs/brand/branding-v2.md`, Figtree + JetBrains Mono)
 - **Fecha:** 2026-05-25
 - **Decisores:** Ilyra
 - **Supersedes:** Decisión pendiente en `04_BRAND_AND_DESIGN_SYSTEM.md`
