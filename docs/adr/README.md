@@ -22,7 +22,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [014](014-test-psicometrico-iframe.md) | Test psicométrico vía iframe del HTML legacy (v0) | Accepted |
 | [015](015-tenant-identity-in-app-metadata.md) | Identidad de tenant en `app_metadata`; privilegio de plataforma fuera de `profiles` | Accepted |
 | [016](016-logica-de-negocio-fuera-de-la-ui.md) | La lógica de negocio vive en el backend; la UI solo la presenta | Accepted |
-| [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Proposed |
+| [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Accepted |
 
 ## Cómo escribir una ADR
 

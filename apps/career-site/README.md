@@ -4,8 +4,8 @@ El sitio público de vacantes, hecho con Next.js 16 (App Router, Server Componen
 
 Producción: <https://vortex-career-site.vercel.app>
 
-> Su público y su papel en el producto están en revisión en
-> [ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md) (Proposed): pasa a ser
+> Su público y su papel en el producto los fija
+> [ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md) (Accepted): pasa a ser
 > el sitio de candidatos del módulo gratuito, sin CTAs de venta.
 
 ## Cómo se corre

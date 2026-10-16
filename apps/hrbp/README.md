@@ -4,7 +4,7 @@ La app de la empresa: hoy es el cockpit del HR Business Partner. Es una SPA con 
 
 Producción: <https://vortex-hrbp.vercel.app>
 
-> Con [ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md) (Proposed) pasa a
+> Con [ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md) (Accepted) pasa a
 > ser la app de cualquier empresa. Tendrá el módulo gratuito *Career site* (crear
 > empleo, vacantes, aplicaciones) y, con el plan de pago, los servicios de IA.
 

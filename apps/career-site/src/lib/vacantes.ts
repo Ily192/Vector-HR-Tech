@@ -8,8 +8,14 @@
  * Hasta que el career-site lea Supabase, los datos salen de `VACANTES_DE_EJEMPLO`,
  * con la misma forma que una fila de la vista. Cambiar a la consulta real toca
  * solo este fichero.
+ *
+ * Es la Data Access Layer que recomienda Next.js (guía "Data Security"): solo
+ * corre en el servidor y devuelve DTOs con lo mínimo que la página pinta.
  */
+import "server-only";
+
 import { type VacantePublica, VacantePublicaSchema } from "@vortex/types/hr";
+import { cache } from "react";
 
 const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse([
   {
@@ -39,7 +45,10 @@ export async function listarVacantes(): Promise<VacantePublica[]> {
   return [...VACANTES_DE_EJEMPLO].sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
-/** La vacante abierta con ese slug (exacto, sensible a mayúsculas), o `null`. */
-export async function obtenerVacante(slug: string): Promise<VacantePublica | null> {
+/**
+ * La vacante abierta con ese slug (exacto, sensible a mayúsculas), o `null`.
+ * Con `cache`, la página y sus metadatos comparten la misma lectura por request.
+ */
+export const obtenerVacante = cache(async (slug: string): Promise<VacantePublica | null> => {
   return VACANTES_DE_EJEMPLO.find((v) => v.slug === slug) ?? null;
-}
+});
