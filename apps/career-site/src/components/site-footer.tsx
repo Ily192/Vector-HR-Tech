@@ -1,32 +1,17 @@
 import { Wordmark } from "@vortex/ui";
-import Link from "next/link";
 
-import { CONTACT_EMAIL } from "../lib/site-config";
+import { PANEL_EMPRESAS_URL } from "../lib/site-config";
 
+/** Pie del sitio de candidatos. La única puerta para empresas es su panel. */
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="container mx-auto flex flex-col gap-6 px-4 py-10 md:flex-row md:items-center md:justify-between md:px-6">
-        <div className="space-y-2">
-          <Wordmark brand="vector" size="sm" tone="light" />
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Vector HR Tech · Hecho en LATAM
-          </p>
-        </div>
-        <nav
-          aria-label="Pie de página"
-          className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold"
-        >
-          <Link className="text-mist-700 hover:text-ink-900" href="/vacantes">
-            Vacantes
-          </Link>
-          <Link className="text-mist-700 hover:text-ink-900" href="/contacto">
-            Contacto
-          </Link>
-          <a className="text-aqua-700 hover:underline" href={`mailto:${CONTACT_EMAIL}`}>
-            {CONTACT_EMAIL}
-          </a>
-        </nav>
+    <footer className="bg-ink-950 text-mist-300">
+      <div className="container mx-auto flex flex-col gap-4 px-4 py-8 text-sm md:flex-row md:items-center md:px-6">
+        <Wordmark brand="vortex" size="sm" tone="dark" />
+        <p>© {new Date().getFullYear()} · Un servicio de Vector HR Tech</p>
+        <a className="font-bold text-aqua-300 hover:underline md:ml-auto" href={PANEL_EMPRESAS_URL}>
+          ¿Publicas vacantes? Entra a tu panel
+        </a>
       </div>
     </footer>
   );

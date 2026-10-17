@@ -374,6 +374,49 @@ async def test_public_view_hides_commercial_columns(db: asyncpg.Connection) -> N
         await db.fetch("select salary_max from vacantes_publicas")
 
 
+async def test_public_view_names_the_company_without_its_id(db: asyncpg.Connection) -> None:
+    """0007: el career site es común a todas las empresas y cada vacante dice de
+    quién es, por nombre y slug. El `empresa_id` sigue fuera (0004 §4)."""
+    await assume_anon(db)
+    row = await db.fetchrow(
+        "select empresa_nombre, empresa_slug from vacantes_publicas where slug = 'senior-software-engineer'"
+    )
+    assert row is not None
+    assert (row["empresa_nombre"], row["empresa_slug"]) == ("Vector HR Tech", "vector-hr")
+    with pytest.raises(asyncpg.exceptions.UndefinedColumnError):
+        await db.fetch("select empresa_id from vacantes_publicas")
+
+
+async def test_public_salary_only_when_the_company_opts_in(db: asyncpg.Connection) -> None:
+    """0007: la banda salarial es interna salvo que la empresa marque
+    `salario_publico`. Sin esa marca la vista devuelve NULL."""
+    await _elevate(db)
+    try:
+        await db.execute(
+            """
+            insert into vacantes (empresa_id, slug, title, jd, status, salary_min, salary_max,
+                                  currency, salario_publico)
+            values ($1::uuid, 'con-salario', 'Con salario', 'jd', 'open', 22000, 28000, 'MXN', true),
+                   ($1::uuid, 'sin-salario', 'Sin salario', 'jd', 'open', 30000, 40000, 'MXN', false)
+            """,
+            EMPRESA_VECTOR,
+        )
+    finally:
+        await _drop(db)
+
+    await assume_anon(db)
+    rows = {
+        r["slug"]: r
+        for r in await db.fetch(
+            "select slug, salario_min, salario_max, moneda from vacantes_publicas "
+            "where slug in ('con-salario', 'sin-salario')"
+        )
+    }
+    con, sin = rows["con-salario"], rows["sin-salario"]
+    assert (con["salario_min"], con["salario_max"], con["moneda"]) == (22000, 28000, "MXN")
+    assert (sin["salario_min"], sin["salario_max"], sin["moneda"]) == (None, None, None)
+
+
 async def test_public_cannot_read_draft_vacantes(db: asyncpg.Connection) -> None:
     await _elevate(db)
     try:

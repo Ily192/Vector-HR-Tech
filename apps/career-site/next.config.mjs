@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@vortex/ui", "@vortex/design-tokens", "@vortex/types"],
   typedRoutes: true,
+  // /contacto era la página comercial; el sitio de candidatos no la tiene (ADR-017).
+  async redirects() {
+    return [{ source: "/contacto", destination: "/", permanent: false }];
+  },
   async headers() {
     return [
       {

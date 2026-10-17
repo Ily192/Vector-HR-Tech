@@ -1,82 +1,56 @@
 import { render, screen, within } from "@testing-library/react";
-import type * as React from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import Home from "../app/page";
 
-// `next/link` necesita el router de Next; en jsdom lo sustituimos por un <a> real.
-vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: React.PropsWithChildren<{ href: string }>) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock("next/link", async () => ({ default: (await import("../test/mocks-next")).LinkFalso }));
+vi.mock("next/form", async () => ({ default: (await import("../test/mocks-next")).FormFalso }));
 
-describe("career-site · Home", () => {
-  it("renderiza el hero con el claim de marca", () => {
-    render(<Home />);
-
+describe("career-site · inicio para candidatos", () => {
+  it("el titular habla al candidato, no vende a empresas", async () => {
+    render(await Home());
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1).toHaveTextContent("Hackeando la rutina");
-    expect(h1).toHaveTextContent("liberando el talento");
-  });
-
-  it("muestra el wordmark Vortex en la vista previa del producto", () => {
-    render(<Home />);
-    expect(screen.getByLabelText("VORTEX OPS")).toBeInTheDocument();
-  });
-
-  it("cierra con una invitación a la demo que lleva a contacto", () => {
-    render(<Home />);
-    expect(screen.getByRole("link", { name: /Agendar una demo/i })).toHaveAttribute(
-      "href",
-      "/contacto",
-    );
-  });
-
-  it("marca la propuesta como agentic con el badge de IA", () => {
-    render(<Home />);
-    expect(screen.getByText(/Powered by agentic AI/i)).toBeInTheDocument();
-  });
-
-  it("expone los dos CTAs del hero apuntando a rutas reales", () => {
-    render(<Home />);
-
-    expect(screen.getByRole("link", { name: /Ver vacantes abiertas/i })).toHaveAttribute(
-      "href",
-      "/vacantes",
-    );
-    expect(screen.getByRole("link", { name: /Hablar con Vector HR/i })).toHaveAttribute(
-      "href",
-      "/contacto",
-    );
-  });
-
-  it("renderiza los tres pilares con sus bullets", () => {
-    render(<Home />);
-
-    for (const pilar of ["Velocidad", "Inteligencia", "Control"]) {
-      expect(screen.getByRole("heading", { level: 3, name: pilar })).toBeInTheDocument();
-    }
-
-    expect(screen.getByText(/Sourcing 24\/7/)).toBeInTheDocument();
-    expect(screen.getByText(/Skills versionadas con evals/)).toBeInTheDocument();
-    expect(screen.getByText(/RLS Postgres nativo/)).toBeInTheDocument();
-  });
-
-  it("el pilar Velocidad lista exactamente sus tres capacidades", () => {
-    render(<Home />);
-
-    const velocidad = screen.getByRole("heading", { level: 3, name: "Velocidad" });
-    const card = velocidad.closest("[data-pilar]");
-    expect(card).not.toBeNull();
-    const items = within(card as HTMLElement).getAllByRole("listitem");
-    expect(items).toHaveLength(3);
-  });
-
-  it("usa un único <h1> — jerarquía correcta para SEO", () => {
-    render(<Home />);
+    expect(h1).toHaveTextContent("Tu siguiente trabajo");
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("no tiene CTAs comerciales (ADR-017)", async () => {
+    render(await Home());
+    expect(screen.queryByText(/Agendar/i)).toBeNull();
+    expect(screen.queryByText(/Hablar con Vector HR/i)).toBeNull();
+    expect(document.querySelector('a[href="/contacto"]')).toBeNull();
+  });
+
+  it("el buscador envía puesto y ubicación a /vacantes por GET", async () => {
+    render(await Home());
+    // Landmark nativo <search>; jsdom aún no le asigna el rol, así que se busca por etiqueta.
+    const form = document.querySelector('search[aria-label="Buscar vacantes"] form') as HTMLElement;
+    expect(form).toHaveAttribute("action", "/vacantes");
+    expect(within(form).getByPlaceholderText("Puesto o palabra clave")).toHaveAttribute(
+      "name",
+      "q",
+    );
+    expect(within(form).getByPlaceholderText("Ciudad o «remoto»")).toHaveAttribute(
+      "name",
+      "ubicacion",
+    );
+  });
+
+  it("cuenta vacantes y empresas a partir de la capa de datos", async () => {
+    render(await Home());
+    expect(screen.getByText("5 vacantes · 4 empresas en LATAM")).toBeInTheDocument();
+  });
+
+  it("muestra las vacantes recientes como tarjetas que llevan a su detalle", async () => {
+    render(await Home());
+    const tarjetas = document.querySelectorAll("[data-vacante]");
+    expect(tarjetas).toHaveLength(5);
+    expect(tarjetas[0]).toHaveAttribute("href", "/vacantes/coordinador-de-almacen");
+  });
+
+  it("explica cómo se aplica en tres pasos, enlazable desde la cabecera", async () => {
+    render(await Home());
+    const seccion = document.getElementById("como-aplicar") as HTMLElement;
+    expect(within(seccion).getAllByRole("heading", { level: 3 })).toHaveLength(3);
   });
 });

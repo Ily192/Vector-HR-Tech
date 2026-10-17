@@ -37,6 +37,7 @@ services:
       - ../supabase/migrations/0004_security_hardening.sql:/docker-entrypoint-initdb.d/13_0004_security_hardening.sql:ro
       - ../supabase/migrations/0005_apply_flow.sql:/docker-entrypoint-initdb.d/14_0005_apply_flow.sql:ro
       - ../supabase/migrations/0006_definer_search_path_fix.sql:/docker-entrypoint-initdb.d/15_0006_definer_search_path_fix.sql:ro
+      - ../supabase/migrations/0007_vacantes_publicas_empresa_y_salario.sql:/docker-entrypoint-initdb.d/16_0007_vacantes_publicas_empresa_y_salario.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

@@ -25,14 +25,14 @@ const jetbrains = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "Vortex Ops · Vector HR Tech",
-    template: "%s · Vortex Ops",
+    default: "Vortex Empleos · Vacantes en LATAM",
+    template: "%s · Vortex Empleos",
   },
   description:
-    "Hackeando la rutina, liberando el talento. Operations Engine agentic para HR, Sales y Cross-functional ops.",
+    "Vacantes de empresas en LATAM con el salario a la vista. Aplica en dos minutos y sigue tu aplicación por correo.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://vortex-ops.com"),
   openGraph: {
-    siteName: "Vortex Ops",
+    siteName: "Vortex Empleos",
     locale: "es_LA",
     type: "website",
   },
