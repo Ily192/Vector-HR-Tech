@@ -36,9 +36,10 @@ export const VacanteSchema = z.object({
 export type Vacante = z.infer<typeof VacanteSchema>;
 
 /**
- * Fila de la vista `vacantes_publicas` (infra/supabase/migrations/0004), lo único
- * que el career-site puede leer. La vista ya filtra `status = 'open'` y no expone
- * `empresa_id`: el career-site no decide qué vacante es pública.
+ * Fila de la vista `vacantes_publicas` (infra/supabase/migrations/0004 y 0007), lo
+ * único que el career-site puede leer. La vista ya filtra `status = 'open'`, no
+ * expone `empresa_id` y solo trae salario si la empresa lo marcó como público
+ * (`salario_publico`): el career-site no decide qué es público.
  */
 export const VacantePublicaSchema = VacanteSchema.pick({
   id: true,
@@ -49,6 +50,12 @@ export const VacantePublicaSchema = VacanteSchema.pick({
   modality: true,
   location: true,
   created_at: true,
+}).extend({
+  empresa_nombre: z.string().min(1),
+  empresa_slug: z.string().min(1),
+  salario_min: z.number().nonnegative().nullable(),
+  salario_max: z.number().nonnegative().nullable(),
+  moneda: z.string().length(3).nullable(),
 });
 export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 

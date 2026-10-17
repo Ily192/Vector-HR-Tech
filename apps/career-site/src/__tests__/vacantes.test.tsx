@@ -1,17 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
-import type * as React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import VacanteDetail from "../app/vacantes/[slug]/page";
+import VacanteDetail, { generateMetadata } from "../app/vacantes/[slug]/page";
 import VacantesPage, { metadata } from "../app/vacantes/page";
 
-vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: React.PropsWithChildren<{ href: string }>) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
+vi.mock("next/link", async () => ({ default: (await import("../test/mocks-next")).LinkFalso }));
+vi.mock("next/form", async () => ({ default: (await import("../test/mocks-next")).FormFalso }));
 
 // `vi.hoisted` es necesario porque la factory de `vi.mock` se evalúa antes que el
 // cuerpo del módulo de test.
@@ -29,93 +23,102 @@ beforeEach(() => {
   notFound.mockClear();
 });
 
-/**
- * El detalle es un Server Component async (`params` llega como Promise), así que
- * se invoca como función y se renderiza el JSX que resuelve.
- */
-function detalle(slug: string) {
-  return VacanteDetail({ params: Promise.resolve({ slug }) });
-}
+/** Las páginas son Server Components async: se invocan y se renderiza lo que resuelven. */
+const listado = (params: Record<string, string> = {}) =>
+  VacantesPage({ searchParams: Promise.resolve(params) });
+const detalle = (slug: string) => VacanteDetail({ params: Promise.resolve({ slug }) });
 
 describe("career-site · /vacantes", () => {
   it("declara el título de la página para el <head>", () => {
     expect(metadata).toEqual({ title: "Vacantes abiertas" });
   });
 
-  it("renderiza el encabezado del listado", async () => {
-    render(await VacantesPage());
-    expect(
-      screen.getByRole("heading", { level: 1, name: /Vacantes abiertas/i }),
-    ).toBeInTheDocument();
+  it("lista todas las vacantes, cada una enlazando a su detalle", async () => {
+    render(await listado());
+    expect(screen.getByRole("heading", { level: 1, name: /Vacantes abiertas/i })).toBeVisible();
+    const tarjetas = document.querySelectorAll("[data-vacante]");
+    expect(tarjetas).toHaveLength(5);
+    for (const t of tarjetas) expect(t.getAttribute("href")).toMatch(/^\/vacantes\/[a-z0-9-]+$/);
+    expect(screen.getByText("5 vacantes")).toBeInTheDocument();
   });
 
-  it("lista una card por vacante, cada una enlazando a su detalle", async () => {
-    render(await VacantesPage());
-
-    const links = screen.getAllByRole("link");
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) {
-      expect(link.getAttribute("href")).toMatch(/^\/vacantes\/[a-z0-9-]+$/);
-    }
-
-    expect(screen.getByRole("link", { name: /Senior Software Engineer/i })).toHaveAttribute(
-      "href",
-      "/vacantes/senior-software-engineer",
+  it("la tarjeta muestra empresa, ubicación, modalidad, nivel y salario en español", async () => {
+    render(await listado());
+    const card = within(
+      document.querySelector('[data-vacante="coordinador-de-almacen"]') as HTMLElement,
     );
-    expect(screen.getByRole("link", { name: /HR Business Partner/i })).toHaveAttribute(
-      "href",
-      "/vacantes/hr-business-partner",
+    expect(card.getByText("Andes Logística")).toBeInTheDocument();
+    expect(card.getByText("Monterrey, NL")).toBeInTheDocument();
+    expect(card.getByText("Híbrido")).toBeInTheDocument();
+    expect(card.getByText("Semi-senior")).toBeInTheDocument();
+    expect(card.getByText(/\$22,000 – \$28,000/)).toBeInTheDocument();
+  });
+
+  it("si la empresa no publica salario, dice 'Salario a convenir'", async () => {
+    render(await listado());
+    const card = within(
+      document.querySelector('[data-vacante="hr-business-partner"]') as HTMLElement,
     );
+    expect(card.getByText("Salario a convenir")).toBeInTheDocument();
   });
 
-  it("muestra seniority, ubicación y modalidad con sus etiquetas en español", async () => {
-    render(await VacantesPage());
-
-    const card = screen.getByRole("link", { name: /Senior Software Engineer/i });
-    const scoped = within(card);
-    expect(scoped.getByText("Senior")).toBeInTheDocument();
-    expect(scoped.getByText("LATAM")).toBeInTheDocument();
-    expect(scoped.getByText("Remoto")).toBeInTheDocument();
-    expect(scoped.getByText("Abierta")).toBeInTheDocument();
+  it("filtra por palabra clave sin distinguir acentos ni mayúsculas", async () => {
+    render(await listado({ q: "ALMACEN" }));
+    expect(document.querySelectorAll("[data-vacante]")).toHaveLength(1);
+    expect(screen.getByText("1 vacante")).toBeInTheDocument();
   });
 
-  it("cada vacante muestra el inicio de su descripción", async () => {
-    render(await VacantesPage());
-    expect(screen.getByText(/Liderarás el diseño e implementación/)).toBeInTheDocument();
-    expect(screen.getByText(/Serás el puente entre los líderes técnicos/)).toBeInTheDocument();
+  it("filtra por modalidad y marca el filtro activo", async () => {
+    render(await listado({ modalidad: "remote" }));
+    expect(document.querySelectorAll("[data-vacante]")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Remoto" })).toHaveAttribute("aria-current", "true");
   });
 
-  it("cuenta las vacantes que devuelve la capa de datos", async () => {
-    render(await VacantesPage());
-    expect(screen.getByText("2 vacantes abiertas")).toBeInTheDocument();
+  it("ignora una modalidad inválida en la URL en vez de fallar", async () => {
+    render(await listado({ modalidad: "marte" }));
+    expect(document.querySelectorAll("[data-vacante]")).toHaveLength(5);
+  });
+
+  it("sin resultados, lo dice y ofrece volver a ver todas", async () => {
+    render(await listado({ q: "astronauta" }));
+    expect(screen.getByRole("heading", { name: /No hay vacantes/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver todas las vacantes" })).toHaveAttribute(
+      "href",
+      "/vacantes",
+    );
   });
 });
 
 describe("career-site · /vacantes/[slug]", () => {
-  it("renderiza el detalle de una vacante existente", async () => {
-    render(await detalle("senior-software-engineer"));
-
+  it("renderiza el detalle con empresa, salario y descripción", async () => {
+    render(await detalle("coordinador-de-almacen"));
     expect(
-      screen.getByRole("heading", { level: 1, name: "Senior Software Engineer" }),
+      screen.getByRole("heading", { level: 1, name: "Coordinador de almacén" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Andes Logística")).toBeInTheDocument();
+    expect(screen.getByText(/\$22,000 – \$28,000/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Sobre el rol/i })).toBeInTheDocument();
-    expect(screen.getByText(/FastAPI, SQLAlchemy 2 async, Celery, Supabase/)).toBeInTheDocument();
     expect(notFound).not.toHaveBeenCalled();
   });
 
-  it("muestra badges de estado, modalidad y ubicación", async () => {
+  it("muestra estado, modalidad, ubicación y nivel con etiquetas en español", async () => {
     render(await detalle("hr-business-partner"));
-
     expect(screen.getByText("Abierta")).toBeInTheDocument();
     expect(screen.getByText("Híbrido")).toBeInTheDocument();
     expect(screen.getByText("CDMX")).toBeInTheDocument();
+    expect(screen.getByText("Semi-senior")).toBeInTheDocument();
+    expect(screen.getByText("Salario a convenir")).toBeInTheDocument();
   });
 
-  it("ofrece el CTA de aplicar deshabilitado (upload llega en cycle 1)", async () => {
-    render(await detalle("senior-software-engineer"));
+  it("titula la pestaña con puesto y empresa", async () => {
+    expect(await generateMetadata({ params: Promise.resolve({ slug: "data-analyst" }) })).toEqual({
+      title: "Data Analyst · Grupo Cobalto",
+    });
+  });
 
-    const cta = screen.getByRole("button", { name: /Subir CV/i });
-    expect(cta).toBeDisabled();
+  it("ofrece el CTA de aplicar deshabilitado (la subida de CV llega después)", async () => {
+    render(await detalle("senior-software-engineer"));
+    expect(screen.getByRole("button", { name: /Subir CV/i })).toBeDisabled();
   });
 
   it("incluye el link de vuelta al listado", async () => {
@@ -126,13 +129,9 @@ describe("career-site · /vacantes/[slug]", () => {
     );
   });
 
-  it("llama a notFound() cuando el slug no existe", async () => {
+  it("llama a notFound() cuando el slug no existe, y el lookup es exacto", async () => {
     await expect(detalle("no-existe")).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(notFound).toHaveBeenCalledTimes(1);
-  });
-
-  it("no confunde slugs parecidos — el lookup es case-sensitive", async () => {
-    await expect(detalle("Senior-Software-Engineer")).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(notFound).toHaveBeenCalledTimes(1);
+    await expect(detalle("Data-Analyst")).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFound).toHaveBeenCalledTimes(2);
   });
 });

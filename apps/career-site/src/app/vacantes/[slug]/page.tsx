@@ -1,20 +1,30 @@
-import { ETIQUETA_ESTADO_VACANTE, ETIQUETA_MODALIDAD } from "@vortex/types/etiquetas";
+import {
+  ETIQUETA_ESTADO_VACANTE,
+  ETIQUETA_MODALIDAD,
+  ETIQUETA_SENIORITY,
+} from "@vortex/types/etiquetas";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { formatearSalario } from "../../../lib/formato";
 import { obtenerVacante } from "../../../lib/vacantes";
 
+type Props = { params: Promise<{ slug: string }> };
+
+/** Título de la pestaña con el puesto y la empresa; comparte la lectura con la página. */
+export async function generateMetadata({ params }: Props) {
+  const v = await obtenerVacante((await params).slug);
+  return v ? { title: `${v.title} · ${v.empresa_nombre}` } : {};
+}
+
 // Desde Next 15 `params` llega como Promise, y Next 16 retiró el acceso síncrono.
-export default async function VacanteDetail({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function VacanteDetail({ params }: Props) {
   const { slug } = await params;
   const v = await obtenerVacante(slug);
   if (!v) notFound();
+  const salario = formatearSalario(v);
 
   return (
     <main className="container mx-auto max-w-3xl px-4 py-12 md:px-6 md:py-16">
@@ -30,8 +40,20 @@ export default async function VacanteDetail({
           <Badge variant="ai">{ETIQUETA_ESTADO_VACANTE.open}</Badge>
           <Badge variant="outline">{ETIQUETA_MODALIDAD[v.modality]}</Badge>
           {v.location && <Badge variant="outline">{v.location}</Badge>}
+          {v.seniority && <Badge variant="outline">{ETIQUETA_SENIORITY[v.seniority]}</Badge>}
         </div>
         <h1 className="text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">{v.title}</h1>
+        <p className="mt-2 text-lg font-semibold text-mist-700">{v.empresa_nombre}</p>
+        <p className="mt-3 text-lg font-extrabold tabular-nums">
+          {salario ? (
+            <>
+              {salario}{" "}
+              <span className="text-sm font-semibold text-mist-600">{v.moneda} / mes</span>
+            </>
+          ) : (
+            <span className="text-base font-bold text-mist-600">Salario a convenir</span>
+          )}
+        </p>
       </header>
 
       <Card className="mb-6">
