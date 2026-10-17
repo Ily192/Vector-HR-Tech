@@ -8,3 +8,9 @@ export function anchoRelativo(conteo: number, conteos: readonly number[]): numbe
   const max = Math.max(0, ...conteos);
   return max === 0 ? 0 : (conteo / max) * 100;
 }
+
+/** % que pasó desde la etapa anterior, redondeado; `null` si no hay de dónde partir. */
+export function conversion(conteo: number, anterior: number | undefined): number | null {
+  if (!anterior) return null;
+  return Math.round((conteo / anterior) * 100);
+}

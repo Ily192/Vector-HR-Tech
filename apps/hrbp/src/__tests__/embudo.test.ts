@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { anchoRelativo } from "../cockpit/embudo";
+import { anchoRelativo, conversion } from "../cockpit/embudo";
 
 describe("anchoRelativo", () => {
   it("escala cada etapa contra la más grande", () => {
@@ -11,5 +11,17 @@ describe("anchoRelativo", () => {
   it("devuelve 0 sin dividir entre cero cuando no hay conteos", () => {
     expect(anchoRelativo(0, [0, 0])).toBe(0);
     expect(anchoRelativo(0, [])).toBe(0);
+  });
+});
+
+describe("conversion", () => {
+  it("da el % que pasó desde la etapa anterior, redondeado", () => {
+    expect(conversion(41, 84)).toBe(49);
+    expect(conversion(2, 3)).toBe(67);
+  });
+
+  it("devuelve null en la primera etapa o si la anterior está vacía", () => {
+    expect(conversion(84, undefined)).toBeNull();
+    expect(conversion(0, 0)).toBeNull();
   });
 });

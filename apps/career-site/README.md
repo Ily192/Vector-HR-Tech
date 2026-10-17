@@ -33,7 +33,7 @@ src/
   lib/
     vacantes.ts     Data Access Layer (server-only): hoy, datos de ejemplo con la forma de la vista
     filtros.ts      filtros en la URL: leerFiltros / urlConFiltros
-    formato.ts      salario, "hace cuánto", "Nueva" e iniciales (solo presentación)
+    formato.ts      reexporta el formato de la vacante de @vortex/ui (compartido con hrbp)
     site-config.ts  enlaces fijos
   test/           setup y sustitutos de next/link y next/form
   __tests__/

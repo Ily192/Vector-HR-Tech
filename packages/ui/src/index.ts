@@ -3,3 +3,11 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Badge, badgeVariants } from "./badge";
 export { Wordmark } from "./wordmark";
 export { cn } from "./utils";
+export {
+  DIAS_COMO_NUEVA,
+  esNueva,
+  formatearSalario,
+  haceCuanto,
+  iniciales,
+  type SalarioPublicado,
+} from "./formato";
