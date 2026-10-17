@@ -42,15 +42,15 @@ describe("career-site · /vacantes", () => {
     expect(metadata).toEqual({ title: "Vacantes abiertas" });
   });
 
-  it("renderiza el encabezado del listado", () => {
-    render(<VacantesPage />);
+  it("renderiza el encabezado del listado", async () => {
+    render(await VacantesPage());
     expect(
       screen.getByRole("heading", { level: 1, name: /Vacantes abiertas/i }),
     ).toBeInTheDocument();
   });
 
-  it("lista una card por vacante, cada una enlazando a su detalle", () => {
-    render(<VacantesPage />);
+  it("lista una card por vacante, cada una enlazando a su detalle", async () => {
+    render(await VacantesPage());
 
     const links = screen.getAllByRole("link");
     expect(links.length).toBeGreaterThan(0);
@@ -68,23 +68,26 @@ describe("career-site · /vacantes", () => {
     );
   });
 
-  it("muestra seniority, ubicación y modalidad de cada vacante", () => {
-    render(<VacantesPage />);
+  it("muestra seniority, ubicación y modalidad con sus etiquetas en español", async () => {
+    render(await VacantesPage());
 
     const card = screen.getByRole("link", { name: /Senior Software Engineer/i });
     const scoped = within(card);
-    expect(scoped.getByText(/senior/)).toBeInTheDocument();
-    expect(scoped.getByText(/Remote · LATAM/)).toBeInTheDocument();
-    expect(scoped.getByText(/remote/)).toBeInTheDocument();
-    expect(scoped.getByText(/Open/)).toBeInTheDocument();
+    expect(scoped.getByText("Senior")).toBeInTheDocument();
+    expect(scoped.getByText("LATAM")).toBeInTheDocument();
+    expect(scoped.getByText("Remoto")).toBeInTheDocument();
+    expect(scoped.getByText("Abierta")).toBeInTheDocument();
   });
 
-  it("cada vacante muestra su resumen", () => {
-    render(<VacantesPage />);
-    expect(
-      screen.getByText(/Liderar arquitectura de servicios Python\/FastAPI/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Acompañar líderes de tecnología/)).toBeInTheDocument();
+  it("cada vacante muestra el inicio de su descripción", async () => {
+    render(await VacantesPage());
+    expect(screen.getByText(/Liderarás el diseño e implementación/)).toBeInTheDocument();
+    expect(screen.getByText(/Serás el puente entre los líderes técnicos/)).toBeInTheDocument();
+  });
+
+  it("cuenta las vacantes que devuelve la capa de datos", async () => {
+    render(await VacantesPage());
+    expect(screen.getByText("2 vacantes abiertas")).toBeInTheDocument();
   });
 });
 
@@ -103,9 +106,9 @@ describe("career-site · /vacantes/[slug]", () => {
   it("muestra badges de estado, modalidad y ubicación", async () => {
     render(await detalle("hr-business-partner"));
 
-    expect(screen.getByText("Open")).toBeInTheDocument();
-    expect(screen.getByText("hybrid")).toBeInTheDocument();
-    expect(screen.getByText("CDMX · Híbrido")).toBeInTheDocument();
+    expect(screen.getByText("Abierta")).toBeInTheDocument();
+    expect(screen.getByText("Híbrido")).toBeInTheDocument();
+    expect(screen.getByText("CDMX")).toBeInTheDocument();
   });
 
   it("ofrece el CTA de aplicar deshabilitado (upload llega en cycle 1)", async () => {

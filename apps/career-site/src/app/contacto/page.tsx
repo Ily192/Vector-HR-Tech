@@ -10,19 +10,19 @@ import {
 import { ArrowLeft, Clock, Linkedin, Mail } from "lucide-react";
 import Link from "next/link";
 
+import { CONTACT_EMAIL, LINKEDIN_URL, TIEMPO_DE_RESPUESTA } from "../../lib/site-config";
+
 export const metadata = {
   title: "Hablar con Vector HR",
   description:
     "Conversemos sobre cómo Vortex Ops puede automatizar tus procesos de HR y Sales end-to-end.",
 };
 
-const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hola@vectorhr.tech";
-
 const CANALES = [
   {
     icon: Mail,
     title: "Email",
-    description: "La vía más rápida. Respondemos en menos de 24 h hábiles.",
+    description: `La vía más rápida. Respondemos en menos de ${TIEMPO_DE_RESPUESTA}.`,
     href: `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("Quiero conocer Vortex Ops")}`,
     label: CONTACT_EMAIL,
   },
@@ -30,7 +30,7 @@ const CANALES = [
     icon: Linkedin,
     title: "LinkedIn",
     description: "Escríbenos por mensaje directo si prefieres ese canal.",
-    href: "https://www.linkedin.com/company/vector-hr-tech",
+    href: LINKEDIN_URL,
     label: "/company/vector-hr-tech",
   },
 ] as const;
@@ -51,7 +51,7 @@ export default function ContactoPage() {
         </div>
         <Badge variant="ai" className="mb-4">
           <Clock className="h-3 w-3" />
-          Respuesta en 24 h
+          Respuesta en {TIEMPO_DE_RESPUESTA}
         </Badge>
         <h1 className="mb-4 text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">
           Hablemos de tu operación

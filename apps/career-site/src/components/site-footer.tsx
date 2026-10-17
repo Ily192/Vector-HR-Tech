@@ -1,7 +1,7 @@
 import { Wordmark } from "@vortex/ui";
 import Link from "next/link";
 
-const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hola@vectorhr.tech";
+import { CONTACT_EMAIL } from "../lib/site-config";
 
 export function SiteFooter() {
   return (
