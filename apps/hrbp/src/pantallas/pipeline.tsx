@@ -1,0 +1,223 @@
+import { ETIQUETA_ESTADO_APLICACION } from "@vortex/types/etiquetas";
+import { Button, buttonVariants, haceCuanto } from "@vortex/ui";
+import { Download, Lock } from "lucide-react";
+
+import { anchoRelativo } from "../cockpit/embudo";
+import { useDescargarCvs, usePipeline, useRegistrarInteres } from "../datos/consultas";
+import type { GanchoDelPipeline, PipelineDeVacante } from "../datos/tipos";
+import { Encabezado } from "../marco/marco";
+import { Enlace } from "../navegacion/ruta";
+
+/** Cuántos aplicados se listan antes de "Ver todos". */
+const APLICADOS_VISIBLES = 8;
+
+const formatoHora = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+/** "Hoy, 09:12", "Ayer, 19:30" o "Hace 3 días". */
+function cuandoAplico(fechaIso: string) {
+  const dia = haceCuanto(fechaIso);
+  return dia === "Hoy" || dia === "Ayer"
+    ? `${dia}, ${formatoHora.format(new Date(fechaIso))}`
+    : dia;
+}
+
+/**
+ * El gancho del plan gratis, al estilo de "quién vio tu perfil": los números que
+ * los agentes ya sacaron de los CVs, sin decir de quién son.
+ */
+function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
+  const interes = useRegistrarInteres();
+  return (
+    <section
+      aria-label="Resultado de la evaluación"
+      className="flex flex-wrap items-center gap-5 rounded-[22px] bg-ink-900 p-6 text-white"
+    >
+      <div className="flex flex-[1_1_300px] flex-col gap-2">
+        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-aqua-300">
+          Vector HR ya leyó tus CVs
+        </span>
+        <h2 className="text-2xl leading-tight tracking-[-0.02em]">
+          Evaluamos los {gancho.cvsEvaluados} CVs en {gancho.segundos} segundos, a ciegas.
+        </h2>
+        <p className="text-[14.5px] text-ink-200">
+          Ya sabemos quiénes son. Con los servicios de IA los ves ordenados por score, con el porqué
+          de cada uno.
+        </p>
+      </div>
+      <p className="flex flex-col">
+        <b className="text-[2.6rem] font-extrabold leading-none tabular-nums">{gancho.califican}</b>
+        <span className="text-sm text-ink-200">califican para la vacante</span>
+      </p>
+      <p className="flex flex-col">
+        <b className="text-[2.6rem] font-extrabold leading-none text-aqua-300 tabular-nums">
+          {gancho.cumplenTodasLasSkills}
+        </b>
+        <span className="text-sm text-ink-200">cumplen todas las skills</span>
+      </p>
+      {interes.isSuccess ? (
+        <output className="block text-sm font-bold text-aqua-300">
+          Listo. Tu contacto en Vector HR te escribe pronto.
+        </output>
+      ) : (
+        <Button disabled={interes.isPending} onClick={() => interes.mutate("pipeline")}>
+          Ver quiénes son
+        </Button>
+      )}
+    </section>
+  );
+}
+
+function Etapas({ pipeline }: { pipeline: PipelineDeVacante }) {
+  const habilitadas = pipeline.etapas.flatMap((e) => (e.conteo === null ? [] : [e.conteo]));
+  return (
+    <section
+      aria-label="Pipeline"
+      className="flex flex-col gap-3.5 rounded-[22px] border border-mist-200 bg-white p-5"
+    >
+      <h2 className="text-[19px]">Pipeline</h2>
+      {pipeline.etapas.map(({ etapa, conteo }) => (
+        <div
+          key={etapa}
+          data-etapa={etapa}
+          className={`flex flex-col gap-1.5 ${conteo === null ? "opacity-60" : ""}`}
+        >
+          <div className="flex justify-between text-sm font-semibold">
+            <span>{ETIQUETA_ESTADO_APLICACION[etapa]}</span>
+            {conteo === null ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-mist-600">
+                <Lock aria-hidden="true" className="h-3 w-3" />
+                Servicios IA
+              </span>
+            ) : (
+              <b className="tabular-nums">{conteo}</b>
+            )}
+          </div>
+          <div className="h-2.5 rounded-full bg-mist-100" aria-hidden="true">
+            {conteo !== null && (
+              <div
+                className="h-full rounded-full bg-aqua-300"
+                style={{
+                  width: `${
+                    pipeline.maxAplicaciones && etapa === "applied"
+                      ? (conteo / pipeline.maxAplicaciones) * 100
+                      : anchoRelativo(conteo, habilitadas)
+                  }%`,
+                }}
+              />
+            )}
+          </div>
+          {etapa === "applied" && pipeline.maxAplicaciones && (
+            <span className="text-[12.5px] text-mist-600">
+              Al llegar a {pipeline.maxAplicaciones}, la vacante deja de recibir aplicaciones.
+            </span>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/** Los aplicados de una vacante, con la descarga de todos sus CVs. */
+export function Pipeline({ vacanteId }: { vacanteId: string }) {
+  const { data: pipeline, isPending } = usePipeline(vacanteId);
+  const descarga = useDescargarCvs();
+
+  if (isPending) return null;
+  if (!pipeline) {
+    return (
+      <section className="max-w-xl rounded-[22px] border border-mist-200 bg-white p-6">
+        <h1 className="text-2xl">No encontramos esta vacante</h1>
+        <p className="mt-2 text-mist-700">Puede que se haya eliminado.</p>
+        <Enlace href="/vacantes" className={`${buttonVariants({ variant: "ink" })} mt-5`}>
+          Ir a Mis vacantes
+        </Enlace>
+      </section>
+    );
+  }
+
+  const { vacante, aplicados } = pipeline;
+  const tope = pipeline.maxAplicaciones ? ` de ${pipeline.maxAplicaciones}` : "";
+
+  async function descargar() {
+    const { url } = await descarga.mutateAsync(vacante.id);
+    if (url) window.location.assign(url);
+  }
+
+  return (
+    <>
+      <Encabezado
+        etiqueta={`Publicada ${haceCuanto(vacante.publicadaEn).toLowerCase()} · ${vacante.aplicaciones}${tope} aplicaciones`}
+        titulo={vacante.titulo}
+        accion={
+          aplicados.length > 0 && (
+            <Button variant="secondary" disabled={descarga.isPending} onClick={descargar}>
+              <Download aria-hidden="true" className="h-4 w-4" />
+              Descargar los {aplicados.length} CVs (.zip)
+            </Button>
+          )
+        }
+      />
+      <p aria-live="polite" className="text-sm text-mist-600 empty:hidden">
+        {descarga.data && descarga.data.url === null
+          ? "La descarga del .zip se activa cuando el panel se conecte al hr-engine."
+          : ""}
+      </p>
+      {pipeline.gancho && <Gancho gancho={pipeline.gancho} />}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,1fr)_minmax(0,1.6fr)]">
+        <Etapas pipeline={pipeline} />
+        <section
+          aria-label="Aplicados"
+          className="rounded-[22px] border border-mist-200 bg-white p-5"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-[19px]">Aplicados</h2>
+            <span className="text-[13.5px] text-mist-600">Más recientes primero</span>
+          </div>
+          {aplicados.length === 0 ? (
+            <p className="py-6 text-sm text-mist-600">
+              Todavía no hay aplicaciones. La vacante ya está en el career site.
+            </p>
+          ) : (
+            <table className="mt-2 w-full border-collapse text-[14.5px]">
+              <thead>
+                <tr className="text-left text-[12.5px] text-mist-600">
+                  <th scope="col" className="py-2 font-bold">
+                    Candidato
+                  </th>
+                  <th scope="col" className="py-2 font-bold">
+                    Aplicó
+                  </th>
+                  <th scope="col" className="py-2 font-bold">
+                    CV
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {aplicados.slice(0, APLICADOS_VISIBLES).map((a) => (
+                  <tr key={a.id} className="border-t border-mist-150">
+                    <td className="py-3 font-bold">{a.nombre}</td>
+                    <td className="py-3 text-mist-600">{cuandoAplico(a.aplicoEn)}</td>
+                    <td className="py-3">
+                      {a.cvUrl ? (
+                        <a href={a.cvUrl} className="font-bold text-aqua-700 hover:underline">
+                          CV.pdf
+                        </a>
+                      ) : (
+                        <span className="text-mist-500">CV.pdf</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {aplicados.length > APLICADOS_VISIBLES && (
+            <p className="mt-3 text-sm text-mist-600">
+              Y {aplicados.length - APLICADOS_VISIBLES} más en el .zip.
+            </p>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
