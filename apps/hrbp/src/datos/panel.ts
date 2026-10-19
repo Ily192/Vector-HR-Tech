@@ -11,7 +11,7 @@
  * `?plan=ia` en la URL de entrada muestra el panel con los servicios de IA.
  */
 import type { EtapaDelPipeline } from "@vortex/types/reglas";
-import { ETAPAS_DEL_PIPELINE } from "@vortex/types/reglas";
+import { ETAPAS_DEL_PIPELINE, LIMITES_DEL_PLAN, limiteDeVacantes } from "@vortex/types/reglas";
 
 import type {
   Aplicado,
@@ -76,8 +76,8 @@ interface Registro {
 
 interface Estado {
   sesion: SesionEmpresa;
-  limite: number;
-  maxAplicaciones: number;
+  limite: number | null;
+  maxAplicaciones: number | null;
   registros: Registro[];
   interes: OrigenDelInteres[];
 }
@@ -97,7 +97,7 @@ function vacante(
     ubicacion: "Monterrey, NL",
     publicadaEn: haceDias(dias),
     aplicaciones,
-    cupoCompleto: aplicaciones >= 50,
+    cupoCompleto: aplicaciones >= LIMITES_DEL_PLAN.gratis.aplicacionesPorVacante,
     ...extra,
   };
 }
@@ -110,8 +110,9 @@ function estadoGratis(): Estado {
       plan: "Career site · gratis",
       modulos: ["career-site"],
     },
-    limite: 4,
-    maxAplicaciones: 50,
+    // Andes Logística tiene 80 personas: 4 vacantes activas (la regla es de `domain/plan.py`).
+    limite: limiteDeVacantes(80),
+    maxAplicaciones: LIMITES_DEL_PLAN.gratis.aplicacionesPorVacante,
     interes: [],
     registros: [
       {
@@ -146,8 +147,8 @@ function estadoConIa(): Estado {
       plan: "Servicios de IA",
       modulos: ["cockpit", "career-site"],
     },
-    limite: 20,
-    maxAplicaciones: 500,
+    limite: null,
+    maxAplicaciones: LIMITES_DEL_PLAN.ia.aplicacionesPorVacante,
     interes: [],
     registros: [
       {
@@ -191,14 +192,16 @@ export async function listarMisVacantes(): Promise<MisVacantes> {
     cupo: {
       activas: vacantes.length,
       limite: estado.limite,
-      libres: Math.max(0, estado.limite - vacantes.length),
+      libres: estado.limite === null ? null : Math.max(0, estado.limite - vacantes.length),
       maxAplicacionesPorVacante: estado.maxAplicaciones,
     },
   };
 }
 
 export async function publicarVacante(borrador: BorradorDeVacante): Promise<ResultadoDePublicar> {
-  if (activos().length >= estado.limite) return { ok: false, motivo: "sin-cupo" };
+  if (estado.limite !== null && activos().length >= estado.limite) {
+    return { ok: false, motivo: "sin-cupo" };
+  }
   if (!borrador.titulo.trim() || !borrador.descripcion.trim()) {
     return { ok: false, motivo: "datos-invalidos" };
   }
@@ -243,7 +246,7 @@ export async function obtenerPipeline(vacanteId: string): Promise<PipelineDeVaca
       publicadaEn: v.publicadaEn,
       aplicaciones: v.aplicaciones,
     },
-    maxAplicaciones: conIa ? null : estado.maxAplicaciones,
+    maxAplicaciones: estado.maxAplicaciones,
     etapas: ETAPAS_DEL_PIPELINE.map((etapa) => ({
       etapa,
       conteo: etapa === "applied" ? v.aplicaciones : conIa ? (etapas?.[etapa] ?? 0) : null,

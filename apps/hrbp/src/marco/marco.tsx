@@ -59,17 +59,21 @@ function TuPlan({ plan, cupo }: { plan: string; cupo: CupoDeVacantes }) {
       <div className="mt-1 flex justify-between text-[13px] text-mist-300">
         <span>Vacantes activas</span>
         <b className="text-white">
-          {cupo.activas} de {cupo.limite}
+          {cupo.limite === null ? cupo.activas : `${cupo.activas} de ${cupo.limite}`}
         </b>
       </div>
-      <div className="h-1.5 rounded-full bg-ink-800" aria-hidden="true">
-        <div
-          className="h-full rounded-full bg-aqua-300"
-          style={{ width: `${(cupo.activas / cupo.limite) * 100}%` }}
-        />
-      </div>
+      {cupo.limite !== null && (
+        <div className="h-1.5 rounded-full bg-ink-800" aria-hidden="true">
+          <div
+            className="h-full rounded-full bg-aqua-300"
+            style={{ width: `${(cupo.activas / cupo.limite) * 100}%` }}
+          />
+        </div>
+      )}
       <span className="text-xs text-mist-300">
-        Hasta {cupo.maxAplicacionesPorVacante} aplicaciones por vacante.
+        {cupo.maxAplicacionesPorVacante === null
+          ? "Sin tope de vacantes ni de aplicaciones."
+          : `Hasta ${cupo.maxAplicacionesPorVacante} aplicaciones por vacante.`}
       </span>
     </div>
   );
@@ -93,7 +97,11 @@ export function Marco({
   const grupos = GRUPOS.filter((g) => sesion?.modulos.includes(g.modulo));
 
   const contador = (s: Seccion) =>
-    s === "mis-vacantes" && mis ? `${mis.cupo.activas}/${mis.cupo.limite}` : null;
+    s === "mis-vacantes" && mis
+      ? mis.cupo.limite === null
+        ? `${mis.cupo.activas}`
+        : `${mis.cupo.activas}/${mis.cupo.limite}`
+      : null;
 
   return (
     <div className="flex min-h-screen bg-mist-50 text-ink-900">

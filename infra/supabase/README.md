@@ -55,6 +55,9 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
 | `0003_auth_hooks.sql` | tabla `invitations` + `handle_new_user` trigger + `custom_access_token_hook` (JWT claims) |
 | `0004_security_hardening.sql` | Cierre de las vías de escalada multi-tenant halladas en la auditoría previa al primer deploy |
 | `0005_apply_flow.sql` | Bucket `cvs` + `aplicar_a_vacante()`: la única vía por la que un candidato entra al pipeline |
+| `0006_definer_search_path_fix.sql` | `search_path = ''` y referencias calificadas en las funciones `security definer` |
+| `0007_vacantes_publicas_empresa_y_salario.sql` | `vacantes_publicas` con el nombre y slug de la empresa, y el salario solo si `salario_publico` |
+| `0008_plan_gratis_limites.sql` | Plan de la empresa (`gratis` / `ia`) y límites del plan gratuito: trigger de vacantes activas, tope de 50 en `aplicar_a_vacante()`, `mi_cupo_de_vacantes()`, `cupo_completo` en la vista y `plan` + `modulos` en el JWT (ADR-017) |
 
 ## RLS — reglas vigentes
 

@@ -45,3 +45,47 @@ export const ETAPAS_DEL_PIPELINE = [
   "offered",
 ] as const satisfies readonly ApplicationStatus[];
 export type EtapaDelPipeline = (typeof ETAPAS_DEL_PIPELINE)[number];
+
+/** Planes de Vortex. Viajan en el JWT como `app_metadata.plan` (ADR-017). */
+export type Plan = "gratis" | "ia";
+/** Módulos que un plan habilita. Viajan como `app_metadata.modulos`. */
+export type Modulo = "career-site" | "cockpit";
+
+/**
+ * Límites de cada plan.
+ *
+ * Dueña: `services/hr-engine/app/domain/plan.py`; los aplica la base (migración
+ * 0008). Contrato: `contracts/limites-plan.json`. La UI los usa para explicar el
+ * cupo; el número de vacantes que le quedan a una empresa lo da la base
+ * (`mi_cupo_de_vacantes()`), no se calcula aquí.
+ */
+export const LIMITES_DEL_PLAN = {
+  gratis: {
+    modulos: ["career-site"],
+    etapasVisibles: ["applied"],
+    aplicacionesPorVacante: 50,
+  },
+  ia: {
+    modulos: ["career-site", "cockpit"],
+    etapasVisibles: ETAPAS_DEL_PIPELINE,
+    aplicacionesPorVacante: null,
+  },
+} as const satisfies Record<
+  Plan,
+  {
+    modulos: readonly Modulo[];
+    etapasVisibles: readonly EtapaDelPipeline[];
+    aplicacionesPorVacante: number | null;
+  }
+>;
+
+/**
+ * Vacantes activas del plan gratuito: 3 hasta 50 personas, 4 desde 51 (3 sin
+ * tamaño). `ajuste` es el número que fijó Vector HR para esa empresa.
+ *
+ * @example limiteDeVacantes(120) // 4
+ */
+export function limiteDeVacantes(tamano: number | null, ajuste: number | null = null): number {
+  if (ajuste !== null) return ajuste;
+  return tamano !== null && tamano >= 51 ? 4 : 3;
+}

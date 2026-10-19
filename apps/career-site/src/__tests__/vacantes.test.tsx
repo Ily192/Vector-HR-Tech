@@ -62,6 +62,16 @@ describe("career-site · /vacantes", () => {
     expect(card.getByText("Salario a convenir")).toBeInTheDocument();
   });
 
+  it("marca la vacante que llegó al tope de aplicaciones como 'Cupo completo'", async () => {
+    render(await listado());
+    const llena = within(document.querySelector('[data-vacante="data-analyst"]') as HTMLElement);
+    expect(llena.getByText("Cupo completo")).toBeInTheDocument();
+    const abierta = document.querySelector(
+      '[data-vacante="senior-software-engineer"]',
+    ) as HTMLElement;
+    expect(within(abierta).queryByText("Cupo completo")).toBeNull();
+  });
+
   it("filtra por palabra clave sin distinguir acentos ni mayúsculas", async () => {
     render(await listado({ q: "ALMACEN" }));
     expect(document.querySelectorAll("[data-vacante]")).toHaveLength(1);
@@ -119,6 +129,12 @@ describe("career-site · /vacantes/[slug]", () => {
   it("ofrece el CTA de aplicar deshabilitado (la subida de CV llega después)", async () => {
     render(await detalle("senior-software-engineer"));
     expect(screen.getByRole("button", { name: /Subir CV/i })).toBeDisabled();
+  });
+
+  it("con el cupo completo no ofrece aplicar y lo explica", async () => {
+    render(await detalle("data-analyst"));
+    expect(screen.getByText("Esta vacante ya no recibe aplicaciones.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Subir CV/i })).toBeNull();
   });
 
   it("incluye el link de vuelta al listado", async () => {

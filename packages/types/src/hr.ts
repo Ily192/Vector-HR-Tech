@@ -30,8 +30,12 @@ export const VacanteSchema = z.object({
   salary_max: z.number().nonnegative().nullable(),
   currency: z.string().length(3).default("USD"),
   status: VacanteStatusSchema,
+  /** Si el salario se muestra en el career site (0007). */
+  salario_publico: z.boolean().default(false),
   created_at: z.string().datetime(),
   closed_at: z.string().datetime().nullable(),
+  /** Borrado lógico al eliminarla desde el panel (0008). */
+  deleted_at: z.string().datetime().nullable().default(null),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;
 
@@ -39,7 +43,8 @@ export type Vacante = z.infer<typeof VacanteSchema>;
  * Fila de la vista `vacantes_publicas` (infra/supabase/migrations/0004 y 0007), lo
  * único que el career-site puede leer. La vista ya filtra `status = 'open'`, no
  * expone `empresa_id` y solo trae salario si la empresa lo marcó como público
- * (`salario_publico`): el career-site no decide qué es público.
+ * (`salario_publico`): el career-site no decide qué es público. `cupo_completo`
+ * (0008) dice si la vacante llegó al tope de aplicaciones de su plan.
  */
 export const VacantePublicaSchema = VacanteSchema.pick({
   id: true,
@@ -56,6 +61,7 @@ export const VacantePublicaSchema = VacanteSchema.pick({
   salario_min: z.number().nonnegative().nullable(),
   salario_max: z.number().nonnegative().nullable(),
   moneda: z.string().length(3).nullable(),
+  cupo_completo: z.boolean(),
 });
 export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 

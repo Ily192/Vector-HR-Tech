@@ -27,10 +27,16 @@ export function TarjetaVacante({ vacante: v, ahora }: { vacante: VacantePublica;
           <h3 className="text-[19px] font-extrabold leading-tight">{v.title}</h3>
           <p className="text-sm font-semibold text-mist-700">{v.empresa_nombre}</p>
         </div>
-        {esNueva(v.created_at, ahora) && (
-          <span className="shrink-0 rounded-full bg-aqua-50 px-2.5 py-0.5 text-xs font-bold text-aqua-700">
-            Nueva
+        {v.cupo_completo ? (
+          <span className="shrink-0 rounded-full bg-mist-100 px-2.5 py-0.5 text-xs font-bold text-mist-700">
+            Cupo completo
           </span>
+        ) : (
+          esNueva(v.created_at, ahora) && (
+            <span className="shrink-0 rounded-full bg-aqua-50 px-2.5 py-0.5 text-xs font-bold text-aqua-700">
+              Nueva
+            </span>
+          )
         )}
       </div>
       <p className="flex flex-wrap gap-x-3.5 gap-y-1 text-sm font-semibold text-mist-600">

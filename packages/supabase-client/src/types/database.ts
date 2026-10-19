@@ -11,7 +11,8 @@
  * cualquier query que falle en runtime indica que hay que regenerar.
  *
  * Cobertura actual: las 5 tablas del core HR que `@vortex/types` ya modela,
- * más la vista pública y las funciones del flujo de test psicométrico. Las
+ * más la vista pública, las funciones del flujo de test psicométrico y el cupo
+ * del plan (0008). Las
  * tablas de auditoría y las de 0002/0004 (`runs`, `activity_log`,
  * `psicometricos`, `entrevistas`, `constancias`, `invitations`,
  * `platform_admins`) NO están tipadas aquí a propósito: el cliente de browser
@@ -26,6 +27,7 @@ import type {
   Empresa,
   Profile,
   Vacante,
+  VacantePublica,
   VacanteStatus,
 } from "@vortex/types";
 
@@ -35,7 +37,17 @@ import type {
  * `applied_at` en vez de `created_at` (ver 0001), así que la restricción no
  * puede exigir `created_at`: hacerlo rompía el typecheck del paquete entero.
  */
-type Generated = "id" | "created_at" | "updated_at" | "applied_at";
+type Generated =
+  | "id"
+  | "created_at"
+  | "updated_at"
+  | "applied_at"
+  // Con default en la base (0007 y 0008).
+  | "plan"
+  | "tamano_empleados"
+  | "limite_vacantes"
+  | "salario_publico"
+  | "deleted_at";
 
 type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
   Partial<Pick<T, Extract<keyof T, Generated>>>;
@@ -44,17 +56,12 @@ type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
 type Update<T> = Partial<Omit<T, "id" | "empresa_id">>;
 
 /**
- * Proyección pública de `vacantes` (ver 0004): sin ICP, sin bandas salariales
- * y sin `empresa_id` — publicar los uuids de tenant daba a cualquiera la lista
- * de objetivos a los que apuntar.
+ * Proyección pública de `vacantes` (0004, 0007 y 0008): sin ICP ni `empresa_id`
+ * —publicar los uuids de tenant daba a cualquiera la lista de objetivos a los
+ * que apuntar—, con el salario solo si la empresa lo publica y `cupo_completo`.
+ * La forma vive en `@vortex/types` (`VacantePublicaSchema`).
  */
-export type VacantePublica = Pick<
-  Vacante,
-  "id" | "slug" | "title" | "jd" | "modality" | "created_at"
-> & {
-  seniority: Vacante["seniority"];
-  location: Vacante["location"];
-};
+export type { VacantePublica };
 
 export interface Database {
   public: {
@@ -105,6 +112,16 @@ export interface Database {
           expires_at: string;
         }[];
       };
+      /** "3 de 4" del panel (0008). `null` en límite = sin tope (plan con IA). */
+      mi_cupo_de_vacantes: {
+        Args: Record<string, never>;
+        Returns: {
+          activas: number;
+          limite: number | null;
+          libres: number | null;
+          max_aplicaciones: number | null;
+        }[];
+      };
       submit_psicometrico: {
         Args: {
           p_token: string;
@@ -118,6 +135,7 @@ export interface Database {
     Enums: {
       vacante_status: VacanteStatus;
       application_status: ApplicationStatus;
+      plan_empresa: "gratis" | "ia";
       role_type: "Colaborador" | "HR" | "Director" | "SuperAdmin" | "cliente";
     };
     CompositeTypes: Record<string, never>;

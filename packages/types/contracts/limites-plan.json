@@ -1,0 +1,25 @@
+{
+  "$comment": "Límites de cada plan (ADR-017, punto 3). La dueña es services/hr-engine/app/domain/plan.py. La aplican también la migración 0008 (trigger, aplicar_a_vacante() y el hook del JWT) y packages/types/src/reglas.ts la espeja para la UI. Los tres lados se prueban contra este fichero: si cambias un límite aquí, cámbialo en los tres.",
+  "max_aplicaciones_gratis": 50,
+  "planes": {
+    "gratis": {
+      "modulos": ["career-site"],
+      "etapas_visibles": ["applied"],
+      "con_limites": true
+    },
+    "ia": {
+      "modulos": ["career-site", "cockpit"],
+      "etapas_visibles": ["applied", "evaluated", "shortlisted", "interviewed", "offered"],
+      "con_limites": false
+    }
+  },
+  "casos_limite_de_vacantes": [
+    { "tamano": null, "ajuste": null, "limite": 3 },
+    { "tamano": 1, "ajuste": null, "limite": 3 },
+    { "tamano": 50, "ajuste": null, "limite": 3 },
+    { "tamano": 51, "ajuste": null, "limite": 4 },
+    { "tamano": 800, "ajuste": null, "limite": 4 },
+    { "tamano": 30, "ajuste": 5, "limite": 5 },
+    { "tamano": 800, "ajuste": 2, "limite": 2 }
+  ]
+}

@@ -3,6 +3,9 @@ import { z } from "zod";
 export const RoleSchema = z.enum(["Colaborador", "HR", "Director", "SuperAdmin", "cliente"]);
 export type Role = z.infer<typeof RoleSchema>;
 
+/** Plan de la empresa (0008, ADR-017). Sus límites están en `reglas.ts` (`LIMITES_DEL_PLAN`). */
+export const PlanSchema = z.enum(["gratis", "ia"]);
+
 export const EmpresaSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -20,6 +23,11 @@ export const EmpresaSchema = z.object({
     .default("#1E1B4B"),
   normativa_interna: z.string().nullable(),
   google_webhook_url: z.string().url().nullable(),
+  plan: PlanSchema.default("gratis"),
+  /** Personas en la empresa; decide su tope de vacantes en el plan gratis. */
+  tamano_empleados: z.number().int().positive().nullable().default(null),
+  /** Ajuste de Vector HR al tope de vacantes. `null` = el que da el tamaño. */
+  limite_vacantes: z.number().int().min(1).max(50).nullable().default(null),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
