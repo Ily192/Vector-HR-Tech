@@ -325,17 +325,19 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
   insert into platform_admins (user_id, note) values ('<uuid>', 'Ilyra · bootstrap');
   ```
 - Copiar `URL`, `anon key` y `service_role key` a Doppler.
-- **Plan de las empresas** (ADR-018 §11). Todas entran como `gratis`.
+- **Plan de las empresas** (ADR-018 §11, vigente con ADR-019). Todas entran como `gratis`.
   - Al crearlas, pasar a `ia` solo a Vector HR Tech (interna) y a Siete (piloto a US$0 hasta
     cerrar F3):
     ```sql
     update empresas set plan = 'ia' where slug in ('<slug de Vector HR>', '<slug de Siete>');
     ```
-  - Cualquier otra empresa pasa a `ia` solo con contrato. El cambio dispara el desbloqueo de sus
-    preevaluaciones (0009).
-- **Antes de encender la preselección con candidatos reales,** cumplir las "Condiciones para
-  activarlo en producción" de ADR-018: aviso al candidato, opción sin IA, contrato de encargo,
-  evaluación de impacto y key de Gemini probada.
+  - Cualquier otra empresa pasa a `ia` solo con contrato. El cambio borra su gancho (0010):
+    al activarla, configurar sus agentes en Paperclip y evaluar las aplicaciones que tenga
+    en "Aplicados".
+- **Antes de abrir el career site a candidatos reales,** cumplir las "Condiciones antes de
+  producción" de ADR-019: aviso al candidato, términos del plan gratis y anti-spam en el
+  formulario. Las de IA (evaluación de impacto, key de Gemini, revisión humana) van con el
+  piloto de pago de Siete.
 
 **No correr `seed.sql` contra el proyecto real.** Ahora tiene una guarda de
 entorno que aborta fuera de bases `*dev*`/`*test*`, pero los tokens del seed

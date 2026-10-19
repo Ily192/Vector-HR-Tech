@@ -36,18 +36,20 @@ Engines validan firma + scope antes de ejecutar.
 **Positivas:** todo path agentic pasa por governance. Cost cap aplicado en origen.
 **Negativas:** Paperclip se vuelve dependencia crítica (mitigado con cache de keys públicas + circuit breaker en engines).
 
-## Actualización 2026-10-19 · trabajos internos del engine (ADR-018)
+## Actualización 2026-10-19 · el plan gratis no corre agentes (ADR-019)
 
-La preselección del plan gratis no es una run de agente: la lanza el planificador del
-hr-engine (Celery beat) y no lleva run-token, porque una empresa gratuita no tiene
-presupuesto en Paperclip. Conserva lo que este ADR protege:
-
-- **Atribución:** cada evaluación deja su fila en `runs` con `origen = preseleccion-gratis`
-  y su costo.
-- **Tope de gasto:** por empresa y del plan gratis al mes (ADR-018 §5).
-- **Ninguna llave global expuesta:** el trabajo no tiene endpoint.
+- **Todo run exige el plan con IA.** El hr-engine responde 403 al run-token de una
+  empresa gratuita antes de crear la fila en `runs`. Así un Paperclip mal configurado, o
+  una empresa que dejó de pagar, no gasta LLM.
+- **La coincidencia de skills del plan gratis no es una run de agente.** La lanza el
+  planificador del hr-engine (Celery beat) y no lleva run-token. No llama a ningún LLM:
+  no tiene costo que atribuir en `runs` ni tope de gasto. No tiene endpoint, así que no
+  expone ninguna llave.
 
 Todo lo que lanza un agente sigue pasando por Paperclip.
+
+(Esta sección reemplaza la que añadió ADR-018 el mismo día para una preselección con IA
+que nunca llegó a construirse.)
 
 ## Alternatives considered
 

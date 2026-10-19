@@ -23,7 +23,8 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [015](015-tenant-identity-in-app-metadata.md) | Identidad de tenant en `app_metadata`; privilegio de plataforma fuera de `profiles` | Accepted |
 | [016](016-logica-de-negocio-fuera-de-la-ui.md) | La lógica de negocio vive en el backend; la UI solo la presenta | Accepted |
 | [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Accepted |
-| [018](018-preseleccion-ia-del-plan-gratis.md) | Preseleccionar con IA el plan gratis: a ciegas, con topes y por instrucción de la empresa | Accepted |
+| [018](018-preseleccion-ia-del-plan-gratis.md) | Preseleccionar con IA el plan gratis: a ciegas, con topes y por instrucción de la empresa | Superseded by ADR-019 (siguen vigentes §10-§12 y §14) |
+| [019](019-plan-gratis-sin-ia.md) | El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho | Accepted |
 
 ## Cómo escribir una ADR
 
