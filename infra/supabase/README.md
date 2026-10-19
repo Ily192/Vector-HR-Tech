@@ -58,6 +58,7 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
 | `0006_definer_search_path_fix.sql` | `search_path = ''` y referencias calificadas en las funciones `security definer` |
 | `0007_vacantes_publicas_empresa_y_salario.sql` | `vacantes_publicas` con el nombre y slug de la empresa, y el salario solo si `salario_publico` |
 | `0008_plan_gratis_limites.sql` | Plan de la empresa (`gratis` / `ia`) y límites del plan gratuito: trigger de vacantes activas, tope de 50 en `aplicar_a_vacante()`, `mi_cupo_de_vacantes()`, `cupo_completo` en la vista y `plan` + `modulos` en el JWT (ADR-017) |
+| `0009_gancho_plan_gratis.sql` | Gancho del plan gratis: preevaluaciones en el esquema `privado` (fuera de la API), `resumen_del_gancho()` por lotes de 5, las etapas de pago bloqueadas para el plan gratis y el desbloqueo al pasar a `ia` (ADR-018) |
 
 ## RLS — reglas vigentes
 

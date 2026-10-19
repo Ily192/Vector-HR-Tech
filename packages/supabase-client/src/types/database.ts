@@ -122,6 +122,18 @@ export interface Database {
           max_aplicaciones: number | null;
         }[];
       };
+      /** El gancho del plan gratis (0009). Sin filas si la vacante no es tuya o tienes el plan con IA. */
+      resumen_del_gancho: {
+        Args: { p_vacante: string };
+        Returns: {
+          aplicaciones: number;
+          cvs_evaluados: number;
+          en_espera: number;
+          segundos: number;
+          califican: number;
+          cumplen_todas_las_skills: number;
+        }[];
+      };
       submit_psicometrico: {
         Args: {
           p_token: string;
