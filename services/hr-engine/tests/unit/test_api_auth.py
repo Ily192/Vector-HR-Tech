@@ -10,9 +10,9 @@ import time
 from typing import Any
 from uuid import UUID, uuid4
 
+import jwt
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
 
 from app.config import settings
 from app.security.run_token import issue_run_token
@@ -78,7 +78,7 @@ def test_invalid_signature_is_401(
                 "cost_cap_usd": 0.05,
                 "exp": int(time.time()) + 300,
             },
-            "clave-del-atacante",
+            "clave-del-atacante-de-al-menos-32-bytes",
             algorithm="HS256",
         ),
     )

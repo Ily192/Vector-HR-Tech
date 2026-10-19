@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import time
+import warnings
 from uuid import uuid4
 
+import jwt
 import pytest
 from fastapi import HTTPException
-from jose import jwt
+from jwt.warnings import InsecureKeyLengthWarning
 
 from app.config import settings
 from app.security.run_token import (
@@ -46,9 +48,52 @@ def test_decode_valid_token_returns_claims() -> None:
 
 
 def test_decode_rejects_bad_signature() -> None:
-    forged = str(jwt.encode({"empresa_id": str(EMPRESA_ID)}, "otra-clave", algorithm="HS256"))
+    forged = jwt.encode(
+        {"empresa_id": str(EMPRESA_ID)}, "otra-clave-de-al-menos-32-bytes!", algorithm="HS256"
+    )
     with pytest.raises(HTTPException) as exc_info:
         decode_run_token(forged)
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize("algoritmo", ["HS384", "HS512"])
+def test_el_algoritmo_lo_fija_el_engine_no_el_token(algoritmo: str) -> None:
+    # Misma clave, otro algoritmo en el header: se rechaza (algorithm confusion).
+    # HS384/HS512 piden claves más largas que la de los tests; aquí se firma así
+    # a propósito, por eso se silencia el aviso solo en este encode.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", InsecureKeyLengthWarning)
+        token = jwt.encode(
+            {
+                "empresa_id": str(EMPRESA_ID),
+                "agent_skill": "sourcer",
+                "run_id": str(RUN_ID),
+                "cost_cap_usd": 0.05,
+                "exp": int(time.time()) + 300,
+            },
+            settings.jwt_secret,
+            algorithm=algoritmo,
+        )
+    with pytest.raises(HTTPException) as exc_info:
+        decode_run_token(token)
+    assert exc_info.value.status_code == 401
+
+
+def test_decode_rejects_unsigned_token() -> None:
+    # `alg: none`: un token sin firma no pasa aunque traiga claims válidos.
+    token = jwt.encode(
+        {
+            "empresa_id": str(EMPRESA_ID),
+            "agent_skill": "sourcer",
+            "run_id": str(RUN_ID),
+            "cost_cap_usd": 0.05,
+            "exp": int(time.time()) + 300,
+        },
+        None,
+        algorithm="none",
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        decode_run_token(token)
     assert exc_info.value.status_code == 401
 
 

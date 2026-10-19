@@ -18,7 +18,8 @@ import os
 #    depender de la máquina donde corre.
 _FORCED_ENV = {
     "ENV": "development",
-    "JWT_SECRET": "test-secret-not-for-production",
+    # 32 bytes o más: PyJWT avisa con claves HMAC más cortas, y pytest lo trata como error.
+    "JWT_SECRET": "test-secret-not-for-production-hs256",
     "JWT_ALGORITHM": "HS256",
     "LOG_LEVEL": "warning",
 }
@@ -51,5 +52,5 @@ def _assert_test_env_applied() -> None:
     Es la red de seguridad del bug descrito en el docstring del módulo.
     """
     assert settings.env == "development"
-    assert settings.jwt_secret == "test-secret-not-for-production"
+    assert settings.jwt_secret == "test-secret-not-for-production-hs256"
     assert settings.log_level == "warning"

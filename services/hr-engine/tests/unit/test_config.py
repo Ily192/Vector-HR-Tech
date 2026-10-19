@@ -87,7 +87,7 @@ def test_otel_endpoint_reads_standard_env_name(monkeypatch: pytest.MonkeyPatch) 
 
 def test_conftest_env_reached_the_module_level_settings() -> None:
     """El fix de `tests/conftest.py`: el env de test llega al singleton."""
-    assert settings.jwt_secret == "test-secret-not-for-production"
+    assert settings.jwt_secret == "test-secret-not-for-production-hs256"
     assert settings.env == "development"
 
 
