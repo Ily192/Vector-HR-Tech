@@ -1,0 +1,6 @@
+# Falsos positivos confirmados de Gitleaks. Formato: commit:fichero:regla:línea.
+#
+# adbbc77 · services/hr-engine/.env.example:49 — `SUPABASE_SECRET_KEY=` está vacío; la
+# regla generic-api-key tomó como valor la línea siguiente (`COINCIDENCIAS_LOTE=25`).
+# Corregido en el commit siguiente con un comentario en la misma línea.
+adbbc77227027ac315aa434c3f365d50bcbafb1f:services/hr-engine/.env.example:generic-api-key:49
