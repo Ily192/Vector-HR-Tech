@@ -136,14 +136,30 @@ def reset_client_cache() -> None:
     _get_openai_client.cache_clear()
 
 
-def _generation_config() -> types.GenerateContentConfig:
+def _generation_config(model: str) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         system_instruction=_system_instruction(),
         response_mime_type="application/json",
         temperature=0.2,
         top_p=0.95,
         max_output_tokens=1024,
+        thinking_config=_thinking_config(model),
     )
+
+
+def _thinking_config(model: str) -> types.ThinkingConfig | None:
+    """Cuánto razona el modelo antes de puntuar.
+
+    2.5 Flash razona por defecto ("dynamic thinking") y esos tokens se cobran como
+    salida y cuentan dentro de `max_output_tokens`: con 1024 puede agotarse
+    razonando y devolver el JSON cortado, cobrado igual. Se fija con
+    `SCORING_THINKING_BUDGET` (0 lo apaga). Los Gemini 3 usan `thinking_level` y no
+    aceptan este parámetro, y 2.5 Pro no permite apagarlo: con ellos se deja el
+    valor por defecto del modelo. Fuente: ai.google.dev/gemini-api/docs/thinking.
+    """
+    if model.startswith("gemini-2.5-flash"):
+        return types.ThinkingConfig(thinking_budget=settings.scoring_thinking_budget)
+    return None
 
 
 def _cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
@@ -191,7 +207,7 @@ async def _score_con_gemini(candidate: dict[str, Any], icp_text: str) -> Scoring
     response = await client.aio.models.generate_content(
         model=model_name,
         contents=prompt,
-        config=_generation_config(),
+        config=_generation_config(model_name),
     )
 
     raw = response.text
@@ -212,7 +228,9 @@ async def _score_con_gemini(candidate: dict[str, Any], icp_text: str) -> Scoring
 
     usage = response.usage_metadata
     input_tokens = (usage.prompt_token_count or 0) if usage else 0
-    output_tokens = (usage.candidates_token_count or 0) if usage else 0
+    # El razonamiento se cobra como salida aunque no venga en la respuesta.
+    thinking_tokens = (usage.thoughts_token_count or 0) if usage else 0
+    output_tokens = ((usage.candidates_token_count or 0) if usage else 0) + thinking_tokens
     cost = _cost_usd(model_name, input_tokens, output_tokens)
     logger.debug(
         "scoring.score_candidate_fit",
@@ -220,6 +238,7 @@ async def _score_con_gemini(candidate: dict[str, Any], icp_text: str) -> Scoring
         score=parsed.score,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
+        thinking_tokens=thinking_tokens,
         cost_usd=round(cost, 6),
     )
     return ScoringResult(
