@@ -59,6 +59,7 @@ def test_hay_modulos_que_comprobar() -> None:
         ("domain", "gancho.py"),
         ("domain", "coincidencia.py"),
         ("application", "evaluate_candidate.py"),
+        ("application", "coincidir_cvs.py"),
     } <= presentes
 
 

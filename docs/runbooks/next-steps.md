@@ -717,6 +717,13 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
       formulario público.
 - [ ] **Destino de deploy del backend.** ADR-012 eligió Fly.io y no existe ni
       un `fly.toml` ni un step de `flyctl` en ningún workflow.
+  - El hr-engine son tres procesos con la misma imagen: la API, el worker de
+    Celery y **un solo** `celery -A app.workers.celery_app beat`, que lanza la
+    coincidencia de skills del plan gratis cada minuto y su purga diaria
+    (ADR-019). Con dos beats las tareas se duplican.
+  - El worker necesita `SUPABASE_URL` y `SUPABASE_SECRET_KEY` (la clave
+    `sb_secret_…`, solo de servidor) para bajar los CVs. Sin ellas el barrido
+    avisa y no hace nada.
 - [ ] **Backups.** La única estrategia documentada es PITR de Supabase, que es
       del plan Pro; ADR-012 planifica el free tier. El RTO de 30 min no se
       sostiene hoy.

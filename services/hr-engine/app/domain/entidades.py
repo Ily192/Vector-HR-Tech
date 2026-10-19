@@ -97,3 +97,14 @@ class ResultadoScoring:
     fit: FitScore
     cost_usd: float
     model: str
+
+
+@dataclass(frozen=True, slots=True)
+class CvPendiente:
+    """Un CV del plan gratis sin coincidencia con las skills que su vacante pide hoy (ADR-019)."""
+
+    application_id: UUID
+    empresa_id: UUID
+    #: Dónde está en el bucket `cvs`: `{empresa_id}/...` (migración 0005).
+    ruta: str
+    skills: tuple[str, ...]

@@ -156,8 +156,8 @@ Menos que con ADR-018, porque el plan gratis ya no trata datos con IA:
 
 | PR | Qué |
 |---|---|
-| Este | Migración 0010, `domain/coincidencia.py`, `domain/gancho.py`, `verificar_ia` en el hr-engine, contratos, tipos y el gancho del panel con datos de ejemplo |
-| Siguiente | Worker del hr-engine: Storage, extracción de texto, Celery beat y purga diaria |
+| #68 | Migración 0010, `domain/coincidencia.py`, `domain/gancho.py`, `verificar_ia` en el hr-engine, contratos, tipos y el gancho del panel con datos de ejemplo |
+| Este | Worker del hr-engine (`CoincidirCvsPendientes`): Storage con la clave secreta, texto con pypdf y del XML del DOCX (defusedxml), Celery beat cada minuto y purga diaria. Marca cada CV como ilegible antes de leerlo, para que un PDF malicioso no bloquee los barridos |
 | Siguiente | Panel conectado a Supabase: campo de skills en "Crear empleo", gancho real, cupos y descarga en .zip |
 
 ## Consequences

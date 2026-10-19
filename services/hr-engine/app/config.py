@@ -117,6 +117,17 @@ class Settings(BaseSettings):
     # el `.agents/skills` de la raíz del monorepo. La imagen fija /app/skills.
     skills_dir: str = ""
 
+    # ─── Supabase Storage (CVs) ──────────────────────────
+    # Para bajar los CVs en la coincidencia de skills del plan gratis (ADR-019).
+    supabase_url: str = ""
+    # La clave secreta (sb_secret_…) o la service_role legada. Solo de servidor.
+    supabase_secret_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"),
+    )
+    # CVs por barrido (cada minuto).
+    coincidencias_lote: int = Field(default=25, ge=1, le=500)
+
     # ─── Control plane ───────────────────────────────────
     paperclip_url: str = "http://localhost:4000"
     paperclip_api_key: str = ""

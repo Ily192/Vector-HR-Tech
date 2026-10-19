@@ -1,4 +1,5 @@
-"""Puertos de la evaluación: lo que el dominio necesita del mundo exterior.
+"""Puertos de la evaluación y de la coincidencia de skills: lo que el dominio necesita del
+mundo exterior.
 
 Los implementan los adaptadores de infraestructura (SQL, OpenAI, Gemini) y, en
 los tests, adaptadores falsos. El dominio solo conoce estas firmas.
@@ -11,6 +12,7 @@ from uuid import UUID
 
 from app.domain.entidades import (
     Candidato,
+    CvPendiente,
     Embedding,
     FitScore,
     PerfilAnonimo,
@@ -79,3 +81,43 @@ class ScoringProvider(Protocol):
     """
 
     async def score(self, perfil: PerfilAnonimo, icp: str) -> ResultadoScoring: ...
+
+
+# ─── Coincidencia de skills del plan gratis (ADR-019) ────────────────────────
+
+
+class CvInaccesibleError(LookupError):
+    """El CV no se puede bajar y no se podrá después: no existe o pasa del tamaño máximo."""
+
+
+class AlmacenNoDisponibleError(RuntimeError):
+    """Storage no responde o rechaza la clave. El CV espera al siguiente barrido."""
+
+
+class AlmacenDeCvs(Protocol):
+    """Los CVs que subieron los candidatos. Solo existe del lado del servidor."""
+
+    async def descargar(self, ruta: str) -> bytes: ...
+
+
+class ExtractorDeTexto(Protocol):
+    def extraer(self, contenido: bytes) -> str | None:
+        """El texto del CV, o None si su formato no se puede leer (.doc, imagen, dañado)."""
+        ...
+
+
+class RepositorioDeCoincidencias(Protocol):
+    """Las coincidencias y los CVs ilegibles, en el esquema `privado`."""
+
+    async def pendientes(self, limite: int) -> list[CvPendiente]: ...
+
+    async def guardar(self, cv: CvPendiente, encontradas: tuple[str, ...]) -> bool:
+        """Guarda la coincidencia solo si la vacante sigue pidiendo `cv.skills`.
+
+        Devuelve si la guardó. Al guardarla, el CV deja de estar marcado como ilegible.
+        """
+        ...
+
+    async def marcar_ilegible(self, cv: CvPendiente) -> None: ...
+
+    async def desmarcar_ilegible(self, cv: CvPendiente) -> None: ...
