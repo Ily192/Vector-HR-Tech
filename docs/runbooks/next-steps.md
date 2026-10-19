@@ -161,7 +161,7 @@ docker exec vortex-rls-pg pg_isready -U vortex -d vortex_test
 # 3. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
 cd services/hr-engine
 DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:55432/vortex_test" \
-JWT_SECRET="test-secret-do-not-use" \
+JWT_SECRET="test-secret-do-not-use-in-production" \
   uv run pytest tests/security -q
 set +e
 ```

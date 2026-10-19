@@ -212,7 +212,7 @@ jobs:
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DATABASE_URL: postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test
-      JWT_SECRET: test-secret-do-not-use
+      JWT_SECRET: test-secret-do-not-use-in-production
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

@@ -24,7 +24,7 @@ INSECURE_SECRETS: frozenset[str] = frozenset(
         "changeme",
         "secret",
         "test-secret",
-        "test-secret-not-for-production",
+        "test-secret-not-for-production-hs256",
     },
 )
 

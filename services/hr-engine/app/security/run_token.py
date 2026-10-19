@@ -17,6 +17,8 @@ Reglas que aplica este módulo:
 1. `Authorization: Bearer <jwt>` obligatorio → sin header ⇒ 401.
 2. Firma + `exp` verificados con `settings.jwt_secret` / `jwt_algorithm`
    (leeway configurable para clock skew) → firma inválida o expirado ⇒ 401.
+   El algoritmo lo fija el engine, nunca el header del token: un token firmado
+   con otro algoritmo (o con `alg: none`) ⇒ 401.
 3. Los claims se validan contra el schema; claim faltante o malformado ⇒ 401.
 4. `agent_skill` del token debe corresponder al endpoint invocado; un token de
    `sourcer` NO puede llamar a `cv-evaluator` ⇒ 403.
@@ -31,10 +33,10 @@ import time
 from typing import Any
 from uuid import UUID
 
+import jwt
 from fastapi import HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import jwt
-from jose.exceptions import ExpiredSignatureError, JWTError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.config import settings
@@ -92,21 +94,19 @@ def decode_run_token(token: str) -> RunTokenClaims:
         HTTPException 401: token malformado, firma inválida, expirado o con
             claims que no cumplen `RunTokenClaimsSchema`.
     """
+    # PyJWT (pyjwt.readthedocs.io, API Reference → `jwt.decode`): `algorithms`
+    # es la lista de permitidos y no se calcula a partir del token.
     try:
         payload: dict[str, Any] = jwt.decode(
             token,
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
-            options={
-                "require_exp": True,
-                "verify_exp": True,
-                "verify_aud": False,
-                "leeway": settings.jwt_leeway_seconds,
-            },
+            options={"require": ["exp"], "verify_exp": True, "verify_aud": False},
+            leeway=settings.jwt_leeway_seconds,
         )
     except ExpiredSignatureError as exc:
         raise _unauthorized("Run-token expirado") from exc
-    except JWTError as exc:
+    except InvalidTokenError as exc:
         raise _unauthorized("Run-token inválido") from exc
 
     try:
@@ -186,12 +186,11 @@ def issue_run_token(
         "cost_cap_usd": cost_cap_usd,
         "exp": int(time.time()) + ttl,
     }
-    token: str = jwt.encode(
+    return jwt.encode(
         payload,
         secret or settings.jwt_secret,
         algorithm=algorithm or settings.jwt_algorithm,
     )
-    return token
 
 
 __all__ = [
