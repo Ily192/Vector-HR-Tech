@@ -23,6 +23,10 @@
     "e2e:smoke": "turbo run e2e:smoke --",
     "storybook": "turbo run storybook --parallel",
     "tokens:build": "pnpm --filter @vortex/design-tokens build",
+    "db:start": "supabase start --workdir infra",
+    "db:stop": "supabase stop --workdir infra",
+    "db:reset": "supabase db reset --workdir infra",
+    "db:status": "supabase status --workdir infra",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky"
   },
@@ -35,6 +39,7 @@
     "husky": "^9.1.0",
     "lint-staged": "^16.4.0",
     "size-limit": "^11.1.0",
+    "supabase": "2.120.0",
     "turbo": "^2.1.0",
     "typescript": "^5.5.0"
   },
