@@ -5,16 +5,23 @@
 Dos caminos, y conviene no mezclarlos:
 
 **A. Supabase CLI** — el más fiel a producción, porque trae `auth`, Storage y
-los roles reales (`anon`, `authenticated`, `service_role`).
+los roles reales (`anon`, `authenticated`, `service_role`). La CLI va fijada en
+el `package.json` de la raíz y su configuración es `infra/supabase/config.toml`:
+Postgres 17, el hook del JWT activado, el panel (`localhost:3001`) como sitio de
+Auth y sin Realtime, Edge Functions ni analítica.
 
 ```bash
-supabase init        # solo primera vez en el proyecto
-supabase start       # arranca Postgres local + Auth + Storage
-supabase db reset    # aplica migrations + seed
+pnpm db:start     # levanta Postgres + Auth + Storage + PostgREST y aplica migraciones y seed
+pnpm db:status    # URLs y claves locales (son las de demo de la CLI, no secretos)
+pnpm db:reset     # vuelve a aplicar todo desde cero
+pnpm db:stop
 ```
 
-URL local: `postgresql://postgres:postgres@localhost:54322/postgres`
-Studio:   http://localhost:54323
+API: http://127.0.0.1:54321 · Studio: http://127.0.0.1:54323 · Correos (Mailpit):
+http://127.0.0.1:54324 · Postgres: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+
+Es el único entorno local con Storage de verdad. Ahí apareció el bug de 0011: en
+el banco de pruebas, que no tiene Storage, la empresa sí podía leer sus CVs.
 
 **B. docker compose** — Postgres + Redis + hr-engine, sin Auth ni Storage.
 
@@ -60,6 +67,7 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
 | `0008_plan_gratis_limites.sql` | Plan de la empresa (`gratis` / `ia`) y límites del plan gratuito: trigger de vacantes activas, tope de 50 en `aplicar_a_vacante()`, `mi_cupo_de_vacantes()`, `cupo_completo` en la vista y `plan` + `modulos` en el JWT (ADR-017) |
 | `0009_gancho_plan_gratis.sql` | Preselección con IA del plan gratis (ADR-018). Preevaluaciones en el esquema `privado`, fuera de la API. Funciones: `resumen_del_gancho()` (lotes de 5), `muestra_del_gancho()` (una evaluación ciega fija) y `registrar_visita_al_pipeline()`. Interruptor `vacantes.preseleccion_ia` y oposición `applications.sin_ia`, los dos con borrado, y purga 30 días después del cierre. Etapas de pago bloqueadas (PT403) y desbloqueo al pasar a `ia`. **0010 deshace la parte de IA** |
 | `0010_plan_gratis_sin_ia.sql` | El plan gratis sin IA (ADR-019). Quita las preevaluaciones, la muestra, las visitas y el interruptor de 0009. El gancho pasa a ser una coincidencia de skills: `vacantes.skills`, `privado.coincidencias` y `resumen_del_gancho()` por lotes de 5. Cierra la frontera con lo de pago: tope de 50 aplicaciones **recibidas** por cualquier vía (`privado.aplicaciones_recibidas`), publicaciones nuevas cada 30 días (`vacantes.publicada_en`), cockpit solo con el plan con IA (PT403) y oposición del candidato que la empresa no puede retirar. Además, `aplicar_a_vacante(p_sin_ia)`, `cupos_de_aplicaciones()` y `mi_cupo_de_vacantes()` con las publicaciones |
+| `0011_app_role_en_storage.sql` | `public.app_role()` lee primero `app_metadata.app_role` del JWT. La Storage API define `request.jwt.claim.role = 'authenticated'` y, con el orden de 0001, la empresa no podía bajar ni firmar sus propios CVs (policy `cvs_tenant_read`). El GUC queda de respaldo solo con un rol de la aplicación, como lo usa el hr-engine |
 
 ## RLS — reglas vigentes
 
