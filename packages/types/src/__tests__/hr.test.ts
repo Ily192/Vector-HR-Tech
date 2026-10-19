@@ -66,9 +66,16 @@ describe("VacanteSchema", () => {
     expect(parsed.currency).toBe("USD");
   });
 
-  it("la preselección con IA viene encendida si la base no dice otra cosa (0009)", () => {
-    expect(VacanteSchema.parse(vacante()).preseleccion_ia).toBe(true);
-    expect(VacanteSchema.parse(vacante({ preseleccion_ia: false })).preseleccion_ia).toBe(false);
+  it("las skills vienen vacías si la base no dice otra cosa, y como la base las acepta (0010)", () => {
+    expect(VacanteSchema.parse(vacante()).skills).toEqual([]);
+    expect(VacanteSchema.parse(vacante({ skills: ["Python", "SQL"] })).skills).toEqual([
+      "Python",
+      "SQL",
+    ]);
+    const dieciseis = Array.from({ length: 16 }, () => "Python");
+    expect(VacanteSchema.safeParse(vacante({ skills: dieciseis })).success).toBe(false);
+    expect(VacanteSchema.safeParse(vacante({ skills: ["  "] })).success).toBe(false);
+    expect(VacanteSchema.safeParse(vacante({ skills: ["x".repeat(61)] })).success).toBe(false);
   });
 
   it("rechaza currency que no sea código ISO de 3 letras", () => {

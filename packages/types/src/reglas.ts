@@ -54,18 +54,21 @@ export type Modulo = "career-site" | "cockpit";
 /**
  * Límites de cada plan.
  *
- * Dueña: `services/hr-engine/app/domain/plan.py`; los aplica la base (migración
- * 0008). Contrato: `contracts/limites-plan.json`. La UI los usa para explicar el
- * cupo; el número de vacantes que le quedan a una empresa lo da la base
- * (`mi_cupo_de_vacantes()`), no se calcula aquí.
+ * Dueña: `services/hr-engine/app/domain/plan.py`; los aplica la base (migraciones
+ * 0008 y 0010). Contrato: `contracts/limites-plan.json`. La UI los usa para
+ * explicar el cupo; el número de vacantes que le quedan a una empresa lo da la
+ * base (`mi_cupo_de_vacantes()`), no se calcula aquí. `incluyeIa`: si para la
+ * empresa corren agentes y LLM; la IA es lo que se paga (ADR-019).
  */
 export const LIMITES_DEL_PLAN = {
   gratis: {
+    incluyeIa: false,
     modulos: ["career-site"],
     etapasVisibles: ["applied"],
     aplicacionesPorVacante: 50,
   },
   ia: {
+    incluyeIa: true,
     modulos: ["career-site", "cockpit"],
     etapasVisibles: ETAPAS_DEL_PIPELINE,
     aplicacionesPorVacante: null,
@@ -73,11 +76,19 @@ export const LIMITES_DEL_PLAN = {
 } as const satisfies Record<
   Plan,
   {
+    incluyeIa: boolean;
     modulos: readonly Modulo[];
     etapasVisibles: readonly EtapaDelPipeline[];
     aplicacionesPorVacante: number | null;
   }
 >;
+
+/**
+ * Días de la ventana móvil en la que el plan gratis publica tantas vacantes nuevas
+ * como vacantes activas permite (ADR-019). Reabrir una vacante no cuenta. Cuántas
+ * le quedan a una empresa lo da la base (`mi_cupo_de_vacantes()`).
+ */
+export const VENTANA_DE_PUBLICACIONES_DIAS = 30;
 
 /**
  * Vacantes activas del plan gratuito: 3 hasta 50 personas, 4 desde 51 (3 sin

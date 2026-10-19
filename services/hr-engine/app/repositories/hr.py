@@ -38,6 +38,17 @@ def _vec_literal(embedding: list[float]) -> str:
     return "[" + ",".join(f"{v:.7f}" for v in embedding) + "]"
 
 
+async def plan_de_la_empresa(db: AsyncSession, empresa_id: UUID | str) -> str | None:
+    """`gratis` o `ia`, tal como está en la base; None si la empresa no existe."""
+    plan = (
+        await db.execute(
+            text("select plan::text from empresas where id = :id"),
+            {"id": str(empresa_id)},
+        )
+    ).scalar_one_or_none()
+    return None if plan is None else str(plan)
+
+
 async def get_vacante(db: AsyncSession, vacante_id: UUID | str) -> VacanteRow | None:
     row = (
         (

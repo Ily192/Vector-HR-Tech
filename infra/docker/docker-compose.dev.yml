@@ -40,6 +40,7 @@ services:
       - ../supabase/migrations/0007_vacantes_publicas_empresa_y_salario.sql:/docker-entrypoint-initdb.d/16_0007_vacantes_publicas_empresa_y_salario.sql:ro
       - ../supabase/migrations/0008_plan_gratis_limites.sql:/docker-entrypoint-initdb.d/17_0008_plan_gratis_limites.sql:ro
       - ../supabase/migrations/0009_gancho_plan_gratis.sql:/docker-entrypoint-initdb.d/18_0009_gancho_plan_gratis.sql:ro
+      - ../supabase/migrations/0010_plan_gratis_sin_ia.sql:/docker-entrypoint-initdb.d/19_0010_plan_gratis_sin_ia.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

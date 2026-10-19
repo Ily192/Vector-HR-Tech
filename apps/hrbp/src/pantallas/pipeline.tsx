@@ -22,37 +22,51 @@ function cuandoAplico(fechaIso: string) {
 }
 
 /**
- * El gancho del plan gratis, al estilo de "quién vio tu perfil": los números que
- * los agentes ya sacaron de los CVs, sin decir de quién son.
+ * El gancho del plan gratis, al estilo de "quién vio tu perfil": cuántos CVs
+ * mencionan las skills de la vacante, sin decir cuáles. No es IA y lo dice: cuenta
+ * menciones, no juzga experiencia (ADR-019).
  */
 function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
   const interes = useRegistrarInteres();
+  if (gancho.skills === 0) {
+    return (
+      <section
+        aria-label="Coincidencia de skills"
+        className="rounded-[22px] border border-mist-200 bg-white p-5 text-[14.5px] text-mist-700"
+      >
+        Agrega las skills que pide esta vacante y te decimos cuántos CVs las mencionan.
+      </section>
+    );
+  }
   return (
     <section
-      aria-label="Resultado de la evaluación"
+      aria-label="Coincidencia de skills"
       className="flex flex-wrap items-center gap-5 rounded-[22px] bg-ink-900 p-6 text-white"
     >
       <div className="flex flex-[1_1_300px] flex-col gap-2">
         <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-aqua-300">
-          Vector HR ya leyó tus CVs
+          Coincidencia de skills · sin IA
         </span>
         <h2 className="text-2xl leading-tight tracking-[-0.02em]">
-          Evaluamos los {gancho.cvsEvaluados} CVs en {gancho.segundos} segundos, a ciegas.
+          Revisamos {gancho.revisados} de tus CVs contra las {gancho.skills} skills de la vacante.
         </h2>
         <p className="text-[14.5px] text-ink-200">
-          Ya sabemos quiénes son. Con los servicios de IA los ves ordenados por score, con el porqué
-          de cada uno.
+          Contamos menciones, no juzgamos experiencia. Con los servicios de IA ves quiénes son,
+          ordenados por encaje y con el porqué de cada uno.
+          {gancho.enEspera > 0 && ` Faltan ${gancho.enEspera} por revisar.`}
         </p>
       </div>
       <p className="flex flex-col">
-        <b className="text-[2.6rem] font-extrabold leading-none tabular-nums">{gancho.califican}</b>
-        <span className="text-sm text-ink-200">califican para la vacante</span>
+        <b className="text-[2.6rem] font-extrabold leading-none tabular-nums">
+          {gancho.conLaMayoria}
+        </b>
+        <span className="text-sm text-ink-200">mencionan la mayoría de tus skills</span>
       </p>
       <p className="flex flex-col">
         <b className="text-[2.6rem] font-extrabold leading-none text-aqua-300 tabular-nums">
-          {gancho.cumplenTodasLasSkills}
+          {gancho.conTodas}
         </b>
-        <span className="text-sm text-ink-200">cumplen todas las skills</span>
+        <span className="text-sm text-ink-200">las mencionan todas</span>
       </p>
       {interes.isSuccess ? (
         <output className="block text-sm font-bold text-aqua-300">
@@ -60,7 +74,7 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
         </output>
       ) : (
         <Button disabled={interes.isPending} onClick={() => interes.mutate("pipeline")}>
-          Ver quiénes son
+          Evaluarlos con IA
         </Button>
       )}
     </section>

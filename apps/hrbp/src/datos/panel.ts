@@ -118,14 +118,14 @@ function estadoGratis(): Estado {
       {
         vacante: vacante("coordinador-de-almacen", "Coordinador de almacén", 6, 47),
         aplicados: aplicadosDeEjemplo("coordinador-de-almacen", 47),
-        gancho: { cvsEvaluados: 47, segundos: 38, califican: 13, cumplenTodasLasSkills: 6 },
+        gancho: { skills: 4, revisados: 45, enEspera: 2, conLaMayoria: 13, conTodas: 6 },
       },
       {
         vacante: vacante("analista-de-inventarios", "Analista de inventarios", 12, 50, {
           modalidad: "onsite",
         }),
         aplicados: aplicadosDeEjemplo("analista-de-inventarios", 50),
-        gancho: { cvsEvaluados: 50, segundos: 41, califican: 17, cumplenTodasLasSkills: 9 },
+        gancho: { skills: 5, revisados: 50, enEspera: 0, conLaMayoria: 17, conTodas: 9 },
       },
       {
         vacante: vacante("chofer-repartidor", "Chofer repartidor", 1, 12, {
@@ -133,7 +133,7 @@ function estadoGratis(): Estado {
           ubicacion: "Apodaca, NL",
         }),
         aplicados: aplicadosDeEjemplo("chofer-repartidor", 12),
-        gancho: { cvsEvaluados: 12, segundos: 11, califican: 4, cumplenTodasLasSkills: 2 },
+        gancho: { skills: 3, revisados: 10, enEspera: 2, conLaMayoria: 4, conTodas: 2 },
       },
     ],
   };

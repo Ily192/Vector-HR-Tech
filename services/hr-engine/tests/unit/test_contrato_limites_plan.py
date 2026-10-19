@@ -12,7 +12,12 @@ from typing import Any
 
 import pytest
 
-from app.domain.plan import MAX_APLICACIONES_GRATIS, limite_de_vacantes, limites_del_plan
+from app.domain.plan import (
+    MAX_APLICACIONES_GRATIS,
+    VENTANA_DE_PUBLICACIONES_DIAS,
+    limite_de_vacantes,
+    limites_del_plan,
+)
 
 CONTRATO_PATH = Path(__file__).resolve().parents[4] / "packages/types/contracts/limites-plan.json"
 CONTRATO: dict[str, Any] = json.loads(CONTRATO_PATH.read_text(encoding="utf-8"))
@@ -29,6 +34,7 @@ def test_modulos_etapas_y_topes_de_cada_plan(plan: str) -> None:
     assert list(limites.modulos) == esperado["modulos"]
     assert list(limites.etapas_visibles) == esperado["etapas_visibles"]
     assert (limites.vacantes_activas is not None) == esperado["con_limites"]
+    assert limites.incluye_ia == esperado["incluye_ia"]
 
 
 @pytest.mark.parametrize(
@@ -36,3 +42,15 @@ def test_modulos_etapas_y_topes_de_cada_plan(plan: str) -> None:
 )
 def test_casos_del_limite_de_vacantes(caso: dict[str, Any]) -> None:
     assert limite_de_vacantes(caso["tamano"], caso["ajuste"]) == caso["limite"]
+
+
+def test_ventana_de_publicaciones() -> None:
+    assert CONTRATO["ventana_de_publicaciones_dias"] == VENTANA_DE_PUBLICACIONES_DIAS
+
+
+@pytest.mark.parametrize(
+    "caso", CONTRATO["casos_limite_de_vacantes"], ids=lambda c: f"{c['tamano']}-{c['ajuste']}"
+)
+def test_en_la_ventana_se_publican_tantas_como_vacantes_activas(caso: dict[str, Any]) -> None:
+    limites = limites_del_plan("gratis", tamano=caso["tamano"], ajuste=caso["ajuste"])
+    assert limites.publicaciones_por_ventana == limites.vacantes_activas == caso["limite"]

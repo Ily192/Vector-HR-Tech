@@ -509,27 +509,41 @@ async def test_token_rpc_rejects_unknown_token(db: asyncpg.Connection) -> None:
 
 async def test_token_rpc_hides_completed_test(db: asyncpg.Connection) -> None:
     await assume_anon(db)
-    rows = await db.fetch("select * from get_psicometrico_by_token($1)", "psy-tok-siete-001")
+    rows = await db.fetch("select * from get_psicometrico_by_token($1)", "psy-tok-vec-002")
     assert rows == []
 
 
 async def test_token_rpc_hides_expired_test(db: asyncpg.Connection) -> None:
-    # Usamos Siete porque su application del seed tiene psicometrico='completed';
-    # asi el indice partial-unique sobre (application_id) WHERE status in
-    # ('pending','in_progress') no choca al insertar uno nuevo pending.
+    # Una application propia: el indice partial-unique sobre (application_id)
+    # WHERE status in ('pending','in_progress') no deja dos tests vivos en la
+    # misma, y las del seed las usan otros tests. (Hasta 0010 se usaba la de
+    # Siete, pero el plan gratis ya no puede tener psicometricos.)
     await _elevate(db)
     try:
+        application_id = await db.fetchval(
+            """
+            with c as (
+                insert into candidatos (empresa_id, full_name, email)
+                values ($1::uuid, 'Expirada', 'expirada@example.test')
+                returning id
+            )
+            insert into applications (empresa_id, vacante_id, candidato_id)
+            select $1::uuid, 'aaaaaaaa-0000-0000-0000-000000000002', c.id from c
+            returning id
+            """,
+            EMPRESA_VECTOR,
+        )
         await db.execute(
             """
             insert into psicometricos
                 (empresa_id, application_id, token_hash, status, expires_at)
             values
-                ($1::uuid,
-                 (select id from applications where empresa_id = $1::uuid limit 1),
-                 encode(sha256($2::text::bytea), 'hex'),
+                ($1::uuid, $2::uuid,
+                 encode(sha256($3::text::bytea), 'hex'),
                  'pending', now() - interval '1 day')
             """,
-            EMPRESA_SIETE,
+            EMPRESA_VECTOR,
+            application_id,
             "psy-tok-expired-001",
         )
     finally:
