@@ -4,7 +4,13 @@ import { describe, expect, it } from "vitest";
 
 import { ETIQUETA_ESTADO_APLICACION } from "../etiquetas";
 import { ApplicationStatusSchema } from "../hr";
-import { ETAPAS_DEL_PIPELINE, UMBRALES_SIGUIENTE_PASO, siguientePaso } from "../reglas";
+import {
+  ETAPAS_DEL_PIPELINE,
+  LIMITES_DEL_PLAN,
+  UMBRALES_SIGUIENTE_PASO,
+  limiteDeVacantes,
+  siguientePaso,
+} from "../reglas";
 
 // El mismo fichero lo valida el hr-engine contra `app/domain/siguiente_paso.py`
 // (services/hr-engine/tests/unit/test_contrato_siguiente_paso.py).
@@ -41,4 +47,39 @@ describe("ETAPAS_DEL_PIPELINE", () => {
       "Oferta",
     ]);
   });
+});
+
+// El mismo fichero lo validan el dominio (tests/unit/test_contrato_limites_plan.py) y
+// la copia en SQL de la migración 0008 (tests/security/test_plan_gratis.py).
+const limites = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL("../../contracts/limites-plan.json", import.meta.url)),
+    "utf8",
+  ),
+) as {
+  max_aplicaciones_gratis: number;
+  planes: Record<
+    "gratis" | "ia",
+    { modulos: string[]; etapas_visibles: string[]; con_limites: boolean }
+  >;
+  casos_limite_de_vacantes: { tamano: number | null; ajuste: number | null; limite: number }[];
+};
+
+describe("contrato limites-plan (TS ↔ Python ↔ SQL)", () => {
+  it("usa el mismo tope de aplicaciones del plan gratis", () => {
+    expect(LIMITES_DEL_PLAN.gratis.aplicacionesPorVacante).toBe(limites.max_aplicaciones_gratis);
+    expect(LIMITES_DEL_PLAN.ia.aplicacionesPorVacante).toBeNull();
+  });
+
+  it.each(["gratis", "ia"] as const)("el plan %s abre los mismos módulos y etapas", (plan) => {
+    expect(LIMITES_DEL_PLAN[plan].modulos).toEqual(limites.planes[plan].modulos);
+    expect(LIMITES_DEL_PLAN[plan].etapasVisibles).toEqual(limites.planes[plan].etapas_visibles);
+  });
+
+  it.each(limites.casos_limite_de_vacantes.map((c) => [c.tamano, c.ajuste, c.limite] as const))(
+    "tamaño %s, ajuste %s → %d vacantes",
+    (tamano, ajuste, limite) => {
+      expect(limiteDeVacantes(tamano, ajuste)).toBe(limite);
+    },
+  );
 });

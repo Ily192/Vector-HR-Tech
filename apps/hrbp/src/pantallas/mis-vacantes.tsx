@@ -27,13 +27,15 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
         </div>
         <div className="w-44">
           <p className="text-sm font-bold tabular-nums">
-            {v.aplicaciones} de {max} aplicaciones
+            {max === null ? v.aplicaciones : `${v.aplicaciones} de ${max}`} aplicaciones
           </p>
           <div className="mt-1.5 h-1.5 rounded-full bg-mist-100" aria-hidden="true">
-            <div
-              className={`h-full rounded-full ${v.cupoCompleto ? "bg-flame-500" : "bg-aqua-300"}`}
-              style={{ width: `${Math.min(100, (v.aplicaciones / max) * 100)}%` }}
-            />
+            {max !== null && (
+              <div
+                className={`h-full rounded-full ${v.cupoCompleto ? "bg-flame-500" : "bg-aqua-300"}`}
+                style={{ width: `${Math.min(100, (v.aplicaciones / max) * 100)}%` }}
+              />
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -86,14 +88,18 @@ export function MisVacantes() {
   return (
     <>
       <Encabezado
-        etiqueta={`${cupo.activas} de ${cupo.limite} vacantes activas`}
+        etiqueta={
+          cupo.limite === null
+            ? `${cupo.activas} ${cupo.activas === 1 ? "vacante activa" : "vacantes activas"}`
+            : `${cupo.activas} de ${cupo.limite} vacantes activas`
+        }
         titulo={
           <>
             Mis <i>vacantes</i>
           </>
         }
         accion={
-          cupo.libres > 0 && (
+          cupo.libres !== 0 && (
             <Enlace href="/vacantes/nueva" className={buttonVariants()}>
               <Plus aria-hidden="true" className="h-4 w-4" />
               Crear empleo
@@ -110,7 +116,9 @@ export function MisVacantes() {
         <div className="rounded-[22px] border border-dashed border-mist-300 bg-white p-10 text-center">
           <h2 className="text-lg font-extrabold">Aún no publicas vacantes</h2>
           <p className="mt-1 text-sm text-mist-600">
-            Tu plan incluye {cupo.limite} vacantes activas en el career site, sin costo.
+            {cupo.limite === null
+              ? "Publica tu primera vacante en el career site."
+              : `Tu plan incluye ${cupo.limite} vacantes activas en el career site, sin costo.`}
           </p>
         </div>
       ) : (

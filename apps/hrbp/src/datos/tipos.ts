@@ -7,10 +7,9 @@
  * en hr-engine (`domain/plan.py`, ADR-017).
  */
 import type { Modality, Seniority, SiguientePaso, VacanteStatus } from "@vortex/types/hr";
-import type { EtapaDelPipeline } from "@vortex/types/reglas";
+import type { EtapaDelPipeline, Modulo } from "@vortex/types/reglas";
 
-/** Módulos de Vortex que el plan de la empresa habilita. Viajan en el JWT (ADR-015). */
-export type Modulo = "career-site" | "cockpit";
+export type { Modulo };
 
 export interface SesionEmpresa {
   usuario: { nombre: string; iniciales: string };
@@ -20,12 +19,16 @@ export interface SesionEmpresa {
   modulos: readonly Modulo[];
 }
 
-/** Cuántas vacantes puede tener activas la empresa y cuántas le quedan. */
+/**
+ * Cuántas vacantes puede tener activas la empresa y cuántas le quedan, tal como
+ * las devuelve `mi_cupo_de_vacantes()` (migración 0008). `null` = sin tope: el
+ * plan con IA no los tiene.
+ */
 export interface CupoDeVacantes {
   activas: number;
-  limite: number;
-  libres: number;
-  maxAplicacionesPorVacante: number;
+  limite: number | null;
+  libres: number | null;
+  maxAplicacionesPorVacante: number | null;
 }
 
 export interface VacanteDeLaEmpresa {

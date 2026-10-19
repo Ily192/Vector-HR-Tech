@@ -70,13 +70,22 @@ export default async function VacanteDetail({ params }: Props) {
           <CardTitle className="text-lg">Aplicar</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Sube tu CV. Lo evaluamos sin usar tu nombre y te avisamos por correo del siguiente paso:
-            una entrevista, un test psicométrico breve o una respuesta clara si no encaja.
-          </p>
-          <Button size="lg" disabled>
-            <Upload className="h-4 w-4" /> Subir CV (próximamente)
-          </Button>
+          {v.cupo_completo ? (
+            <p className="text-sm text-muted-foreground">
+              <b className="text-ink-900">Esta vacante ya no recibe aplicaciones.</b> Llegó al
+              máximo que la empresa puede recibir. Mira otras vacantes abiertas.
+            </p>
+          ) : (
+            <>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Sube tu CV. Lo evaluamos sin usar tu nombre y te avisamos por correo del siguiente
+                paso: una entrevista, un test psicométrico breve o una respuesta clara si no encaja.
+              </p>
+              <Button size="lg" disabled>
+                <Upload className="h-4 w-4" /> Subir CV (próximamente)
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </main>

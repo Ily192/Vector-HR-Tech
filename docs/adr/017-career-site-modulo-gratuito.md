@@ -136,6 +136,17 @@ Además:
 
 Cuando exista `domain/plan.py`, `@vortex/types` espejará los límites (`LIMITES_PLAN_GRATIS`) con un contrato JSON como el de `siguiente-paso.json` (ADR-016). Así la UI muestra "3 de 4" sin decidir nada.
 
+### Implementación
+
+**Límites del plan (2026-10-19, migración 0008):**
+
+- **Dónde se aplican.** El panel escribe sus vacantes con su sesión de Supabase y el career site aplica con la anon key, así que **la base es la que corta**. Lo hace un trigger en `vacantes`, el tope dentro de `aplicar_a_vacante()` y `mi_cupo_de_vacantes()`, que es lo que el panel muestra como "3 de 4".
+- **La regla y sus copias.** `domain/plan.py` es la dueña y `@vortex/types/reglas` (`LIMITES_DEL_PLAN`, `limiteDeVacantes`) la espeja. Las tres copias (Python, SQL, TS) se prueban contra `contracts/limites-plan.json`.
+- **Error.** Pasarse de un tope lanza SQLSTATE `PT409`, que PostgREST devuelve como 409 Conflict.
+- **Sin contador de aplicaciones.** En vez de la columna contador que preveía este ADR, se cuentan las aplicaciones con la fila de la vacante bloqueada (`for update`). Así no hay que mantener el contador sincronizado y dos aplicaciones simultáneas no pasan las dos con el último cupo.
+- **Casos de uso.** `PublicarVacante` y `EliminarVacante` no se crearon en el hr-engine: hoy ningún flujo publica a través de él. Se harán si el panel llega a publicar por el API.
+- **El plan con IA no tiene topes.** Este ADR solo fija los del gratis. Las empresas que ya existían quedan como `gratis`; el plan con IA se activa a mano cuando hay contrato.
+
 ### Referencias oficiales
 
 - Next.js 16.4.1, guía *Data Security → Data Access Layer* (incluida en `node_modules/next/dist/docs/01-app/02-guides/data-security.md`). Base de `apps/career-site/src/lib/`: la capa de datos se ejecuta solo en el servidor (`server-only`) y devuelve DTOs mínimos.
@@ -143,6 +154,8 @@ Cuando exista `domain/plan.py`, `@vortex/types` espejará los límites (`LIMITES
   - los datos propios van bajo `app_metadata`;
   - hay que conservar los claims obligatorios;
   - el plan se lee de una tabla con acceso de `supabase_auth_admin`.
+- PostgREST, [Errors → Raise errors with HTTP Status Codes](https://docs.postgrest.org/en/stable/references/errors.html): un SQLSTATE `PTxyz` se responde con el estado HTTP `xyz`; `P0001` y los no listados, con 400.
+- PostgreSQL, `CREATE VIEW`: quien consulta una vista necesita permiso para ejecutar las funciones que la vista llama. Por eso `anon` tiene EXECUTE sobre `limite_de_aplicaciones()`.
 - Supabase, [`createSignedUrls`](https://supabase.com/docs/reference/javascript/storage-from-createsignedurls): firma varias rutas en una llamada y recibe `expiresIn` en segundos. Sirve para la descarga masiva.
 - Supabase, [`inviteUserByEmail`](https://supabase.com/docs/reference/javascript/auth-admin-inviteuserbyemail): envía el enlace de invitación.
   - La página de referencia no detalla las opciones (`data`, `redirectTo`) ni qué clave se necesita.

@@ -3,8 +3,8 @@
  *
  * Las páginas solo llaman a estas funciones: no saben de dónde salen los datos
  * ni qué hace pública a una vacante. Esa regla (`status = 'open'`, sin
- * `empresa_id`, salario solo si la empresa lo publica) es de la vista
- * `vacantes_publicas` en Supabase (migraciones 0004 y 0007).
+ * `empresa_id`, salario solo si la empresa lo publica, cupo completo según su
+ * plan) es de la vista `vacantes_publicas` en Supabase (migraciones 0004, 0007 y 0008).
  *
  * Hasta que el career-site lea Supabase, los datos salen de `VACANTES_DE_EJEMPLO`,
  * con la misma forma que una fila de la vista, y los filtros se aplican en memoria.
@@ -35,6 +35,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_min: 3800,
     salario_max: 4600,
     moneda: "USD",
+    cupo_completo: false,
   },
   {
     id: "00000000-0000-4000-8000-0000000000a2",
@@ -50,6 +51,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_min: 22000,
     salario_max: 28000,
     moneda: "MXN",
+    cupo_completo: false,
   },
   {
     id: "00000000-0000-4000-8000-0000000000a3",
@@ -65,6 +67,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_min: null,
     salario_max: null,
     moneda: null,
+    cupo_completo: false,
   },
   {
     id: "00000000-0000-4000-8000-0000000000a4",
@@ -80,6 +83,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_min: 15000,
     salario_max: 18000,
     moneda: "MXN",
+    cupo_completo: false,
   },
   {
     id: "00000000-0000-4000-8000-0000000000a5",
@@ -95,6 +99,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_min: 9500000,
     salario_max: 12000000,
     moneda: "COP",
+    cupo_completo: true,
   },
 ]);
 

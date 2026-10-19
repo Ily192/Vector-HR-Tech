@@ -254,7 +254,11 @@ export function CrearEmpleo() {
   return (
     <>
       <Encabezado
-        etiqueta={`Te quedan ${cupo.libres} de ${cupo.limite} vacantes`}
+        etiqueta={
+          cupo.libres === null
+            ? "Career site"
+            : `Te quedan ${cupo.libres} de ${cupo.limite} vacantes`
+        }
         titulo={titulo}
       />
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">

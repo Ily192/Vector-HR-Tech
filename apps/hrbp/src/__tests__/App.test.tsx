@@ -171,6 +171,17 @@ describe("panel de empresa · plan con servicios de IA", () => {
     expect(within(evaluados).getByText("Psicométrico")).toBeInTheDocument();
   });
 
+  it("no tiene tope de vacantes ni de aplicaciones", async () => {
+    montarPanel("/vacantes?plan=ia");
+    expect(await screen.findByText("1 vacante activa")).toBeInTheDocument();
+    const menu = screen.getByRole("complementary", { name: "Navegación" });
+    expect(within(menu).getByText("Sin tope de vacantes ni de aplicaciones.")).toBeInTheDocument();
+    expect(screen.getByText("84 aplicaciones")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("main")).getByRole("link", { name: /Crear empleo/ }),
+    ).toBeInTheDocument();
+  });
+
   it("no muestra el brochure en crear empleo", async () => {
     montarPanel("/vacantes/nueva?plan=ia");
     expect(await encabezado()).toHaveTextContent("Crear empleo");

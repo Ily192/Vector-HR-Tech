@@ -22,10 +22,12 @@ begin
 end $$;
 
 -- ─── empresas ───────────────────────────────────────────────────────────────
-insert into empresas (id, name, slug, color_primario)
+-- Vector HR Tech es el tenant de demostración del cockpit (plan con IA). Siete
+-- queda en el plan gratuito del career site, así los dos planes tienen datos.
+insert into empresas (id, name, slug, color_primario, plan, tamano_empleados)
 values
-    ('11111111-1111-1111-1111-111111111111', 'Vector HR Tech', 'vector-hr', '#1E1B4B'),
-    ('22222222-2222-2222-2222-222222222222', 'Siete', 'siete', '#FF7F00')
+    ('11111111-1111-1111-1111-111111111111', 'Vector HR Tech', 'vector-hr', '#1E1B4B', 'ia', 12),
+    ('22222222-2222-2222-2222-222222222222', 'Siete', 'siete', '#FF7F00', 'gratis', 30)
 on conflict (slug) do nothing;
 
 -- ─── vacantes ───────────────────────────────────────────────────────────────
