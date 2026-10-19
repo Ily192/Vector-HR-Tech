@@ -129,6 +129,20 @@ ABAC sobre RBAC: row-level via RLS + atributos `empresa_id`.
 | A09 Logging failures | Logs estructurados, retención, alertas Sentry |
 | A10 SSRF | Allowlist de hosts en providers que aceptan URLs externas |
 
+### 7.1 Dependencias con alertas abiertas (revisado 2026-10-19)
+
+`pnpm audit` es la referencia local; Dependabot, la de GitHub. Las correcciones que no llegan por la dependencia directa se fuerzan con `pnpm.overrides` en el `package.json` raíz. Cada override lleva el rango vulnerable como selector (`source-map-js@<1.2.2`), así que deja de aplicar solo cuando el paquete de arriba se actualiza, y entonces se puede borrar.
+
+Alertas que quedan abiertas a propósito:
+
+| Paquete | Severidad | Llega por | Por qué se acepta | Se cierra con |
+|---|---|---|---|---|
+| `braces@3.0.3` | Alta (DoS) | Tailwind 3 → chokidar | No existe versión corregida. Solo corre en el watcher de desarrollo, sobre los globs de nuestra config | Migrar a Tailwind 4 |
+| `postcss-selector-parser@6` | Moderada (DoS) | Tailwind 3 y `@tailwindcss/typography` | La corrección está en v7 y Tailwind 3 exige v6. Solo procesa nuestro CSS en el build | Migrar a Tailwind 4 |
+| `sprintf-js@1.0.3` | Moderada (DoS) | `skills-sdk` → gray-matter → js-yaml 3 | No existe versión corregida. Solo lee los SKILL.md del repo | Cambiar gray-matter por un parser de front matter sobre `yaml` |
+
+Ninguna de las tres llega al navegador ni a un servidor de producción.
+
 ## 8. Compliance roadmap
 
 | Norma | Aplicabilidad | Plan |
