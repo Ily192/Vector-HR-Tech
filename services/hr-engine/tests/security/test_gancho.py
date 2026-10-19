@@ -87,6 +87,21 @@ async def _preevaluar(
         await _drop(db)
 
 
+async def _muestra(
+    db: asyncpg.Connection, empresa_id: str, vacante_id: str, role: str = "HR"
+) -> list[asyncpg.Record]:
+    await assume_tenant(db, empresa_id, role=role)
+    return await db.fetch("select * from muestra_del_gancho($1::uuid)", vacante_id)
+
+
+async def _como_dueno(db: asyncpg.Connection, sql: str, *args: Any) -> Any:
+    await _elevate(db)
+    try:
+        return await db.fetchval(sql, *args)
+    finally:
+        await _drop(db)
+
+
 async def _resumen(db: asyncpg.Connection, empresa_id: str, vacante_id: str, role: str = "HR"):
     await assume_tenant(db, empresa_id, role=role)
     return await db.fetchrow("select * from resumen_del_gancho($1::uuid)", vacante_id)
@@ -110,8 +125,30 @@ async def test_el_resumen_en_sql_cumple_el_contrato(
     assert dict(fila) == {
         "aplicaciones": recibidas,
         "en_espera": recibidas - esperado["cvs_evaluados"],
+        "ilegibles": 0,
         **esperado,
     }
+
+
+@pytest.mark.parametrize("caso", CONTRATO["casos"], ids=lambda c: c["nombre"])
+async def test_la_muestra_en_sql_cumple_el_contrato(
+    db: asyncpg.Connection, caso: dict[str, Any]
+) -> None:
+    empresa_id = await _empresa(db)
+    vacante_id = await _vacante(db, empresa_id)
+    ids = await _aplicaciones(db, empresa_id, vacante_id, len(caso["evaluaciones"]))
+    await _preevaluar(db, empresa_id, ids, caso["evaluaciones"])
+
+    filas = await _muestra(db, empresa_id, vacante_id)
+    if caso["muestra"] is None:
+        assert filas == []
+        return
+    esperada = caso["evaluaciones"][caso["muestra"]]
+    (fila,) = filas
+    assert float(fila["score"]) == esperada["score"]
+    assert fila["gaps"] == esperada["gaps"]
+    # A ciegas: ni la aplicación ni el nombre salen en la muestra.
+    assert set(fila.keys()) == {"score", "razonamiento", "gaps"}
 
 
 async def test_las_aplicaciones_sin_cv_no_quedan_en_espera(db: asyncpg.Connection) -> None:
@@ -266,3 +303,159 @@ async def test_al_contratar_se_desbloquea_lo_que_ya_estaba_evaluado(
     assert filas[evaluada]["fit_gaps"] == ["SAP"]
     assert filas[sin_evaluar]["status"] == "applied"
     assert filas[sin_evaluar]["fit_score"] is None
+
+
+# ─────────────────────────────── la muestra ───────────────────────────────
+
+
+def _diez() -> list[dict[str, Any]]:
+    return [{"score": i, "gaps": [], "ms": 100} for i in range(10)]
+
+
+async def test_la_muestra_queda_fija_aunque_lleguen_mas(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db)
+    vacante_id = await _vacante(db, empresa_id)
+    ids = await _aplicaciones(db, empresa_id, vacante_id, 15)
+    await _preevaluar(db, empresa_id, ids[:10], _diez())
+    (antes,) = await _muestra(db, empresa_id, vacante_id)
+    assert float(antes["score"]) == 4  # de 9 a 0, la 6.ª por score
+
+    await _preevaluar(db, empresa_id, ids[10:], [{"score": 4.5, "gaps": [], "ms": 1}] * 5)
+    (despues,) = await _muestra(db, empresa_id, vacante_id)
+    assert dict(despues) == dict(antes)
+
+
+async def test_si_se_borra_la_muestra_no_se_elige_otra(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db)
+    vacante_id = await _vacante(db, empresa_id)
+    ids = await _aplicaciones(db, empresa_id, vacante_id, 10)
+    await _preevaluar(db, empresa_id, ids, _diez())
+    assert len(await _muestra(db, empresa_id, vacante_id)) == 1
+
+    # La candidata de la muestra (la de score 4) se opone a la IA.
+    await assume_tenant(db, empresa_id)
+    await db.execute("update applications set sin_ia = true where id = $1::uuid", ids[4])
+    assert await _muestra(db, empresa_id, vacante_id) == []
+
+
+async def test_la_muestra_es_solo_de_la_propia_vacante(db: asyncpg.Connection) -> None:
+    duena = await _empresa(db)
+    otra = await _empresa(db)
+    vacante_id = await _vacante(db, duena)
+    ids = await _aplicaciones(db, duena, vacante_id, 10)
+    await _preevaluar(db, duena, ids, _diez())
+    assert await _muestra(db, otra, vacante_id) == []
+    assert await _muestra(db, duena, vacante_id, role="Colaborador") == []
+    await assume_anon(db)
+    with pytest.raises(asyncpg.InsufficientPrivilegeError):
+        await db.fetch("select * from muestra_del_gancho($1::uuid)", vacante_id)
+
+
+# ─────────────────────── instrucción, oposición, purga ───────────────────────
+
+
+async def test_apagar_la_preseleccion_borra_lo_evaluado(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db)
+    vacante_id = await _vacante(db, empresa_id)
+    ids = await _aplicaciones(db, empresa_id, vacante_id, 5)
+    await _preevaluar(db, empresa_id, ids, _diez()[:5])
+    assert (await _resumen(db, empresa_id, vacante_id))["cvs_evaluados"] == 5
+
+    await assume_tenant(db, empresa_id)
+    await db.execute("update vacantes set preseleccion_ia = false where id = $1::uuid", vacante_id)
+    assert await _resumen(db, empresa_id, vacante_id) is None
+    contar = "select count(*) from privado.preevaluaciones where empresa_id = $1::uuid"
+    assert await _como_dueno(db, contar, empresa_id) == 0
+
+
+async def test_la_oposicion_del_candidato_borra_su_evaluacion(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db, plan="ia")
+    vacante_id = await _vacante(db, empresa_id)
+    (application_id,) = await _aplicaciones(db, empresa_id, vacante_id, 1)
+    await _como_dueno(
+        db,
+        "update applications set fit_score = 8, fit_rationale = 'Encaja', fit_gaps = '{SQL}'"
+        " where id = $1::uuid",
+        application_id,
+    )
+    await assume_tenant(db, empresa_id)
+    await db.execute("update applications set sin_ia = true where id = $1::uuid", application_id)
+    fila = await db.fetchrow(
+        "select fit_score, fit_rationale, fit_gaps from applications where id = $1::uuid",
+        application_id,
+    )
+    assert tuple(fila) == (None, None, [])
+
+
+async def test_los_que_se_oponen_y_los_ilegibles_no_quedan_en_espera(
+    db: asyncpg.Connection,
+) -> None:
+    empresa_id = await _empresa(db)
+    vacante_id = await _vacante(db, empresa_id)
+    ids = await _aplicaciones(db, empresa_id, vacante_id, 4)
+    await assume_tenant(db, empresa_id)
+    await db.execute("update applications set sin_ia = true where id = $1::uuid", ids[0])
+    await _como_dueno(
+        db,
+        "insert into privado.cvs_ilegibles (application_id, empresa_id)"
+        " values ($1::uuid, $2::uuid)",
+        ids[1],
+        empresa_id,
+    )
+    fila = await _resumen(db, empresa_id, vacante_id)
+    assert (fila["aplicaciones"], fila["en_espera"], fila["ilegibles"]) == (4, 2, 1)
+
+
+async def test_la_purga_borra_solo_lo_de_vacantes_cerradas_hace_30_dias(
+    db: asyncpg.Connection,
+) -> None:
+    empresa_id = await _empresa(db, ajuste=5)
+    vieja, reciente, abierta = [await _vacante(db, empresa_id) for _ in range(3)]
+    for vacante_id in (vieja, reciente, abierta):
+        ids = await _aplicaciones(db, empresa_id, vacante_id, 1)
+        await _preevaluar(db, empresa_id, ids, [{"score": 6, "gaps": [], "ms": 100}])
+    await assume_tenant(db, empresa_id)
+    for vacante_id in (vieja, reciente):
+        await db.execute("update vacantes set status = 'closed' where id = $1::uuid", vacante_id)
+    await _como_dueno(
+        db, "update vacantes set closed_at = now() - interval '31 days' where id = $1::uuid", vieja
+    )
+
+    assert await _como_dueno(db, "select privado.purgar_preevaluaciones()") == 1
+    contar = "select count(*) from privado.preevaluaciones where empresa_id = $1::uuid"
+    assert await _como_dueno(db, contar, empresa_id) == 2
+
+
+async def test_la_empresa_no_puede_purgar_ni_leer_lo_privado(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db)
+    await assume_tenant(db, empresa_id)
+    for sql in (
+        "select privado.purgar_preevaluaciones()",
+        "select * from privado.cvs_ilegibles",
+        "select * from privado.muestras_del_gancho",
+        "select * from privado.pipeline_visto",
+    ):
+        with pytest.raises(asyncpg.InsufficientPrivilegeError):
+            await db.fetch(sql)
+
+
+# ─────────────────────────── visita al pipeline ───────────────────────────
+
+
+async def test_la_visita_al_pipeline_queda_registrada(db: asyncpg.Connection) -> None:
+    duena = await _empresa(db)
+    otra = await _empresa(db)
+    vacante_id = await _vacante(db, duena)
+    visto = "select visto_en from privado.pipeline_visto where vacante_id = $1::uuid"
+
+    await assume_tenant(db, otra)
+    await db.execute("select registrar_visita_al_pipeline($1::uuid)", vacante_id)
+    assert await _como_dueno(db, visto, vacante_id) is None
+
+    await assume_tenant(db, duena)
+    await db.execute("select registrar_visita_al_pipeline($1::uuid)", vacante_id)
+    assert await _como_dueno(db, visto, vacante_id) is not None
+
+    await assume_anon(db)
+    with pytest.raises(asyncpg.InsufficientPrivilegeError):
+        await db.execute("select registrar_visita_al_pipeline($1::uuid)", vacante_id)

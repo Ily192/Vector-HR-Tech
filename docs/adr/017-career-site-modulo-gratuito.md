@@ -70,8 +70,8 @@ Los aplica el backend; la UI solo los muestra.
   candidato aplica a una vacante que ya no puede recibirlo.
 - **En el pipeline gratuito:**
   - la empresa ve la lista de aplicados;
-  - puede **descargar todos los CVs a la vez** (un `.zip` que genera el backend
-    con URLs firmadas de Storage);
+  - puede **descargar todos los CVs a la vez** (un `.zip`, que según ADR-018 §10
+    se arma en el navegador con URLs firmadas de Storage);
   - el resto de etapas se ve, pero cerrado.
 
 ### 4. El gancho: el patrón de LinkedIn ("quién vio tu perfil")
@@ -93,6 +93,13 @@ Los aplica el backend; la UI solo los muestra.
 - **Privacidad.** El aviso de privacidad que acepta el candidato al aplicar
   tiene que decir que su CV se evalúa con IA, sin usar su nombre, por cuenta de
   la empresa.
+
+> **ADR-018** desarrolla este punto.
+> - Cuándo se evalúa: al abrir el pipeline y mientras la empresa esté activa.
+> - Topes por empresa y del plan.
+> - Resumen por lotes de 5 y una evaluación de muestra a ciegas.
+> - Base legal: es una instrucción de la empresa, que puede apagarla.
+> - Desbloqueo al contratar.
 
 ### 5. El career site público es uno solo
 

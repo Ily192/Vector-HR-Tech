@@ -13,12 +13,15 @@ from typing import Any
 import pytest
 
 from app.domain.gancho import (
+    EVALUADAS_PARA_LA_MUESTRA,
+    POSICION_DE_LA_MUESTRA,
     TAMANO_DEL_LOTE,
     UMBRAL_CALIFICA,
     Preevaluacion,
     ResumenDelGancho,
     califica,
     cumple_todas_las_skills,
+    elegir_muestra,
     resumir,
 )
 
@@ -36,8 +39,12 @@ def _preevaluaciones(caso: dict[str, Any]) -> list[Preevaluacion]:
     ]
 
 
-def test_el_lote_es_el_del_contrato() -> None:
+def test_el_lote_y_la_muestra_son_los_del_contrato() -> None:
     assert CONTRATO["tamano_del_lote"] == TAMANO_DEL_LOTE
+    assert CONTRATO["muestra"] == {
+        "evaluadas": EVALUADAS_PARA_LA_MUESTRA,
+        "posicion_por_score": POSICION_DE_LA_MUESTRA,
+    }
 
 
 def test_califica_quien_pasaria_al_psicometrico() -> None:
@@ -56,6 +63,19 @@ def test_cumplir_todas_las_skills_exige_calificar() -> None:
 @pytest.mark.parametrize("caso", CONTRATO["casos"], ids=lambda c: c["nombre"])
 def test_casos_del_contrato(caso: dict[str, Any]) -> None:
     assert resumir(_preevaluaciones(caso)) == ResumenDelGancho(**caso["resumen"])
+
+
+@pytest.mark.parametrize("caso", CONTRATO["casos"], ids=lambda c: c["nombre"])
+def test_muestra_del_contrato(caso: dict[str, Any]) -> None:
+    assert elegir_muestra(_preevaluaciones(caso)) == caso["muestra"]
+
+
+def test_la_muestra_nunca_es_la_mejor() -> None:
+    mejor_primero = [Preevaluacion(score=10 - i, gaps=(), duracion_ms=1) for i in range(10)]
+    assert elegir_muestra(mejor_primero) == POSICION_DE_LA_MUESTRA - 1
+    # Las que llegan después de las 10 primeras no cambian la elegida.
+    con_mas = mejor_primero + [Preevaluacion(score=7.5, gaps=(), duracion_ms=1)] * 5
+    assert elegir_muestra(con_mas) == elegir_muestra(mejor_primero)
 
 
 def test_el_resumen_no_cambia_hasta_completar_el_lote() -> None:

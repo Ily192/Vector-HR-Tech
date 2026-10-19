@@ -42,12 +42,14 @@ type Generated =
   | "created_at"
   | "updated_at"
   | "applied_at"
-  // Con default en la base (0007 y 0008).
+  // Con default en la base (0007, 0008 y 0009).
   | "plan"
   | "tamano_empleados"
   | "limite_vacantes"
   | "salario_publico"
-  | "deleted_at";
+  | "deleted_at"
+  | "preseleccion_ia"
+  | "sin_ia";
 
 type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
   Partial<Pick<T, Extract<keyof T, Generated>>>;
@@ -122,17 +124,31 @@ export interface Database {
           max_aplicaciones: number | null;
         }[];
       };
-      /** El gancho del plan gratis (0009). Sin filas si la vacante no es tuya o tienes el plan con IA. */
+      /**
+       * El gancho del plan gratis (0009). Sin filas si la vacante no es tuya,
+       * si tienes el plan con IA o si apagaste la preselección.
+       */
       resumen_del_gancho: {
         Args: { p_vacante: string };
         Returns: {
           aplicaciones: number;
           cvs_evaluados: number;
           en_espera: number;
+          ilegibles: number;
           segundos: number;
           califican: number;
           cumplen_todas_las_skills: number;
         }[];
+      };
+      /** Una evaluación a ciegas de muestra por vacante, fija desde que hay 10 evaluadas (0009). */
+      muestra_del_gancho: {
+        Args: { p_vacante: string };
+        Returns: { score: number; razonamiento: string; gaps: string[] }[];
+      };
+      /** El panel la llama al abrir el pipeline: sin visitas en 14 días no se preselecciona (0009). */
+      registrar_visita_al_pipeline: {
+        Args: { p_vacante: string };
+        Returns: undefined;
       };
       submit_psicometrico: {
         Args: {

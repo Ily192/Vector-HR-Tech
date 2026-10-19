@@ -114,6 +114,21 @@ ABAC sobre RBAC: row-level via RLS + atributos `empresa_id`.
 - **Provider DPAs (Data Processing Agreements):** Anthropic, OpenAI, Google ya tienen DPA estándar; archivar copia firmada.
 - **Local LLM opcional** (Ollama / vLLM) para clientes Enterprise que no aceptan datos en cloud third-party.
 
+### 6.1 Preselección con IA del plan gratis (ADR-018)
+
+- **Por cuenta de quién:** se evalúa a ciegas y por instrucción de la empresa
+  (`vacantes.preseleccion_ia`), con Vortex como encargado.
+- **Uso propio:** ninguno. Solo el nivel de pago de la API de Gemini: en el gratuito, Google usa los
+  prompts para mejorar sus productos.
+- **Dónde se guarda:** en el esquema `privado`, fuera de la API.
+- **Cuándo se borra:**
+  - con la aplicación;
+  - con la oposición del candidato (`applications.sin_ia`);
+  - al apagar la preselección;
+  - 30 días después de cerrar la vacante.
+- **Antes de producción:** las condiciones de lanzamiento de ADR-018 (aviso, opción sin IA,
+  acceso del candidato a su evaluación, evaluación de impacto con pruebas de sesgo).
+
 ## 7. Seguridad aplicación (OWASP Top 10)
 
 | Riesgo | Mitigación |

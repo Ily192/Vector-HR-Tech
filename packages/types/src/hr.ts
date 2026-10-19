@@ -36,6 +36,8 @@ export const VacanteSchema = z.object({
   closed_at: z.string().datetime().nullable(),
   /** Borrado lógico al eliminarla desde el panel (0008). */
   deleted_at: z.string().datetime().nullable().default(null),
+  /** La empresa pide la preselección a ciegas con IA (0009, ADR-018). */
+  preseleccion_ia: z.boolean().default(true),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;
 
@@ -103,6 +105,8 @@ export const ApplicationSchema = z.object({
   fit_gaps: z.array(z.string()).default([]),
   applied_at: z.string().datetime(),
   decided_at: z.string().datetime().nullable(),
+  /** El candidato se opuso a la evaluación con IA (0009, ADR-018). */
+  sin_ia: z.boolean().default(false),
 });
 export type Application = z.infer<typeof ApplicationSchema>;
 
