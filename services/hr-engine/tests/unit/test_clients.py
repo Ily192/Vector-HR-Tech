@@ -167,12 +167,20 @@ def _fake_genai_client(responses: list[Any]) -> Any:
     return SimpleNamespace(aio=SimpleNamespace(models=models))
 
 
-def _genai_response(text: str, *, prompt_tokens: int = 1000, out_tokens: int = 200) -> Any:
+def _genai_response(
+    text: str,
+    *,
+    prompt_tokens: int = 1000,
+    out_tokens: int = 200,
+    thinking_tokens: int | None = None,
+) -> Any:
     return SimpleNamespace(
         text=text,
         usage_metadata=SimpleNamespace(
             prompt_token_count=prompt_tokens,
             candidates_token_count=out_tokens,
+            # El SDK devuelve None cuando el modelo no razonó.
+            thoughts_token_count=thinking_tokens,
         ),
     )
 
@@ -189,6 +197,31 @@ def test_gemini_client_uses_current_sdk_and_timeout(monkeypatch: pytest.MonkeyPa
         )
     finally:
         scoring_mod.reset_client_cache()
+
+
+def test_25_flash_puntua_sin_razonar_por_defecto() -> None:
+    """Razonar se cobra como salida y comparte los 1024 tokens del JSON."""
+    config = scoring_mod._generation_config("gemini-2.5-flash")
+    assert config.thinking_config is not None
+    assert config.thinking_config.thinking_budget == settings.scoring_thinking_budget == 0
+
+
+@pytest.mark.parametrize("modelo", ["gemini-2.5-pro", "gemini-3.5-flash-lite", "gemini-3.8-flash"])
+def test_los_demas_modelos_razonan_con_su_valor_por_defecto(modelo: str) -> None:
+    """Gemini 3 usa `thinking_level` y 2.5 Pro no deja apagarlo: no se les manda el budget."""
+    assert scoring_mod._generation_config(modelo).thinking_config is None
+
+
+@pytest.mark.asyncio
+async def test_el_razonamiento_se_cobra_como_salida(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = _fake_genai_client([_genai_response(_VALID_SCORING_JSON, thinking_tokens=300)])
+    monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
+
+    result = await scoring_mod._score_con_gemini({"headline": "Senior"}, "ICP Python")
+
+    assert result.output_tokens == 500
+    # 1000/1M * 0.30 + (200 + 300)/1M * 2.50
+    assert result.cost_usd == pytest.approx(0.0003 + 0.00125)
 
 
 def test_default_scoring_model_is_current() -> None:

@@ -49,6 +49,33 @@ apartó de ella, manda esto:
 No existe `app/providers/`: la abstracción multi-proveedor vive en
 `app/clients/` (un módulo por función: `scoring.py`, `embeddings.py`).
 
+## Actualización 2026-10-19 · razonamiento y ciclo de vida de 2.5
+
+- **El razonamiento se cobraba sin registrarse.** 2.5 Flash razona por defecto,
+  y esos tokens se cobran como salida. El costo de cada evaluación solo sumaba
+  `candidates_token_count`, así que la fase de medición quedaba por debajo de lo
+  real.
+  - Ahora suma también `thoughts_token_count`.
+  - El razonamiento se apaga con `SCORING_THINKING_BUDGET=0`, que es el valor por
+    defecto. Con él encendido, el modelo podía gastar los 1024 tokens de
+    `max_output_tokens` razonando y devolver el JSON cortado, y se cobraba igual.
+  - Para volver a encenderlo, sube el budget y corre antes los evals del SKILL.md.
+  - Fuente: [Thinking](https://ai.google.dev/gemini-api/docs/thinking), "Set
+    budget" y "Pricing".
+- **Acceso a 2.5.** Desde el 18-09-2026, Google limita los modelos 2.5 a quien ya
+  los usaba. Para proyectos nuevos recomienda `gemini-3.5-flash-lite` (al mismo
+  precio que 2.5 Flash, 0.30 / 2.50) o `gemini-3.8-flash`.
+  - 2.5 no tiene fecha de apagado.
+  - Antes del primer deploy, hay que probar la key del proyecto de producción con
+    `gemini-2.5-flash`. Si no tiene acceso, se migra a 3.5 Flash-Lite pasando por
+    los evals.
+  - Gemini 3 usa `thinking_level`, no el budget. Además, el changelog del
+    21-07-2026 marca `temperature` y `top_p` como deprecados, y el scoring los usa.
+  - Fuentes: [Deprecations](https://ai.google.dev/gemini-api/docs/deprecations),
+    [changelog](https://ai.google.dev/gemini-api/docs/changelog) y
+    [pricing](https://ai.google.dev/gemini-api/docs/pricing), revisados el
+    2026-10-19.
+
 ## Alternatives considered
 
 - **Solo OpenAI:** más caro, lock-in.

@@ -46,6 +46,7 @@ def _sin_cache() -> Iterator[None]:
 class _Uso:
     prompt_token_count = 120
     candidates_token_count = 40
+    thoughts_token_count = None
 
 
 class _Respuesta:

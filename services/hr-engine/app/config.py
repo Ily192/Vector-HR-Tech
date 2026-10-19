@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     google_api_key: str = ""
     default_scoring_model: str = "gemini-2.5-flash"
+    # Tokens de razonamiento de 2.5 Flash al puntuar. 0 = apagado: se cobran como salida
+    # y comparten los 1024 de max_output_tokens (app/clients/scoring.py::_thinking_config).
+    scoring_thinking_budget: int = Field(default=0, ge=0, le=24576)
     # Respaldo de otro proveedor si Gemini cae o tiene el circuito abierto. gpt-5-mini
     # (0.25/2.00 USD por 1M) es lo más parecido en precio a gemini-2.5-flash (0.30/2.50).
     fallback_scoring_model: str = "gpt-5-mini"
