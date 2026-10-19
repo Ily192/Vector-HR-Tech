@@ -111,8 +111,9 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(await encabezado()).toHaveTextContent("Coordinador de almacén");
     expect(screen.getByText(/47 de 50 aplicaciones/)).toBeInTheDocument();
 
-    const gancho = screen.getByRole("region", { name: "Resultado de la evaluación" });
-    expect(gancho).toHaveTextContent("Evaluamos los 47 CVs en 38 segundos, a ciegas.");
+    const gancho = screen.getByRole("region", { name: "Coincidencia de skills" });
+    expect(gancho).toHaveTextContent("Revisamos 45 de tus CVs contra las 4 skills de la vacante.");
+    expect(gancho).toHaveTextContent("Faltan 2 por revisar.");
     expect(within(gancho).getByText("13")).toBeInTheDocument();
     expect(within(gancho).getByText("6")).toBeInTheDocument();
 

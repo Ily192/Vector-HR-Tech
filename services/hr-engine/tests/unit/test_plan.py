@@ -6,8 +6,11 @@ import pytest
 
 from app.domain.plan import (
     CupoDeAplicacionesLlenoError,
+    LimiteDePublicacionesError,
     LimiteDeVacantesError,
+    PlanSinIAError,
     limites_del_plan,
+    verificar_ia,
 )
 
 
@@ -24,6 +27,7 @@ def test_el_plan_con_ia_no_tiene_topes() -> None:
     assert limites.vacantes_activas is None
     assert limites.aplicaciones_por_vacante is None
     limites.verificar_publicacion(activas=1000)
+    limites.verificar_publicacion_nueva(recientes=1000)
     limites.verificar_aplicacion(aplicaciones=1000)
 
 
@@ -39,3 +43,23 @@ def test_la_aplicacion_51_no_entra() -> None:
     limites.verificar_aplicacion(aplicaciones=49)
     with pytest.raises(CupoDeAplicacionesLlenoError):
         limites.verificar_aplicacion(aplicaciones=50)
+
+
+def test_la_ia_solo_corre_con_el_plan_con_ia() -> None:
+    verificar_ia("ia")
+    with pytest.raises(PlanSinIAError, match="el plan gratis no incluye los servicios de IA"):
+        verificar_ia("gratis")
+
+
+@pytest.mark.parametrize("plan", [None, "", "pro", "IA"])
+def test_un_plan_desconocido_no_corre_ia(plan: str | None) -> None:
+    with pytest.raises(PlanSinIAError):
+        verificar_ia(plan)
+
+
+def test_cerrar_y_publicar_otra_no_da_vacantes_sin_fin() -> None:
+    """En la ventana se publican tantas nuevas como activas: aquí, 3."""
+    limites = limites_del_plan("gratis", tamano=30)
+    limites.verificar_publicacion_nueva(recientes=2)
+    with pytest.raises(LimiteDePublicacionesError, match="3 de 3 vacantes publicadas"):
+        limites.verificar_publicacion_nueva(recientes=3)

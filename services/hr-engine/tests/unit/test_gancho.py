@@ -1,4 +1,4 @@
-"""La regla del gancho del plan gratis (ADR-018) y su contrato.
+"""La regla del gancho del plan gratis (ADR-019) y su contrato.
 
 El mismo `contracts/gancho.json` lo valida `tests/security/test_gancho.py` contra
 la copia en SQL (`resumen_del_gancho()`).
@@ -13,79 +13,49 @@ from typing import Any
 import pytest
 
 from app.domain.gancho import (
-    EVALUADAS_PARA_LA_MUESTRA,
-    POSICION_DE_LA_MUESTRA,
     TAMANO_DEL_LOTE,
-    UMBRAL_CALIFICA,
-    Preevaluacion,
     ResumenDelGancho,
-    califica,
-    cumple_todas_las_skills,
-    elegir_muestra,
+    menciona_la_mayoria,
+    menciona_todas,
     resumir,
 )
 
 CONTRATOS = Path(__file__).resolve().parents[4] / "packages/types/contracts"
 CONTRATO: dict[str, Any] = json.loads((CONTRATOS / "gancho.json").read_text(encoding="utf-8"))
-SIGUIENTE_PASO: dict[str, Any] = json.loads(
-    (CONTRATOS / "siguiente-paso.json").read_text(encoding="utf-8")
-)
 
 
-def _preevaluaciones(caso: dict[str, Any]) -> list[Preevaluacion]:
-    return [
-        Preevaluacion(score=e["score"], gaps=tuple(e["gaps"]), duracion_ms=e["ms"])
-        for e in caso["evaluaciones"]
-    ]
-
-
-def test_el_lote_y_la_muestra_son_los_del_contrato() -> None:
+def test_el_lote_es_el_del_contrato() -> None:
     assert CONTRATO["tamano_del_lote"] == TAMANO_DEL_LOTE
-    assert CONTRATO["muestra"] == {
-        "evaluadas": EVALUADAS_PARA_LA_MUESTRA,
-        "posicion_por_score": POSICION_DE_LA_MUESTRA,
-    }
-
-
-def test_califica_quien_pasaria_al_psicometrico() -> None:
-    assert SIGUIENTE_PASO["umbrales"]["psicometrico"] == UMBRAL_CALIFICA
-    assert califica(UMBRAL_CALIFICA)
-    assert not califica(UMBRAL_CALIFICA - 0.1)
-
-
-def test_cumplir_todas_las_skills_exige_calificar() -> None:
-    assert cumple_todas_las_skills(Preevaluacion(score=8, gaps=(), duracion_ms=1))
-    assert not cumple_todas_las_skills(Preevaluacion(score=8, gaps=("SQL",), duracion_ms=1))
-    # Sin gaps pero por debajo del umbral: no se cuenta como "todas las skills".
-    assert not cumple_todas_las_skills(Preevaluacion(score=3.9, gaps=(), duracion_ms=1))
 
 
 @pytest.mark.parametrize("caso", CONTRATO["casos"], ids=lambda c: c["nombre"])
 def test_casos_del_contrato(caso: dict[str, Any]) -> None:
-    assert resumir(_preevaluaciones(caso)) == ResumenDelGancho(**caso["resumen"])
+    encontradas = [len(e) for e in caso["encontradas"]]
+    assert resumir(encontradas, len(caso["skills"])) == ResumenDelGancho(**caso["resumen"])
 
 
-@pytest.mark.parametrize("caso", CONTRATO["casos"], ids=lambda c: c["nombre"])
-def test_muestra_del_contrato(caso: dict[str, Any]) -> None:
-    assert elegir_muestra(_preevaluaciones(caso)) == caso["muestra"]
+def test_la_mayoria_es_mas_de_la_mitad() -> None:
+    assert menciona_la_mayoria(3, 4)
+    assert not menciona_la_mayoria(2, 4)
+    assert menciona_la_mayoria(2, 3)
+    assert not menciona_la_mayoria(1, 2)
 
 
-def test_la_muestra_nunca_es_la_mejor() -> None:
-    mejor_primero = [Preevaluacion(score=10 - i, gaps=(), duracion_ms=1) for i in range(10)]
-    assert elegir_muestra(mejor_primero) == POSICION_DE_LA_MUESTRA - 1
-    # Las que llegan después de las 10 primeras no cambian la elegida.
-    con_mas = mejor_primero + [Preevaluacion(score=7.5, gaps=(), duracion_ms=1)] * 5
-    assert elegir_muestra(con_mas) == elegir_muestra(mejor_primero)
+def test_mencionar_todas_tambien_es_mencionar_la_mayoria() -> None:
+    for skills in range(1, 16):
+        assert menciona_todas(skills, skills)
+        assert menciona_la_mayoria(skills, skills)
+
+
+def test_sin_skills_no_hay_nada_que_contar() -> None:
+    assert not menciona_todas(0, 0)
+    assert not menciona_la_mayoria(0, 0)
+    assert resumir([0] * 10, 0) == ResumenDelGancho(revisados=0, con_la_mayoria=0, con_todas=0)
 
 
 def test_el_resumen_no_cambia_hasta_completar_el_lote() -> None:
-    """Una aplicación sola no mueve los números: no se puede deducir si esa persona califica."""
-    base = [Preevaluacion(score=5, gaps=(), duracion_ms=1000)] * TAMANO_DEL_LOTE
-    antes = resumir(base)
+    """Un CV solo no mueve los números: no se puede deducir qué menciona esa persona."""
+    base = [1] * TAMANO_DEL_LOTE
+    antes = resumir(base, 3)
     for extra in range(1, TAMANO_DEL_LOTE):
-        assert resumir(base + [Preevaluacion(score=9, gaps=(), duracion_ms=1)] * extra) == antes
-
-
-def test_los_segundos_se_redondean_hacia_arriba() -> None:
-    lote = [Preevaluacion(score=1, gaps=(), duracion_ms=201)] * TAMANO_DEL_LOTE
-    assert resumir(lote).segundos == 2  # 1005 ms
+        assert resumir(base + [3] * extra, 3) == antes

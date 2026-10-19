@@ -9,7 +9,9 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.plan import PlanSinIAError, verificar_ia
 from app.monitoring import logger
+from app.repositories import hr as hr_repo
 from app.repositories import runs as runs_repo
 from app.security.run_token import RunTokenClaims
 
@@ -49,10 +51,25 @@ async def register_run(
     inexistente: 0 filas afectadas, sin error, y el costo del run nunca se
     persistía.
 
+    Antes comprueba el plan: la IA es lo que se paga (ADR-019). Un run-token
+    de una empresa gratuita —Paperclip mal configurado o una empresa que dejó
+    de pagar— recibe 403 y no llega a la cola.
+
     Returns:
         True si la creó; False si el run ya existía (run-token reenviado) —
         en ese caso NO hay que volver a encolar.
     """
+    try:
+        verificar_ia(await hr_repo.plan_de_la_empresa(db, claims.empresa_id))
+    except PlanSinIAError as exc:
+        logger.warning(
+            "run.plan_sin_ia",
+            run_id=str(claims.run_id),
+            empresa_id=str(claims.empresa_id),
+            agent_skill=agent_skill,
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
     try:
         created = await runs_repo.create_run(
             db,

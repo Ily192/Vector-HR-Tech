@@ -114,20 +114,22 @@ ABAC sobre RBAC: row-level via RLS + atributos `empresa_id`.
 - **Provider DPAs (Data Processing Agreements):** Anthropic, OpenAI, Google ya tienen DPA estándar; archivar copia firmada.
 - **Local LLM opcional** (Ollama / vLLM) para clientes Enterprise que no aceptan datos en cloud third-party.
 
-### 6.1 Preselección con IA del plan gratis (ADR-018)
+### 6.1 Plan gratis: sin IA, y una coincidencia de skills como gancho (ADR-019)
 
-- **Por cuenta de quién:** se evalúa a ciegas y por instrucción de la empresa
-  (`vacantes.preseleccion_ia`), con Vortex como encargado.
-- **Uso propio:** ninguno. Solo el nivel de pago de la API de Gemini: en el gratuito, Google usa los
-  prompts para mejorar sus productos.
-- **Dónde se guarda:** en el esquema `privado`, fuera de la API.
+- **Sin IA.** Para una empresa gratuita no se llama a ningún LLM: el hr-engine rechaza sus
+  runs (403). El plan gratis no tiene subencargado de IA ni decisiones automatizadas.
+- **Qué se trata.** El texto del CV se compara con las skills de la vacante, por cuenta de
+  la empresa y con Vortex como encargado.
+  - Solo se guarda qué skills menciona cada CV, en el esquema `privado`, fuera de la API.
+  - La empresa solo ve el conteo agregado.
 - **Cuándo se borra:**
   - con la aplicación;
-  - con la oposición del candidato (`applications.sin_ia`);
-  - al apagar la preselección;
+  - con la oposición del candidato (`applications.sin_ia`), que la empresa no puede retirar;
+  - al pasar al plan con IA;
   - 30 días después de cerrar la vacante.
-- **Antes de producción:** las condiciones de lanzamiento de ADR-018 (aviso, opción sin IA,
-  acceso del candidato a su evaluación, evaluación de impacto con pruebas de sesgo).
+- **Antes de producción:** aviso al candidato en el formulario, términos del plan gratis y
+  anti-spam (ADR-019, "Condiciones antes de producción"). Las condiciones de IA de
+  ADR-018 pasan al plan de pago.
 
 ## 7. Seguridad aplicación (OWASP Top 10)
 

@@ -1,9 +1,13 @@
 # ADR-018: Preseleccionar con IA las aplicaciones del plan gratis, a ciegas, con topes y por instrucción de la empresa
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-019. Siguen vigentes §10 (el .zip en el navegador), §11 (el plan de las empresas reales), §12 (solo empleadores directos) y §14 (señales de venta)
 - **Date:** 2026-10-19
 - **Decider:** Ilyra, por delegación ("investiga cuál es la mejor solución a nivel de modelo de negocio a largo plazo, sustentabilidad, rentabilidad y factibilidad, y toma las mejores decisiones")
 - **Tags:** producto, negocio, ia, privacidad, plan-gratis
+
+> **ADR-019 reemplaza esta decisión.** Ilyra descartó evaluar con IA el plan gratis: la
+> empresa gratuita descarga sus CVs en un .zip, y el gancho es una coincidencia de
+> skills sin IA. La migración 0010 deshace lo que 0009 montó para evaluar.
 
 ## Context
 

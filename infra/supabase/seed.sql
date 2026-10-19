@@ -31,7 +31,8 @@ values
 on conflict (slug) do nothing;
 
 -- ─── vacantes ───────────────────────────────────────────────────────────────
-insert into vacantes (id, empresa_id, slug, title, jd, modality, status, seniority)
+-- `skills` es lo que el plan gratis compara con los CVs, sin IA (0010, ADR-019).
+insert into vacantes (id, empresa_id, slug, title, jd, modality, status, seniority, skills)
 values
     (
         'aaaaaaaa-0000-0000-0000-000000000001',
@@ -41,7 +42,8 @@ values
         'Liderar arquitectura de servicios Python/FastAPI multi-tenant.',
         'remote',
         'open',
-        'senior'
+        'senior',
+        '{Python,FastAPI,PostgreSQL}'
     ),
     (
         'aaaaaaaa-0000-0000-0000-000000000002',
@@ -51,7 +53,8 @@ values
         'Acompañar líderes técnicos en ciclos de talento end-to-end.',
         'hybrid',
         'open',
-        'semi-senior'
+        'semi-senior',
+        '{"People analytics",Inglés}'
     ),
     (
         'bbbbbbbb-0000-0000-0000-000000000001',
@@ -61,7 +64,8 @@ values
         'Búsqueda activa de talento tech para clientes LATAM.',
         'remote',
         'open',
-        'junior'
+        'junior',
+        '{"LinkedIn Recruiter",Inglés,Excel}'
     )
 on conflict (empresa_id, slug) do nothing;
 
@@ -118,14 +122,16 @@ values
         '22222222-2222-2222-2222-222222222222',
         'bbbbbbbb-0000-0000-0000-000000000001',
         'dddddddd-0000-0000-0000-000000000001',
-        -- Siete es gratuita: su pipeline solo tiene "Aplicados" y el score no
-        -- se guarda en `applications` (0009, ADR-018).
+        -- Siete es gratuita: su pipeline solo tiene "Aplicados" y no se
+        -- evalúa con IA (0010, ADR-019).
         'applied',
         null
     )
 on conflict (vacante_id, candidato_id) do nothing;
 
 -- ─── psicometricos ──────────────────────────────────────────────────────────
+-- Solo en Vector HR: el cockpit no está en el plan gratis (0010). Uno pendiente
+-- y otro ya completado, para los tests del flujo por token.
 insert into psicometricos (id, empresa_id, application_id, token_hash, status, expires_at)
 values
     (
@@ -138,9 +144,9 @@ values
     ),
     (
         '99999999-0000-0000-0000-000000000002',
-        '22222222-2222-2222-2222-222222222222',
-        'ffffffff-0000-0000-0000-000000000001',
-        encode(sha256('psy-tok-siete-001'::bytea), 'hex'),
+        '11111111-1111-1111-1111-111111111111',
+        'eeeeeeee-0000-0000-0000-000000000002',
+        encode(sha256('psy-tok-vec-002'::bytea), 'hex'),
         'completed',
         now() + interval '7 days'
     )

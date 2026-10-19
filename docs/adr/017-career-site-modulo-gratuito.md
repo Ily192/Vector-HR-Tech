@@ -56,7 +56,8 @@ Los aplica el backend; la UI solo los muestra.
 | Límite | Valor | Dónde se aplica |
 |---|---|---|
 | Vacantes activas | **3 o 4 según el tamaño de la empresa**. Por defecto: 3 hasta 50 personas y 4 desde 51. Vector HR puede ajustarlo por empresa. | `empresas.limite_vacantes`, comprobado al publicar |
-| Aplicaciones por vacante | **50** | `aplicar_a_vacante()` |
+| Aplicaciones por vacante | **50** recibidas: borrar no libera cupo (ADR-019) | Trigger en `applications` (0010) |
+| Publicaciones nuevas | Tantas como vacantes activas cada 30 días (ADR-019) | Trigger en `vacantes` (0010) |
 | Etapas del pipeline | Solo **Aplicados** | RLS y caso de uso del pipeline |
 
 - **Al llegar al límite de vacantes:** para publicar otra, la empresa tiene que
@@ -94,12 +95,13 @@ Los aplica el backend; la UI solo los muestra.
   tiene que decir que su CV se evalúa con IA, sin usar su nombre, por cuenta de
   la empresa.
 
-> **ADR-018** desarrolla este punto.
-> - Cuándo se evalúa: al abrir el pipeline y mientras la empresa esté activa.
-> - Topes por empresa y del plan.
-> - Resumen por lotes de 5 y una evaluación de muestra a ciegas.
-> - Base legal: es una instrucción de la empresa, que puede apagarla.
-> - Desbloqueo al contratar.
+> **ADR-019 reemplaza este punto** (y a ADR-018, que lo desarrollaba). El plan gratis
+> no usa IA:
+> - el gancho es una coincidencia de skills: cuántos CVs mencionan las skills de la
+>   vacante, por lotes de 5 y sin decir cuáles;
+> - dice "mencionan", no "califican", y el CTA es "Evaluarlos con IA";
+> - al contratar no se desbloquea nada: la evaluación con IA corre sobre las
+>   aplicaciones.
 
 ### 5. El career site público es uno solo
 

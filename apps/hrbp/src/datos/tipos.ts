@@ -70,14 +70,19 @@ export type ResultadoDePublicar =
   | { ok: false; motivo: MotivoDeRechazo };
 
 /**
- * Lo que los agentes encontraron en los CVs, sin identidades. Es el gancho del
- * plan gratis: la empresa ve los números, no a los candidatos.
+ * Cuántos CVs mencionan las skills de la vacante, sin IA y sin identidades
+ * (`resumen_del_gancho()`, ADR-019). Es el gancho del plan gratis: la empresa ve
+ * los números, no a los candidatos.
  */
 export interface GanchoDelPipeline {
-  cvsEvaluados: number;
-  segundos: number;
-  califican: number;
-  cumplenTodasLasSkills: number;
+  /** Skills que pide la vacante. Con 0 no hay nada que contar. */
+  skills: number;
+  /** CVs revisados, de 5 en 5. */
+  revisados: number;
+  enEspera: number;
+  /** Mencionan más de la mitad de las skills (incluye a los que las mencionan todas). */
+  conLaMayoria: number;
+  conTodas: number;
 }
 
 export interface Aplicado {

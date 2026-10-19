@@ -36,8 +36,19 @@ export const VacanteSchema = z.object({
   closed_at: z.string().datetime().nullable(),
   /** Borrado lógico al eliminarla desde el panel (0008). */
   deleted_at: z.string().datetime().nullable().default(null),
-  /** La empresa pide la preselección a ciegas con IA (0009, ADR-018). */
-  preseleccion_ia: z.boolean().default(true),
+  /**
+   * Skills que pide la vacante, hasta 15 (0010). En el plan gratis el hr-engine
+   * cuenta cuántos CVs las mencionan, sin IA (ADR-019).
+   */
+  skills: z
+    .array(
+      z.string().refine((s) => {
+        const largo = s.trim().length;
+        return largo >= 1 && largo <= 60;
+      }, "cada skill lleva de 1 a 60 caracteres"),
+    )
+    .max(15)
+    .default([]),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;
 
@@ -105,7 +116,10 @@ export const ApplicationSchema = z.object({
   fit_gaps: z.array(z.string()).default([]),
   applied_at: z.string().datetime(),
   decided_at: z.string().datetime().nullable(),
-  /** El candidato se opuso a la evaluación con IA (0009, ADR-018). */
+  /**
+   * El candidato se opuso a la evaluación automatizada, con o sin IA (0009 y 0010,
+   * ADR-019). La empresa no puede retirarla.
+   */
   sin_ia: z.boolean().default(false),
 });
 export type Application = z.infer<typeof ApplicationSchema>;

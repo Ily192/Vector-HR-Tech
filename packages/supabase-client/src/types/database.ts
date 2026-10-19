@@ -42,13 +42,13 @@ type Generated =
   | "created_at"
   | "updated_at"
   | "applied_at"
-  // Con default en la base (0007, 0008 y 0009).
+  // Con default en la base (0007 a 0010).
   | "plan"
   | "tamano_empleados"
   | "limite_vacantes"
   | "salario_publico"
   | "deleted_at"
-  | "preseleccion_ia"
+  | "skills"
   | "sin_ia";
 
 type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
@@ -114,7 +114,11 @@ export interface Database {
           expires_at: string;
         }[];
       };
-      /** "3 de 4" del panel (0008). `null` en límite = sin tope (plan con IA). */
+      /**
+       * "3 de 4" del panel (0008) y las publicaciones de los últimos 30 días (0010).
+       * `null` = sin tope (plan con IA). `proxima_publicacion`: cuándo se libera la
+       * próxima, solo si ya no queda ninguna.
+       */
       mi_cupo_de_vacantes: {
         Args: Record<string, never>;
         Returns: {
@@ -122,33 +126,39 @@ export interface Database {
           limite: number | null;
           libres: number | null;
           max_aplicaciones: number | null;
+          publicaciones_libres: number | null;
+          proxima_publicacion: string | null;
         }[];
       };
       /**
-       * El gancho del plan gratis (0009). Sin filas si la vacante no es tuya,
-       * si tienes el plan con IA o si apagaste la preselección.
+       * El gancho del plan gratis (0010): cuántos CVs mencionan las skills de la
+       * vacante, sin IA y por lotes de 5. Sin filas si la vacante no es tuya o si
+       * tienes el plan con IA. Con `skills = 0` no hay nada que contar.
        */
       resumen_del_gancho: {
         Args: { p_vacante: string };
         Returns: {
           aplicaciones: number;
-          cvs_evaluados: number;
+          skills: number;
+          revisados: number;
           en_espera: number;
           ilegibles: number;
-          segundos: number;
-          califican: number;
-          cumplen_todas_las_skills: number;
+          con_la_mayoria: number;
+          con_todas: number;
         }[];
       };
-      /** Una evaluación a ciegas de muestra por vacante, fija desde que hay 10 evaluadas (0009). */
-      muestra_del_gancho: {
-        Args: { p_vacante: string };
-        Returns: { score: number; razonamiento: string; gaps: string[] }[];
-      };
-      /** El panel la llama al abrir el pipeline: sin visitas en 14 días no se preselecciona (0009). */
-      registrar_visita_al_pipeline: {
-        Args: { p_vacante: string };
-        Returns: undefined;
+      /**
+       * "47 de 50" por vacante (0010). Cuenta las recibidas: borrar o descartar
+       * no libera cupo. `null` en límite = sin tope (plan con IA).
+       */
+      cupos_de_aplicaciones: {
+        Args: Record<string, never>;
+        Returns: {
+          vacante_id: string;
+          recibidas: number;
+          limite: number | null;
+          completo: boolean;
+        }[];
       };
       submit_psicometrico: {
         Args: {

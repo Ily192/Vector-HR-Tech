@@ -187,6 +187,45 @@ def test_cv_evaluator_valid_token_enqueues(
     assert api_world.cv_evaluator_task.calls[0]["empresa_id"] == str(empresa_id)
 
 
+# ── 403: la IA es lo que se paga (ADR-019) ──────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("url", "skill", "body"),
+    [(SOURCER_URL, "sourcer", _sourcer_body()), (CV_URL, "cv-evaluator", _cv_body())],
+)
+@pytest.mark.parametrize(
+    ("plan", "motivo"),
+    [
+        ("gratis", "el plan gratis no incluye los servicios de IA"),
+        (None, "la empresa no existe o no tiene plan"),
+    ],
+)
+def test_sin_plan_con_ia_no_corre_ningun_agente(
+    client: TestClient,
+    api_world: ApiWorld,
+    empresa_id: UUID,
+    url: str,
+    skill: str,
+    body: dict[str, Any],
+    plan: str | None,
+    motivo: str,
+) -> None:
+    """Un token válido de una empresa gratuita (o que no existe) no llega a la cola."""
+    api_world.planes[str(empresa_id)] = plan
+    run_id = uuid4()
+    token = issue_run_token(
+        empresa_id=empresa_id, agent_skill=skill, run_id=run_id, cost_cap_usd=0.05
+    )
+    response = client.post(url, json=body, headers=_auth(token))
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == motivo
+    assert str(run_id) not in api_world.runs
+    assert api_world.sourcer_task.calls == []
+    assert api_world.cv_evaluator_task.calls == []
+
+
 # ── El body NO puede pisar el token ─────────────────────────────────────────
 
 

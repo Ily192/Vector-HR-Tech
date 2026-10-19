@@ -8,6 +8,7 @@ import {
   ETAPAS_DEL_PIPELINE,
   LIMITES_DEL_PLAN,
   UMBRALES_SIGUIENTE_PASO,
+  VENTANA_DE_PUBLICACIONES_DIAS,
   limiteDeVacantes,
   siguientePaso,
 } from "../reglas";
@@ -50,7 +51,7 @@ describe("ETAPAS_DEL_PIPELINE", () => {
 });
 
 // El mismo fichero lo validan el dominio (tests/unit/test_contrato_limites_plan.py) y
-// la copia en SQL de la migración 0008 (tests/security/test_plan_gratis.py).
+// la copia en SQL de las migraciones 0008 y 0010 (tests/security/test_plan_gratis.py).
 const limites = JSON.parse(
   readFileSync(
     fileURLToPath(new URL("../../contracts/limites-plan.json", import.meta.url)),
@@ -58,9 +59,10 @@ const limites = JSON.parse(
   ),
 ) as {
   max_aplicaciones_gratis: number;
+  ventana_de_publicaciones_dias: number;
   planes: Record<
     "gratis" | "ia",
-    { modulos: string[]; etapas_visibles: string[]; con_limites: boolean }
+    { incluye_ia: boolean; modulos: string[]; etapas_visibles: string[]; con_limites: boolean }
   >;
   casos_limite_de_vacantes: { tamano: number | null; ajuste: number | null; limite: number }[];
 };
@@ -71,9 +73,14 @@ describe("contrato limites-plan (TS ↔ Python ↔ SQL)", () => {
     expect(LIMITES_DEL_PLAN.ia.aplicacionesPorVacante).toBeNull();
   });
 
+  it("cuenta las publicaciones en la misma ventana", () => {
+    expect(VENTANA_DE_PUBLICACIONES_DIAS).toBe(limites.ventana_de_publicaciones_dias);
+  });
+
   it.each(["gratis", "ia"] as const)("el plan %s abre los mismos módulos y etapas", (plan) => {
     expect(LIMITES_DEL_PLAN[plan].modulos).toEqual(limites.planes[plan].modulos);
     expect(LIMITES_DEL_PLAN[plan].etapasVisibles).toEqual(limites.planes[plan].etapas_visibles);
+    expect(LIMITES_DEL_PLAN[plan].incluyeIa).toBe(limites.planes[plan].incluye_ia);
   });
 
   it.each(limites.casos_limite_de_vacantes.map((c) => [c.tamano, c.ajuste, c.limite] as const))(

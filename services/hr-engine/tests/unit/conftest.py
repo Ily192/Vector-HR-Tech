@@ -20,6 +20,7 @@ from app.api import cv_evaluator as cv_evaluator_api
 from app.api import sourcer as sourcer_api
 from app.database import get_db
 from app.main import app
+from app.repositories import hr as hr_repo
 from app.repositories import runs as runs_repo
 
 
@@ -57,6 +58,8 @@ class ApiWorld:
     sourcer_task: FakeTask
     cv_evaluator_task: FakeTask
     runs: dict[str, runs_repo.RunRow]
+    #: Plan de cada empresa por id. La que no está aquí tiene el plan con IA.
+    planes: dict[str, str | None]
 
 
 @pytest.fixture
@@ -93,8 +96,14 @@ def api_world(monkeypatch: pytest.MonkeyPatch) -> Iterator[ApiWorld]:
     async def fake_get_run(_db: object, run_id: UUID | str) -> runs_repo.RunRow | None:
         return stored.get(str(run_id))
 
+    planes: dict[str, str | None] = {}
+
+    async def fake_plan_de_la_empresa(_db: object, empresa_id: UUID | str) -> str | None:
+        return planes.get(str(empresa_id), "ia")
+
     monkeypatch.setattr(runs_repo, "create_run", fake_create_run)
     monkeypatch.setattr(runs_repo, "get_run", fake_get_run)
+    monkeypatch.setattr(hr_repo, "plan_de_la_empresa", fake_plan_de_la_empresa)
 
     sourcer_task = FakeTask()
     cv_task = FakeTask()
@@ -106,7 +115,9 @@ def api_world(monkeypatch: pytest.MonkeyPatch) -> Iterator[ApiWorld]:
 
     app.dependency_overrides[get_db] = fake_get_db
     try:
-        yield ApiWorld(sourcer_task=sourcer_task, cv_evaluator_task=cv_task, runs=stored)
+        yield ApiWorld(
+            sourcer_task=sourcer_task, cv_evaluator_task=cv_task, runs=stored, planes=planes
+        )
     finally:
         app.dependency_overrides.clear()
 
