@@ -513,18 +513,20 @@ async def test_token_rpc_hides_completed_test(db: asyncpg.Connection) -> None:
     assert rows == []
 
 
-async def test_token_rpc_hides_expired_test(db: asyncpg.Connection) -> None:
-    # Una application propia: el indice partial-unique sobre (application_id)
-    # WHERE status in ('pending','in_progress') no deja dos tests vivos en la
-    # misma, y las del seed las usan otros tests. (Hasta 0010 se usaba la de
-    # Siete, pero el plan gratis ya no puede tener psicometricos.)
-    await _elevate(db)
-    try:
-        application_id = await db.fetchval(
+async def _aplicacion_propia(db: asyncpg.Connection) -> str:
+    """Una application nueva de Vector HR, como dueño (la conexión ya está elevada).
+
+    El índice parcial `psicometricos_one_active_per_application` no deja dos tests
+    vivos en la misma application. Los tests que elegían una del seed con `limit 1`
+    sin `order by` dependían del orden físico de las filas: a veces tocaba la que ya
+    tiene `psy-tok-vec-001` pendiente, y la CI fallaba sin cambio de código.
+    """
+    return str(
+        await db.fetchval(
             """
             with c as (
                 insert into candidatos (empresa_id, full_name, email)
-                values ($1::uuid, 'Expirada', 'expirada@example.test')
+                values ($1::uuid, 'Candidata del test', $2)
                 returning id
             )
             insert into applications (empresa_id, vacante_id, candidato_id)
@@ -532,7 +534,15 @@ async def test_token_rpc_hides_expired_test(db: asyncpg.Connection) -> None:
             returning id
             """,
             EMPRESA_VECTOR,
+            f"psicometrico-{uuid.uuid4().hex[:10]}@example.test",
         )
+    )
+
+
+async def test_token_rpc_hides_expired_test(db: asyncpg.Connection) -> None:
+    await _elevate(db)
+    try:
+        application_id = await _aplicacion_propia(db)
         await db.execute(
             """
             insert into psicometricos
@@ -602,14 +612,10 @@ async def test_submit_rpc_can_finish_the_test(db: asyncpg.Connection) -> None:
         await db.execute(
             """
             insert into psicometricos (empresa_id, application_id, token_hash, status)
-            values (
-                $1::uuid,
-                (select id from applications where empresa_id = $1::uuid limit 1),
-                encode(sha256($2::text::bytea), 'hex'),
-                'pending'
-            )
+            values ($1::uuid, $2::uuid, encode(sha256($3::text::bytea), 'hex'), 'pending')
             """,
             EMPRESA_VECTOR,
+            await _aplicacion_propia(db),
             token,
         )
     finally:
@@ -656,14 +662,10 @@ async def test_submit_rpc_rejects_a_finished_test(db: asyncpg.Connection) -> Non
         await db.execute(
             """
             insert into psicometricos (empresa_id, application_id, token_hash, status)
-            values (
-                $1::uuid,
-                (select id from applications where empresa_id = $1::uuid limit 1),
-                encode(sha256($2::text::bytea), 'hex'),
-                'pending'
-            )
+            values ($1::uuid, $2::uuid, encode(sha256($3::text::bytea), 'hex'), 'pending')
             """,
             EMPRESA_VECTOR,
+            await _aplicacion_propia(db),
             token,
         )
     finally:
