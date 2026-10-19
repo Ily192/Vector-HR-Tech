@@ -1,6 +1,7 @@
 """Celery app — broker + backend, registra todos los workers."""
 
 from celery import Celery
+from celery.schedules import crontab
 from celery.signals import worker_ready
 
 from app.config import settings
@@ -15,6 +16,8 @@ celery_app = Celery(
     include=[
         "app.workers.sourcer",
         "app.workers.cv_evaluator",
+        # Coincidencia de skills del plan gratis, sin IA (ADR-019).
+        "app.workers.coincidencias",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -59,8 +62,21 @@ celery_app.conf.update(
     # cola venga llena.
     task_default_rate_limit=settings.celery_task_default_rate_limit,
     broker_connection_retry_on_startup=True,
+    # Beat corre como proceso aparte y uno solo (`celery -A app.workers.celery_app
+    # beat`): la documentación de Celery 5.6 pide "only a single scheduler" por
+    # agenda, o las tareas se duplican.
     beat_schedule={
-        # placeholder: cycle 1 agrega scheduler
+        "coincidencias-barrer": {
+            "task": "coincidencias.barrer",
+            "schedule": 60.0,
+            # Si el worker va atrasado, el barrido viejo se descarta: el siguiente
+            # recoge lo mismo.
+            "options": {"expires": 55},
+        },
+        "coincidencias-purgar": {
+            "task": "coincidencias.purgar",
+            "schedule": crontab(hour=4, minute=0),
+        },
     },
 )
 

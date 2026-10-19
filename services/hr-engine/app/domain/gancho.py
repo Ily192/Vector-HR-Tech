@@ -20,6 +20,10 @@ from dataclasses import dataclass
 #: se paga por ver ordenado.
 TAMANO_DEL_LOTE = 5
 
+#: Las coincidencias de una vacante cerrada se borran a estos días: el gancho ya no
+#: tiene nada que mostrar (`privado.purgar_coincidencias()`, migración 0010).
+DIAS_HASTA_LA_PURGA = 30
+
 
 @dataclass(frozen=True, slots=True)
 class ResumenDelGancho:

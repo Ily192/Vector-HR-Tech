@@ -23,6 +23,9 @@ from functools import lru_cache
 #: (`public.skills_validas`, migración 0010).
 MAX_SKILLS = 15
 MAX_LARGO_DE_SKILL = 60
+#: Con menos letras, el CV es una imagen escaneada o está vacío: no hay qué comparar.
+#: pypdf no hace OCR ("pypdf will also never be able to extract text from images").
+MIN_LETRAS_LEGIBLES = 100
 
 #: Formas que se escriben distinto y nombran lo mismo: variantes de escritura y
 #: traducciones directas. Nunca lo que una skill "implica": quien sabe
@@ -80,6 +83,11 @@ def normalizar(texto: str) -> str:
     """Minúsculas, sin acentos y con un solo espacio entre palabras."""
     plano = _sin_acentos(texto).casefold().replace("_", " ")
     return " ".join(_SEPARADORES.sub(" ", plano).split())
+
+
+def es_legible(texto: str) -> bool:
+    """Si el texto sacado del CV alcanza para compararlo con las skills."""
+    return sum(c.isalpha() for c in texto) >= MIN_LETRAS_LEGIBLES
 
 
 def skills_validas(skills: Sequence[str]) -> bool:

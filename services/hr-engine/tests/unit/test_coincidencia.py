@@ -10,9 +10,11 @@ import pytest
 
 from app.domain.coincidencia import (
     MAX_SKILLS,
+    MIN_LETRAS_LEGIBLES,
     SINONIMOS,
     Coincidencia,
     coincidir,
+    es_legible,
     normalizar,
     skills_validas,
 )
@@ -127,3 +129,12 @@ def test_skills_validas_como_las_pide_la_base() -> None:
 def test_los_sinonimos_ya_estan_normalizados(grupo: tuple[str, ...]) -> None:
     for forma in grupo:
         assert normalizar(forma) == forma
+
+
+def test_un_cv_escaneado_no_es_legible() -> None:
+    """pypdf no hace OCR: de un escaneo sale poco o nada."""
+    assert es_legible(CV)
+    assert not es_legible("")
+    assert not es_legible("1 2 3 4 5 6 7 8 9 0 . , ; :" * 20)  # sin letras
+    assert es_legible("a" * MIN_LETRAS_LEGIBLES)
+    assert not es_legible("a" * (MIN_LETRAS_LEGIBLES - 1))

@@ -32,6 +32,11 @@ dependencies = [
     # Frontmatter de los SKILL.md (app/skills.py). Ya venía como transitiva;
     # se declara porque el código la importa directamente.
     "pyyaml>=6.0",
+    # Texto de los CVs en PDF para la coincidencia de skills del plan gratis (ADR-019).
+    "pypdf>=6.21.1",
+    # El XML de un DOCX lo sube un candidato: la documentación de Python recomienda
+    # defusedxml para XML no confiable en el servidor.
+    "defusedxml>=0.7.1",
 ]
 
 # PEP 735 dependency groups. `uv sync` los instala por defecto (a diferencia de
@@ -47,6 +52,8 @@ dev = [
     "celery-types>=0.22.0",
     # Tipos de PyYAML para mypy (app/skills.py importa yaml).
     "types-pyyaml>=6.0",
+    # Tipos de defusedxml para mypy (app/infrastructure/coincidencias.py).
+    "types-defusedxml>=0.7.0",
 ]
 
 [build-system]
