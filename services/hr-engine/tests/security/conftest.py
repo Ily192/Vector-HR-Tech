@@ -158,6 +158,7 @@ async def _migrated_db() -> AsyncIterator[None]:
             """
             drop schema if exists public cascade;
             drop schema if exists auth cascade;
+            drop schema if exists privado cascade;
             create schema public;
             grant all on schema public to public;
             """

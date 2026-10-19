@@ -1,0 +1,255 @@
+{
+  "$comment": "El resumen y la muestra del gancho del plan gratis (ADR-017 §4, ADR-018). La dueña es services/hr-engine/app/domain/gancho.py y la migración 0009 lo aplica en la base (resumen_del_gancho, muestra_del_gancho). Los dos lados se prueban contra este fichero. 'Califica' usa el umbral del psicométrico de siguiente-paso.json. Las evaluaciones van en el orden en que se hicieron: solo cuentan los lotes completos, y la muestra es la de esa posición por score entre las primeras (empates, en orden de evaluación). 'muestra' es el índice en 'evaluaciones', o null si todavía no hay muestra.",
+  "tamano_del_lote": 5,
+  "muestra": {
+    "evaluadas": 10,
+    "posicion_por_score": 6
+  },
+  "casos": [
+    {
+      "nombre": "menos de un lote todavia no tiene resumen",
+      "evaluaciones": [
+        {
+          "score": 8,
+          "gaps": [],
+          "ms": 900
+        },
+        {
+          "score": 6,
+          "gaps": ["SQL"],
+          "ms": 800
+        },
+        {
+          "score": 2,
+          "gaps": ["Excel", "SAP"],
+          "ms": 700
+        },
+        {
+          "score": 9,
+          "gaps": [],
+          "ms": 1000
+        }
+      ],
+      "resumen": {
+        "cvs_evaluados": 0,
+        "segundos": 0,
+        "califican": 0,
+        "cumplen_todas_las_skills": 0
+      },
+      "muestra": null
+    },
+    {
+      "nombre": "un lote completo",
+      "evaluaciones": [
+        {
+          "score": 8,
+          "gaps": [],
+          "ms": 1200
+        },
+        {
+          "score": 4,
+          "gaps": ["Inglés B2"],
+          "ms": 800
+        },
+        {
+          "score": 3.9,
+          "gaps": [],
+          "ms": 700
+        },
+        {
+          "score": 7,
+          "gaps": [],
+          "ms": 1000
+        },
+        {
+          "score": 2,
+          "gaps": ["SAP", "Excel", "Licencia"],
+          "ms": 600
+        }
+      ],
+      "resumen": {
+        "cvs_evaluados": 5,
+        "segundos": 5,
+        "califican": 3,
+        "cumplen_todas_las_skills": 2
+      },
+      "muestra": null
+    },
+    {
+      "nombre": "lo que no completa el siguiente lote espera",
+      "evaluaciones": [
+        {
+          "score": 8,
+          "gaps": [],
+          "ms": 1200
+        },
+        {
+          "score": 4,
+          "gaps": ["Inglés B2"],
+          "ms": 800
+        },
+        {
+          "score": 3.9,
+          "gaps": [],
+          "ms": 700
+        },
+        {
+          "score": 7,
+          "gaps": [],
+          "ms": 1000
+        },
+        {
+          "score": 2,
+          "gaps": ["SAP", "Excel", "Licencia"],
+          "ms": 600
+        },
+        {
+          "score": 9.5,
+          "gaps": [],
+          "ms": 500
+        },
+        {
+          "score": 10,
+          "gaps": [],
+          "ms": 500
+        }
+      ],
+      "resumen": {
+        "cvs_evaluados": 5,
+        "segundos": 5,
+        "califican": 3,
+        "cumplen_todas_las_skills": 2
+      },
+      "muestra": null
+    },
+    {
+      "nombre": "dos lotes",
+      "evaluaciones": [
+        {
+          "score": 8,
+          "gaps": [],
+          "ms": 1200
+        },
+        {
+          "score": 4,
+          "gaps": ["Inglés B2"],
+          "ms": 800
+        },
+        {
+          "score": 3.9,
+          "gaps": [],
+          "ms": 700
+        },
+        {
+          "score": 7,
+          "gaps": [],
+          "ms": 1000
+        },
+        {
+          "score": 2,
+          "gaps": ["SAP", "Excel", "Licencia"],
+          "ms": 600
+        },
+        {
+          "score": 9.5,
+          "gaps": [],
+          "ms": 500
+        },
+        {
+          "score": 10,
+          "gaps": [],
+          "ms": 500
+        },
+        {
+          "score": 0,
+          "gaps": ["Todo"],
+          "ms": 400
+        },
+        {
+          "score": 5.5,
+          "gaps": [],
+          "ms": 450
+        },
+        {
+          "score": 6.9,
+          "gaps": ["Turno nocturno"],
+          "ms": 350
+        }
+      ],
+      "resumen": {
+        "cvs_evaluados": 10,
+        "segundos": 7,
+        "califican": 7,
+        "cumplen_todas_las_skills": 5
+      },
+      "muestra": 8
+    },
+    {
+      "nombre": "con empates la muestra respeta el orden de evaluacion",
+      "evaluaciones": [
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 5,
+          "gaps": [],
+          "ms": 100
+        },
+        {
+          "score": 9,
+          "gaps": [],
+          "ms": 100
+        }
+      ],
+      "resumen": {
+        "cvs_evaluados": 10,
+        "segundos": 1,
+        "califican": 10,
+        "cumplen_todas_las_skills": 10
+      },
+      "muestra": 5
+    }
+  ]
+}

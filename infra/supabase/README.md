@@ -58,6 +58,7 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
 | `0006_definer_search_path_fix.sql` | `search_path = ''` y referencias calificadas en las funciones `security definer` |
 | `0007_vacantes_publicas_empresa_y_salario.sql` | `vacantes_publicas` con el nombre y slug de la empresa, y el salario solo si `salario_publico` |
 | `0008_plan_gratis_limites.sql` | Plan de la empresa (`gratis` / `ia`) y límites del plan gratuito: trigger de vacantes activas, tope de 50 en `aplicar_a_vacante()`, `mi_cupo_de_vacantes()`, `cupo_completo` en la vista y `plan` + `modulos` en el JWT (ADR-017) |
+| `0009_gancho_plan_gratis.sql` | Preselección con IA del plan gratis (ADR-018). Preevaluaciones en el esquema `privado`, fuera de la API. Funciones: `resumen_del_gancho()` (lotes de 5), `muestra_del_gancho()` (una evaluación ciega fija) y `registrar_visita_al_pipeline()`. Interruptor `vacantes.preseleccion_ia` y oposición `applications.sin_ia`, los dos con borrado, y purga 30 días después del cierre. Etapas de pago bloqueadas (PT403) y desbloqueo al pasar a `ia` |
 
 ## RLS — reglas vigentes
 

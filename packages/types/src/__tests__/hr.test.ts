@@ -66,6 +66,11 @@ describe("VacanteSchema", () => {
     expect(parsed.currency).toBe("USD");
   });
 
+  it("la preselección con IA viene encendida si la base no dice otra cosa (0009)", () => {
+    expect(VacanteSchema.parse(vacante()).preseleccion_ia).toBe(true);
+    expect(VacanteSchema.parse(vacante({ preseleccion_ia: false })).preseleccion_ia).toBe(false);
+  });
+
   it("rechaza currency que no sea código ISO de 3 letras", () => {
     expect(VacanteSchema.safeParse(vacante({ currency: "DOLARES" })).success).toBe(false);
     expect(VacanteSchema.safeParse(vacante({ currency: "US" })).success).toBe(false);
@@ -178,6 +183,11 @@ describe("ApplicationSchema", () => {
   it("aplica default [] a fit_gaps cuando no viene", () => {
     const parsed = ApplicationSchema.parse(base);
     expect(parsed.fit_gaps).toEqual([]);
+  });
+
+  it("sin oposición a la IA por defecto (0009)", () => {
+    expect(ApplicationSchema.parse(base).sin_ia).toBe(false);
+    expect(ApplicationSchema.parse({ ...base, sin_ia: true }).sin_ia).toBe(true);
   });
 
   it("acota fit_score al rango 0-10 y permite null", () => {

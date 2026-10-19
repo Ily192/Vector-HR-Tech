@@ -118,8 +118,10 @@ values
         '22222222-2222-2222-2222-222222222222',
         'bbbbbbbb-0000-0000-0000-000000000001',
         'dddddddd-0000-0000-0000-000000000001',
-        'shortlisted',
-        9.2
+        -- Siete es gratuita: su pipeline solo tiene "Aplicados" y el score no
+        -- se guarda en `applications` (0009, ADR-018).
+        'applied',
+        null
     )
 on conflict (vacante_id, candidato_id) do nothing;
 

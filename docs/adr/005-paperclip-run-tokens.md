@@ -36,6 +36,19 @@ Engines validan firma + scope antes de ejecutar.
 **Positivas:** todo path agentic pasa por governance. Cost cap aplicado en origen.
 **Negativas:** Paperclip se vuelve dependencia crítica (mitigado con cache de keys públicas + circuit breaker en engines).
 
+## Actualización 2026-10-19 · trabajos internos del engine (ADR-018)
+
+La preselección del plan gratis no es una run de agente: la lanza el planificador del
+hr-engine (Celery beat) y no lleva run-token, porque una empresa gratuita no tiene
+presupuesto en Paperclip. Conserva lo que este ADR protege:
+
+- **Atribución:** cada evaluación deja su fila en `runs` con `origen = preseleccion-gratis`
+  y su costo.
+- **Tope de gasto:** por empresa y del plan gratis al mes (ADR-018 §5).
+- **Ninguna llave global expuesta:** el trabajo no tiene endpoint.
+
+Todo lo que lanza un agente sigue pasando por Paperclip.
+
 ## Alternatives considered
 
 - **API key estática del engine:** no atribuye, no caduca, no aplica cost cap.
