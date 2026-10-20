@@ -21,6 +21,7 @@
     "test:watch": "turbo run test --parallel -- --watch",
     "e2e": "turbo run e2e --",
     "e2e:smoke": "turbo run e2e:smoke --",
+    "e2e:flujo": "pnpm --filter @vortex/e2e e2e:flujo",
     "storybook": "turbo run storybook --parallel",
     "tokens:build": "pnpm --filter @vortex/design-tokens build",
     "db:start": "supabase start --workdir infra",
