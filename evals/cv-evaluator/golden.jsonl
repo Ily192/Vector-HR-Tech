@@ -4,5 +4,5 @@
 # inputs.vacante: { title, icp_text }
 # expected: { score: 0-10, rationale, gaps[], strengths[], recommended_next_step }
 #
-# Poblar con CVs reales del cliente alfa (Siete) anonimizados durante Cycle 1 wk2.
+# Poblar con CVs reales del cliente piloto, anonimizados.
 # Mínimo 10 casos para que Pearson r sea estable.

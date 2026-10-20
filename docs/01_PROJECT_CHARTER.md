@@ -13,7 +13,7 @@ Eliminar la rutina operativa de las consultoras HR / RPO / staffing firms / hold
 | ID | Objetivo | Métrica | Fecha |
 |---|---|---|---|
 | O1 | MVP self-host listo y desplegado en Coolify | repo público + Loom demo | sem 4 |
-| O2 | 1 cliente piloto en producción (Siete o externo) | NPS ≥ 50 + retención > 90 días | mes 3 |
+| O2 | 1 cliente piloto externo en producción | NPS ≥ 50 + retención > 90 días | mes 3 |
 | O3 | 10 clientes Pro de pago | $5k MRR | mes 6 |
 | O4 | Break-even operativo | $4.5k MRR cubre OPEX | mes 6 |
 | O5 | 25 clientes (mix Pro + Scale + 1 Enterprise) | $20k MRR | mes 12 |
@@ -47,7 +47,6 @@ Eliminar la rutina operativa de las consultoras HR / RPO / staffing firms / hold
 | Sponsor / Product Owner | Ilyra Rivas | Decisiones de producto y comerciales |
 | Tech Lead / FT Dev | Ilyra Rivas | Implementación |
 | Vibe-coding partner | Claude / Cursor | Pair programming, scaffolding |
-| Cliente alfa | Siete (consultora propia) | Validación de procesos HR reales |
 | Cliente piloto pagado | TBD (RPO LATAM) | Primer revenue + case study |
 | Asesor PMO | Claude Opus 4.7 | Planning, métricas, riesgos |
 
@@ -70,7 +69,7 @@ Eliminar la rutina operativa de las consultoras HR / RPO / staffing firms / hold
 **Supuestos:**
 - Paperclip y OpenClaw mantienen API estable (versionado + tests CI mitigan).
 - Supabase Pro suficiente hasta ~50 tenants activos.
-- Cliente alfa (Siete) acepta ser conejillo de indias.
+- Un cliente piloto externo acepta probar el producto antes de su versión final.
 
 ## 8. Criterios de éxito (Definition of Done del proyecto)
 
@@ -90,7 +89,7 @@ Detallados en [10_RISK_REGISTER.md](10_RISK_REGISTER.md).
 
 1. **Breaking changes de Paperclip / OpenClaw upstream.** Mitigación: pin versión + fork si necesario.
 2. **Costo de tokens de IA explota con primer cliente activo.** Mitigación: budget hard-stops nativos en Paperclip, alarmas Sentry.
-3. **No conseguir cliente piloto pagado en mes 3.** Mitigación: usar Siete como producto interno (case study self-served).
+3. **No conseguir cliente piloto pagado en mes 3.** Mitigación: Vector HR como tenant interno para la demo y el case study, y el plan gratis como canal para encontrar el piloto (ADR-019).
 
 ## 10. Aprobación
 

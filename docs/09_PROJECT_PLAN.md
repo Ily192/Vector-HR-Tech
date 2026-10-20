@@ -90,7 +90,7 @@ Q4 (sem 37-48):   Enterprise tier + SSO/SAML + 25 clientes + $20k MRR
 
 - Refactor del `pipeline.py` orquestador.
 - Mejorar evals del `cv-evaluator` (subir Pearson r de 0.6 → 0.75).
-- Bug fixes de cliente alfa (Siete).
+- Bug fixes del cliente piloto.
 - Pitch del cycle 2.
 
 ## 5. Cycle 2 — Onboarding + Multi-canal + Sales-engine slim (semanas 4-5)
@@ -140,12 +140,12 @@ Q4 (sem 37-48):   Enterprise tier + SSO/SAML + 25 clientes + $20k MRR
 
 ### DoD
 
-- ✅ 1 campaña real corriendo para Siete (cliente alfa).
+- ✅ 1 campaña real corriendo para el cliente piloto.
 - ✅ Aislamiento entre tenants verificado en sales tables.
 
 ## 8. Cooldown 3 (semana 9)
 
-- Caso de estudio Siete con números: tiempo ahorrado, candidatos procesados, revenue Sales.
+- Caso de estudio del cliente piloto con números: tiempo ahorrado, candidatos procesados, revenue Sales.
 - Pitch cycle 4.
 
 ## 9. Cycle 4 — Lanzamiento público + primeros 5 clientes Pro (semanas 10-11)
