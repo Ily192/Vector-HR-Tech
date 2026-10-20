@@ -173,7 +173,9 @@ Para la consola de emergencia de DigitalOcean (Recovery Console), que sí pide c
    - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado);
    - `CLOUDFLARE_TUNNEL_TOKEN` y `TURNSTILE_SECRET_KEY`;
    - `RESTIC_REPOSITORY`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`;
-   - opcional: `RESPALDO_PING_URL`.
+   - `GOOGLE_API_KEY`, la key de Gemini del **nivel de pago**, para la evaluación con IA
+     (ADR-021). Sin ella, las aplicaciones de las empresas con IA esperan;
+   - opcional: `RESPALDO_PING_URL` y `OPENAI_API_KEY` (respaldo de Gemini).
 2. **Comprobar:**
    `sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar /opt/vortex/.env`.
    No imprime nada si todo está.

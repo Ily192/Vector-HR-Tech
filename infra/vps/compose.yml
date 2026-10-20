@@ -53,6 +53,11 @@ x-hr-engine: &hr-engine
     SUPABASE_URL: http://api-gw:8000
     SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
     PANEL_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}
+    # La evaluación con IA del plan de pago (ADR-021). Sin key no se evalúa nada y las
+    # aplicaciones de las empresas con IA esperan; solo la key del nivel de pago de Gemini.
+    GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    IA_PRESUPUESTO_MENSUAL_USD: ${IA_PRESUPUESTO_MENSUAL_USD:-25}
     SENTRY_DSN_BACKEND: ${SENTRY_DSN_BACKEND:-}
 
 services:
