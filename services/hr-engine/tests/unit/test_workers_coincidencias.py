@@ -23,6 +23,8 @@ def test_beat_barre_cada_minuto_y_purga_una_vez_al_dia() -> None:
     assert barrer["options"]["expires"] < barrer["schedule"]
     assert purgar["task"] == "coincidencias.purgar"
     assert isinstance(purgar["schedule"], crontab)
+    # Lo que hace el worker al arrancar: importar los módulos de `include`.
+    celery_app.loader.import_default_modules()
     for entrada in agenda.values():
         assert entrada["task"] in celery_app.tasks
 

@@ -22,7 +22,9 @@ from app.config import Settings, settings
 #: o el SKILL.md deja de cargarse, este test falla: quitarlas tiene que ser una
 #: decisión explícita, con este test cambiado en el mismo PR.
 _REGLAS_OBLIGATORIAS = {
-    "anti-sesgo": "ignorá edad, género, nacionalidad",
+    "anti-sesgo": "ignora edad, género, nacionalidad",
+    "no inferir datos personales": "No los infieras",
+    "a ciegas": "Nunca nombres a la persona",
     "no inventar": "No inventes experiencia que no está en el CV",
     "calibración 0-3": "0-3: claramente no aplica",
     "calibración 4-6": "4-6: aplica parcial",

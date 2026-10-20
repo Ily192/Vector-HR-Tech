@@ -173,20 +173,27 @@ def _build_prompt(candidate: dict[str, Any], icp_text: str) -> str:
     Evaluación a ciegas: el nombre NO entra al prompt. Un nombre insinúa género,
     origen o edad y no dice nada del encaje con el puesto. `full_name` solo se
     usa fuera del modelo (el hash de los logs).
+
+    Con `cv` (la evaluación del plan de pago, ADR-021) va el texto del CV, que ya
+    llega anonimizado por `domain/anonimizacion.py`. Sin él, el titular y el resumen.
     """
     schema_hint = json.dumps(CandidateFitResponse.model_json_schema(), ensure_ascii=False)
-    candidate_block = json.dumps(
-        {
-            "headline": candidate.get("headline"),
-            "summary": candidate.get("summary"),
-        },
-        ensure_ascii=False,
-    )
+    if candidate.get("cv"):
+        candidate_block = f"## CV del candidato (anonimizado)\n{candidate['cv']}"
+    else:
+        perfil = json.dumps(
+            {
+                "headline": candidate.get("headline"),
+                "summary": candidate.get("summary"),
+            },
+            ensure_ascii=False,
+        )
+        candidate_block = f"## Candidato\n{perfil}"
     return (
         f"## ICP (perfil ideal)\n{icp_text}\n\n"
-        f"## Candidato\n{candidate_block}\n\n"
+        f"{candidate_block}\n\n"
         f"## Schema de salida (JSON estricto)\n{schema_hint}\n\n"
-        "Evaluá el fit y devuelve el JSON."
+        "Evalúa el encaje y devuelve el JSON."
     )
 
 

@@ -5,10 +5,13 @@ Guardan lo que reciben, para que los tests comprueben qué salió hacia cada pue
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
+from app.domain.anonimizacion import CvAnonimo
 from app.domain.entidades import (
+    AplicacionPorEvaluar,
     Candidato,
     CvPendiente,
     Embedding,
@@ -161,3 +164,80 @@ class ExtractorDeTextoPlano:
 
     def extraer(self, contenido: bytes) -> str | None:
         return None if contenido.startswith(b"\x00") else contenido.decode("utf-8")
+
+
+# ─── Evaluación con IA del plan de pago (ADR-021) ────────────────────────────
+
+
+@dataclass
+class RepositorioDeEvaluacionesEnMemoria:
+    """`RepositorioDeEvaluaciones` en memoria.
+
+    `opuestas` simula candidatos que se opusieron mientras se evaluaba su CV.
+    `eventos` guarda el orden de las escrituras.
+    """
+
+    pendientes_: list[AplicacionPorEvaluar] = field(default_factory=list)
+    gastado: float = 0.0
+    opuestas: set[UUID] = field(default_factory=set)
+    guardadas: dict[UUID, ResultadoScoring] = field(default_factory=dict)
+    aplazadas: dict[UUID, str] = field(default_factory=dict)
+    sueltas: set[UUID] = field(default_factory=set)
+    ilegibles: set[UUID] = field(default_factory=set)
+    eventos: list[tuple[str, UUID]] = field(default_factory=list)
+    reclamos: int = 0
+
+    async def gastado_este_mes(self) -> float:
+        return self.gastado
+
+    async def reclamar(self, limite: int) -> list[AplicacionPorEvaluar]:
+        self.reclamos += 1
+        return self.pendientes_[:limite]
+
+    async def guardar(self, aplicacion: AplicacionPorEvaluar, resultado: ResultadoScoring) -> bool:
+        self.gastado += resultado.cost_usd
+        self.eventos.append(("guardar", aplicacion.application_id))
+        if aplicacion.application_id in self.opuestas:
+            return False
+        self.guardadas[aplicacion.application_id] = resultado
+        return True
+
+    async def aplazar(self, aplicacion: AplicacionPorEvaluar, *, motivo: str) -> None:
+        self.aplazadas[aplicacion.application_id] = motivo
+        self.eventos.append(("aplazar", aplicacion.application_id))
+
+    async def soltar(self, aplicacion: AplicacionPorEvaluar) -> None:
+        self.sueltas.add(aplicacion.application_id)
+        self.eventos.append(("soltar", aplicacion.application_id))
+
+    async def marcar_ilegible(self, aplicacion: AplicacionPorEvaluar) -> None:
+        self.ilegibles.add(aplicacion.application_id)
+        self.eventos.append(("ilegible", aplicacion.application_id))
+
+
+@dataclass
+class EvaluadorFalso:
+    """`EvaluadorDeCvs` con una respuesta fija. `errores` hace fallar los CVs que
+    contengan cierta frase, y `en_curso_max` registra cuántos puntuó a la vez."""
+
+    fit: FitScore
+    costo_usd: float = 0.0025
+    model: str = "gemini-2.5-flash"
+    errores: dict[str, Exception] = field(default_factory=dict)
+    recibido: list[tuple[CvAnonimo, str]] = field(default_factory=list)
+    en_curso: int = 0
+    en_curso_max: int = 0
+
+    async def evaluar(self, cv: CvAnonimo, vacante: str) -> ResultadoScoring:
+        self.recibido.append((cv, vacante))
+        self.en_curso += 1
+        self.en_curso_max = max(self.en_curso_max, self.en_curso)
+        try:
+            # Cede el turno para que se note si el lote corre en paralelo.
+            await asyncio.sleep(0)
+            for frase, error in self.errores.items():
+                if frase in cv.texto:
+                    raise error
+            return ResultadoScoring(fit=self.fit, cost_usd=self.costo_usd, model=self.model)
+        finally:
+            self.en_curso -= 1
