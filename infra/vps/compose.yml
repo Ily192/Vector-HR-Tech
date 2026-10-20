@@ -61,7 +61,7 @@ services:
     image: public.ecr.aws/supabase/postgres:17.11.0.004
     restart: unless-stopped
     logging: *logs
-    mem_limit: 640m
+    mem_limit: 576m
     shm_size: 128m
     networks: [datos]
     volumes:
@@ -121,10 +121,12 @@ services:
       # El enlace mágico y la invitación vuelven al panel (infra/supabase/config.toml).
       GOTRUE_SITE_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}
       GOTRUE_URI_ALLOW_LIST: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}/**,${ESQUEMA_PUBLICO:-https}://${DOMINIO_EMPLEOS:?}/**
-      # Nadie se registra solo: las cuentas nacen de una invitación (ADR-017). En
-      # desarrollo el CLI deja el registro abierto, y el trigger handle_new_user igual
-      # rechaza a quien llega sin invitación.
-      GOTRUE_DISABLE_SIGNUP: "true"
+      # Las cuentas nacen de una invitación (ADR-017): el trigger handle_new_user (0003)
+      # rechaza el alta de quien llega sin ella. El registro de Auth queda encendido, como
+      # en desarrollo: apagado, Auth toma el enlace mágico de una cuenta invitada que aún
+      # no entra por un registro y lo niega (signup_disabled), y el panel deja pedir uno
+      # cuando la invitación venció. Lo comprueba pruebas/humo.py.
+      GOTRUE_DISABLE_SIGNUP: "false"
 
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_JWT_AUD: authenticated
@@ -203,7 +205,7 @@ services:
     image: public.ecr.aws/supabase/storage-api:v1.79.36
     restart: unless-stopped
     logging: *logs
-    mem_limit: 256m
+    mem_limit: 192m
     networks: [datos]
     depends_on:
       db:
@@ -322,7 +324,7 @@ services:
   # ensure only a single scheduler is running").
   hr-engine-beat:
     <<: *hr-engine
-    mem_limit: 160m
+    mem_limit: 224m
     command:
       ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info",
        "--schedule=/tmp/celerybeat-schedule"]
