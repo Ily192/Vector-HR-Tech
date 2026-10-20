@@ -1,0 +1,17 @@
+# Respaldo nocturno de Vortex a Cloudflare R2 (ADR-020). Lo instala
+# infra/vps/scripts/provisionar.sh; lo dispara vortex-respaldo.timer.
+#   systemctl start vortex-respaldo     (a mano)
+#   journalctl -u vortex-respaldo       (cómo le fue)
+[Unit]
+Description=Respaldo de Vortex a R2 (restic)
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=despliegue
+Group=despliegue
+ExecStart=/opt/vortex/repo/infra/vps/scripts/respaldar.sh
+Nice=10
+IOSchedulingClass=idle

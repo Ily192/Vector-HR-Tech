@@ -1,0 +1,12 @@
+# Cada noche a las 08:00 UTC (las 2 a. m. de Ciudad de México), más hasta 15 minutos al
+# azar. Si el servidor estaba apagado a esa hora, corre al encender (Persistent).
+[Unit]
+Description=Respaldo nocturno de Vortex
+
+[Timer]
+OnCalendar=*-*-* 08:00:00 UTC
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
