@@ -82,6 +82,11 @@ export const VacantePublicaSchema = VacanteSchema.pick({
   salario_max: z.number().nonnegative().nullable(),
   moneda: z.string().length(3).nullable(),
   cupo_completo: z.boolean(),
+  /**
+   * Si la empresa evalúa los CVs con IA (0014, ADR-021): el candidato tiene derecho a
+   * saberlo antes de aplicar. Sin el dato, lo que no evalúa con IA.
+   */
+  evalua_con_ia: z.boolean().default(false),
 });
 export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 

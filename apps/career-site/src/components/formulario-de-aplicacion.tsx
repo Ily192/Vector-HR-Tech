@@ -59,10 +59,13 @@ function Campo({
 export function FormularioDeAplicacion({
   accion,
   empresa,
+  conIa,
   sitekey,
 }: {
   accion: Accion;
   empresa: string;
+  /** Si la empresa evalúa los CVs con IA: cambia el aviso de privacidad (ADR-021 §7). */
+  conIa: boolean;
   /** La site key de Turnstile; sin ella el widget no se pinta. */
   sitekey: string | null;
 }) {
@@ -164,7 +167,7 @@ export function FormularioDeAplicacion({
         <span>Evaluar mi CV sin procesos automatizados</span>
       </label>
 
-      <AvisoDePrivacidad empresa={empresa} />
+      <AvisoDePrivacidad empresa={empresa} conIa={conIa} />
 
       <div>
         <label className="flex items-start gap-2.5 text-sm font-semibold text-ink-900">
