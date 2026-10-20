@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { anchoRelativo, conversion } from "../cockpit/embudo";
 import type { Indicador } from "../cockpit/resumen";
 import { useResumenCockpit } from "../datos/consultas";
+import { ES_DE_EJEMPLO } from "../datos/panel";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
 
@@ -78,6 +79,12 @@ export function Cockpit() {
           </Enlace>
         }
       />
+      {!ES_DE_EJEMPLO && (
+        <output className="block rounded-2xl bg-aqua-50 p-4 text-sm text-aqua-700">
+          Así se verá tu cockpit cuando la evaluación con IA corra sobre tus vacantes. Por ahora los
+          números son de ejemplo.
+        </output>
+      )}
 
       <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         <section

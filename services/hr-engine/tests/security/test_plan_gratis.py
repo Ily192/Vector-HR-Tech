@@ -665,3 +665,40 @@ async def test_dos_empresas_no_pueden_usar_el_mismo_slug(db: asyncpg.Connection)
         else:
             with pytest.raises(asyncpg.UniqueViolationError):
                 await insertar
+
+
+# ─────────────────────── el interés en la IA (0013) ───────────────────────
+
+
+async def test_la_empresa_registra_su_interes_sin_elegir_la_empresa(db: asyncpg.Connection) -> None:
+    empresa_id = await _empresa(db)
+    usuario = str(uuid.uuid4())
+    await assume_tenant(db, empresa_id, user_id=usuario)
+    await db.execute("select registrar_interes_en_ia('pipeline')")
+
+    await _elevate(db)
+    try:
+        fila = await db.fetchrow(
+            "select empresa_id::text, user_id::text, origen from privado.intereses_en_ia"
+            " where empresa_id = $1::uuid",
+            empresa_id,
+        )
+    finally:
+        await _drop(db)
+    assert tuple(fila) == (empresa_id, usuario, "pipeline")
+
+
+@pytest.mark.parametrize("origen", ["otro", ""])
+async def test_solo_se_aceptan_los_origenes_del_panel(db: asyncpg.Connection, origen: str) -> None:
+    await assume_tenant(db, await _empresa(db))
+    with pytest.raises(asyncpg.CheckViolationError):
+        await db.execute("select registrar_interes_en_ia($1)", origen)
+
+
+async def test_sin_sesion_de_hr_no_se_registra_interes(db: asyncpg.Connection) -> None:
+    await assume_tenant(db, await _empresa(db), role="Colaborador")
+    with pytest.raises(asyncpg.InsufficientPrivilegeError):
+        await db.execute("select registrar_interes_en_ia('pipeline')")
+    await assume_anon(db)
+    with pytest.raises(asyncpg.InsufficientPrivilegeError):
+        await db.execute("select registrar_interes_en_ia('pipeline')")

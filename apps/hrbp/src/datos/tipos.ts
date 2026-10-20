@@ -29,6 +29,10 @@ export interface CupoDeVacantes {
   limite: number | null;
   libres: number | null;
   maxAplicacionesPorVacante: number | null;
+  /** Vacantes nuevas que puede publicar en la ventana de 30 días (0010). */
+  publicacionesLibres: number | null;
+  /** Cuándo se libera la próxima publicación, si ya no le queda ninguna. */
+  proximaPublicacion: string | null;
 }
 
 export interface VacanteDeLaEmpresa {
@@ -60,10 +64,12 @@ export interface BorradorDeVacante {
   moneda: string;
   /** Si el salario se muestra en el career site (`vacantes.salario_publico`). */
   salarioPublico: boolean;
+  /** Skills que pide la vacante (hasta 15): el gancho cuenta cuántos CVs las mencionan. */
+  skills: string[];
 }
 
 /** Por qué el backend no publicó una vacante. */
-export type MotivoDeRechazo = "sin-cupo" | "datos-invalidos";
+export type MotivoDeRechazo = "sin-cupo" | "sin-publicaciones" | "datos-invalidos";
 
 export type ResultadoDePublicar =
   | { ok: true; vacanteId: string }
@@ -80,6 +86,8 @@ export interface GanchoDelPipeline {
   /** CVs revisados, de 5 en 5. */
   revisados: number;
   enEspera: number;
+  /** CVs que no se pudieron leer: escaneados, protegidos o dañados. */
+  ilegibles: number;
   /** Mencionan más de la mitad de las skills (incluye a los que las mencionan todas). */
   conLaMayoria: number;
   conTodas: number;
@@ -89,8 +97,10 @@ export interface Aplicado {
   id: string;
   nombre: string;
   aplicoEn: string;
-  /** URL firmada del CV; `null` mientras el panel no esté conectado a Storage. */
+  /** URL firmada del CV; `null` si no se pudo firmar o con datos de ejemplo. */
   cvUrl: string | null;
+  /** `null` si la aplicación llegó sin CV. */
+  cvFormato: "pdf" | "docx" | null;
 }
 
 export interface EtapaVisible {
@@ -109,6 +119,30 @@ export interface PipelineDeVacante {
   gancho: GanchoDelPipeline | null;
 }
 
+/**
+ * El .zip con los CVs de una vacante, ya armado en el navegador: `url` es una URL
+ * de objeto (`blob:`). `omitidos`: CVs que no se pudieron bajar y no van dentro.
+ */
+export type DescargaDeCvs =
+  | { url: string; nombre: string; omitidos: number }
+  | { url: null; motivo: "sin-cvs" | "ejemplo" };
+
+/**
+ * Resultado de pedir el enlace para entrar. `ok` no dice que el correo tenga
+ * cuenta: la respuesta es la misma para no revelar quién usa el panel.
+ */
+export type ResultadoDeEntrar =
+  | { ok: true }
+  | { ok: false; motivo: "demasiados-intentos" | "error" };
+
+/** La cuenta entró, pero no es de HR o Dirección de una empresa. */
+export class SinAccesoAlPanel extends Error {
+  constructor() {
+    super("la cuenta no es de HR o Dirección de una empresa");
+    this.name = "SinAccesoAlPanel";
+  }
+}
+
 /** De dónde vino el interés de la empresa por los servicios de IA. */
 export type OrigenDelInteres = "crear-empleo" | "pipeline";
 
@@ -118,4 +152,23 @@ export interface Evaluado {
   score: number;
   razonamiento: string;
   siguientePaso: SiguientePaso;
+}
+
+/**
+ * Lo que el panel necesita del backend. Lo implementan el ejemplo en memoria
+ * (`panel-ejemplo.ts`) y Supabase (`panel-supabase.ts`); `panel.ts` elige.
+ */
+export interface AdaptadorDelPanel {
+  /** La sesión de la empresa, o `null` si nadie entró. */
+  obtenerSesion(): Promise<SesionEmpresa | null>;
+  listarMisVacantes(): Promise<MisVacantes>;
+  publicarVacante(borrador: BorradorDeVacante): Promise<ResultadoDePublicar>;
+  eliminarVacante(vacanteId: string): Promise<void>;
+  obtenerPipeline(vacanteId: string): Promise<PipelineDeVacante | null>;
+  solicitarDescargaDeCvs(vacanteId: string): Promise<DescargaDeCvs>;
+  registrarInteres(origen: OrigenDelInteres): Promise<void>;
+  entrar(correo: string): Promise<ResultadoDeEntrar>;
+  salir(): Promise<void>;
+  /** Avisa cuando alguien entra o sale. Devuelve cómo dejar de escuchar. */
+  alCambiarLaSesion(avisar: () => void): () => void;
 }

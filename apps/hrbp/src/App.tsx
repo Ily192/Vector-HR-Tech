@@ -1,6 +1,6 @@
 import { type ReactNode, Suspense, lazy, useEffect } from "react";
 
-import { useSesion } from "./datos/consultas";
+import { useSesion, useSesionEnVivo } from "./datos/consultas";
 import { Marco, type Seccion } from "./marco/marco";
 import { Enlace, type Ruta, resolverRuta, useRuta } from "./navegacion/ruta";
 
@@ -13,6 +13,10 @@ const CrearEmpleo = lazy(() =>
   import("./pantallas/crear-empleo").then((m) => ({ default: m.CrearEmpleo })),
 );
 const Pipeline = lazy(() => import("./pantallas/pipeline").then((m) => ({ default: m.Pipeline })));
+const Entrar = lazy(() => import("./pantallas/entrar").then((m) => ({ default: m.Entrar })));
+const ErrorDeSesion = lazy(() =>
+  import("./pantallas/entrar").then((m) => ({ default: m.ErrorDeSesion })),
+);
 
 interface Vista {
   seccion: Seccion | null;
@@ -89,16 +93,46 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
   }
 }
 
-/** El panel de la empresa: elige la pantalla según la URL y los módulos del plan. */
+/**
+ * El panel de la empresa: sin sesión pide entrar; con ella elige la pantalla
+ * según la URL y los módulos del plan.
+ */
 export function App() {
-  const { data: sesion } = useSesion();
+  useSesionEnVivo();
+  const { data: sesion, error, refetch } = useSesion();
   const ruta = resolverRuta(useRuta());
   const vista = vistaDe(ruta, sesion?.modulos.includes("cockpit") ?? false);
+  const titulo = sesion === null ? "Entrar" : vista.titulo;
 
   useEffect(() => {
-    document.title = `${vista.titulo} · Vortex Ops`;
-  }, [vista.titulo]);
+    document.title = `${titulo} · Vortex Ops`;
+  }, [titulo]);
 
+  // Un enlace ya usado vuelve con `#error_code=…` aunque la sesión siga viva: se limpia.
+  useEffect(() => {
+    if (sesion && new URLSearchParams(window.location.hash.slice(1)).has("error_code")) {
+      window.history.replaceState(
+        window.history.state,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+  }, [sesion]);
+
+  if (error) {
+    return (
+      <Suspense fallback={null}>
+        <ErrorDeSesion error={error} reintentar={() => void refetch()} />
+      </Suspense>
+    );
+  }
+  if (sesion === null) {
+    return (
+      <Suspense fallback={null}>
+        <Entrar />
+      </Suspense>
+    );
+  }
   if (!sesion) return null;
   return (
     <Marco seccion={vista.seccion} migas={vista.migas}>

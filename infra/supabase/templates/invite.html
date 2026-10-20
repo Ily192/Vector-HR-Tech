@@ -1,0 +1,23 @@
+<!-- Invitación al panel (inviteUserByEmail). En Supabase Cloud se pega en Auth → Email Templates → Invite user. -->
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 520px; color: #181854; line-height: 1.5">
+  <p style="font-size: 18px; font-weight: 800; margin: 0 0 16px">VORTEX OPS</p>
+  <h2 style="font-size: 22px; margin: 0 0 12px">Te invitaron al panel de tu empresa</h2>
+  <p style="margin: 0 0 20px">
+    Vector HR abrió tu panel en Vortex Ops. Desde ahí publicas tus vacantes en el career site,
+    ves quién aplica y descargas sus CVs.
+  </p>
+  <p style="margin: 0 0 24px">
+    <a
+      href="{{ .ConfirmationURL }}"
+      style="background: #fe7802; color: #181854; font-weight: 700; padding: 12px 20px; border-radius: 12px; text-decoration: none; display: inline-block"
+      >Entrar al panel</a
+    >
+  </p>
+  <p style="margin: 0 0 8px; font-size: 14px; color: #686b78">
+    Si el enlace ya no sirve, entra en <a href="{{ .SiteURL }}">{{ .SiteURL }}</a> con este correo y
+    te mandamos otro.
+  </p>
+  <p style="margin: 0; font-size: 14px; color: #686b78">
+    ¿Dudas? Escríbenos a <a href="mailto:hola@vectorhr.tech">hola@vectorhr.tech</a>.
+  </p>
+</div>

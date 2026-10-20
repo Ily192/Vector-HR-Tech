@@ -3,9 +3,13 @@ import { getRequiredEnv } from "./env";
 import type { Database } from "./types/database";
 
 /**
- * Cliente Supabase para componentes de browser (career-site páginas públicas,
- * hrbp SPA). Usa la anon key — RLS se aplica del lado del Postgres con el
- * JWT que Supabase Auth pone en cookies/localStorage.
+ * Cliente Supabase para componentes de browser de una app con SSR: guarda la
+ * sesión en cookies y usa el flujo PKCE. Usa la anon key — RLS se aplica del
+ * lado del Postgres con el JWT de Supabase Auth.
+ *
+ * El panel (hrbp) no lo usa: es una SPA y los enlaces de invitación vuelven con
+ * los tokens en el hash (flujo implícito), que un cliente PKCE rechaza. Crea el
+ * suyo en `apps/hrbp/src/datos/panel-supabase.ts`.
  *
  * Idempotente: llamadas múltiples devuelven el mismo singleton para evitar
  * múltiples conexiones realtime.

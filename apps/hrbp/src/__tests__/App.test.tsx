@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { montarPanel } from "../test/montar";
@@ -126,7 +126,109 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(within(aplicados).getByText("Y 39 más en el .zip.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Descargar los 47 CVs (.zip)" }));
-    expect(await screen.findByText(/se activa cuando el panel se conecte/)).toBeInTheDocument();
+    expect(
+      await screen.findByText("Con datos de ejemplo no hay CVs que bajar."),
+    ).toBeInTheDocument();
+  });
+
+  it("las skills se agregan con Enter o coma, se quitan y llegan a la vacante", async () => {
+    montarPanel("/vacantes/nueva");
+    const skill = await screen.findByLabelText("Agregar skill");
+
+    fireEvent.change(skill, { target: { value: "Excel" } });
+    fireEvent.keyDown(skill, { key: "Enter" });
+    fireEvent.change(skill, { target: { value: "SAP, inglés, excel" } });
+    fireEvent.keyDown(skill, { key: "," });
+    expect(screen.getByRole("button", { name: "Quitar Excel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar SAP" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar inglés" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("button", { name: /^Quitar/ })).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole("button", { name: "Quitar SAP" }));
+    fireEvent.keyDown(skill, { key: "Backspace" });
+    expect(screen.queryAllByRole("button", { name: /^Quitar/ })).toHaveLength(1);
+
+    // Lo escrito sin Enter también cuenta al salir del campo.
+    fireEvent.change(skill, { target: { value: "Montacargas" } });
+    fireEvent.blur(skill);
+    expect(screen.getByRole("button", { name: "Quitar Montacargas" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Almacenista" } });
+    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
+    fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Surte pedidos." } });
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+
+    await screen.findByRole("heading", { level: 1, name: "Almacenista" });
+    expect(screen.getByRole("region", { name: "Coincidencia de skills" })).toHaveTextContent(
+      "contra las 2 skills de la vacante",
+    );
+  });
+
+  it("no pasa de 15 skills", async () => {
+    montarPanel("/vacantes/nueva");
+    const skill = await screen.findByLabelText("Agregar skill");
+    const veinte = Array.from({ length: 20 }, (_, i) => `skill ${i + 1}`).join(", ");
+    fireEvent.change(skill, { target: { value: veinte } });
+    fireEvent.keyDown(skill, { key: "Enter" });
+    expect(screen.queryAllByRole("button", { name: /^Quitar/ })).toHaveLength(15);
+    expect(skill).toBeDisabled();
+  });
+
+  it("eliminar una vacante libera un lugar pero no la publicación de los 30 días", async () => {
+    montarPanel("/vacantes/nueva");
+    const publicar = async (puesto: string) => {
+      fireEvent.change(await screen.findByLabelText("Puesto"), { target: { value: puesto } });
+      fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
+      fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Opera." } });
+      fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+      await screen.findByRole("heading", { level: 1, name: puesto });
+    };
+
+    // 4 activas y 3 publicaciones en 30 días: la vacante de hace 40 días ya no cuenta.
+    await publicar("Montacarguista");
+    fireEvent.click(screen.getAllByRole("link", { name: /Mis vacantes/ })[0] as HTMLElement);
+    const fila = (await screen.findByText("Montacarguista")).closest(
+      "[data-vacante]",
+    ) as HTMLElement;
+    fireEvent.click(within(fila).getByRole("button", { name: "Eliminar" }));
+    expect(within(fila).getByRole("alertdialog")).toHaveTextContent(
+      "su publicación sigue contando 30 días",
+    );
+    fireEvent.click(within(fila).getByRole("button", { name: "Sí, eliminar" }));
+    expect(await screen.findByText("3 de 4 vacantes activas")).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("link", { name: /Crear empleo/ })[0] as HTMLElement);
+    expect(
+      await screen.findByText(/Es tu última vacante nueva de estos 30 días/),
+    ).toBeInTheDocument();
+    await publicar("Ayudante general");
+
+    fireEvent.click(screen.getAllByRole("link", { name: /Crear empleo/ })[0] as HTMLElement);
+    expect(await screen.findByText("Ya publicaste 4 vacantes en 30 días")).toBeInTheDocument();
+    expect(screen.getByText(/Podrás publicar otra el \d+ de \w+\./)).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Datos de la vacante" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("link", { name: "Ir a Mis vacantes" }));
+    expect(
+      await screen.findByText(/Ya publicaste las 4 vacantes nuevas que tu plan permite/),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("main")).queryByRole("link", { name: /Crear empleo/ }),
+    ).toBeNull();
+  });
+
+  it("si quedan menos publicaciones que lugares, crear empleo cuenta las publicaciones", async () => {
+    montarPanel("/vacantes");
+    for (const titulo of ["Chofer repartidor", "Coordinador de almacén"]) {
+      const fila = (await screen.findByText(titulo)).closest("[data-vacante]") as HTMLElement;
+      fireEvent.click(within(fila).getByRole("button", { name: "Eliminar" }));
+      fireEvent.click(within(fila).getByRole("button", { name: "Sí, eliminar" }));
+      await waitFor(() => expect(screen.queryByText(titulo)).toBeNull());
+    }
+    fireEvent.click(screen.getAllByRole("link", { name: /Crear empleo/ })[0] as HTMLElement);
+    expect(
+      await screen.findByText("Puedes publicar 2 vacantes más en estos 30 días"),
+    ).toBeInTheDocument();
   });
 
   it("una vacante que no existe muestra cómo volver", async () => {

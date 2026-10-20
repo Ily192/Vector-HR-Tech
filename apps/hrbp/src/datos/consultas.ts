@@ -3,17 +3,22 @@
  * devuelve `panel.ts` y, tras publicar o eliminar, invalida lo que cambió.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { obtenerResumenCockpit } from "../cockpit/resumen";
 import {
+  alCambiarLaSesion,
   eliminarVacante,
+  entrar,
   listarMisVacantes,
   obtenerPipeline,
   obtenerSesion,
   publicarVacante,
   registrarInteres,
+  salir,
   solicitarDescargaDeCvs,
 } from "./panel";
+import { SinAccesoAlPanel } from "./tipos";
 
 const CLAVES = {
   sesion: ["sesion"],
@@ -22,7 +27,29 @@ const CLAVES = {
   cockpit: ["cockpit"],
 } as const;
 
-export const useSesion = () => useQuery({ queryKey: CLAVES.sesion, queryFn: obtenerSesion });
+export const useSesion = () =>
+  useQuery({
+    queryKey: CLAVES.sesion,
+    queryFn: obtenerSesion,
+    // Una cuenta sin acceso no lo gana reintentando.
+    retry: (fallos, error) => !(error instanceof SinAccesoAlPanel) && fallos < 1,
+  });
+
+/**
+ * Cuando entra o sale alguien, olvida lo que había en caché: así nunca se ven
+ * datos de la cuenta anterior. Se monta una vez, en `App`.
+ */
+export function useSesionEnVivo() {
+  const cliente = useQueryClient();
+  useEffect(
+    () =>
+      alCambiarLaSesion(() => {
+        cliente.removeQueries({ predicate: (q) => q.queryKey[0] !== CLAVES.sesion[0] });
+        void cliente.resetQueries({ queryKey: CLAVES.sesion });
+      }),
+    [cliente],
+  );
+}
 
 export const useMisVacantes = () =>
   useQuery({ queryKey: CLAVES.misVacantes, queryFn: listarMisVacantes });
@@ -52,3 +79,7 @@ export function useEliminarVacante() {
 export const useDescargarCvs = () => useMutation({ mutationFn: solicitarDescargaDeCvs });
 
 export const useRegistrarInteres = () => useMutation({ mutationFn: registrarInteres });
+
+export const useEntrar = () => useMutation({ mutationFn: entrar });
+
+export const useSalir = () => useMutation({ mutationFn: salir });

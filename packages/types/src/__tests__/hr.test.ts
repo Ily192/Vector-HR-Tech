@@ -78,6 +78,12 @@ describe("VacanteSchema", () => {
     expect(VacanteSchema.safeParse(vacante({ skills: ["x".repeat(61)] })).success).toBe(false);
   });
 
+  it("publicada_en acepta la fecha con offset que devuelve PostgREST (0010)", () => {
+    expect(VacanteSchema.parse(vacante()).publicada_en).toBeNull();
+    const conOffset = "2026-10-20T14:03:11.123456+00:00";
+    expect(VacanteSchema.parse(vacante({ publicada_en: conOffset })).publicada_en).toBe(conOffset);
+  });
+
   it("rechaza currency que no sea código ISO de 3 letras", () => {
     expect(VacanteSchema.safeParse(vacante({ currency: "DOLARES" })).success).toBe(false);
     expect(VacanteSchema.safeParse(vacante({ currency: "US" })).success).toBe(false);

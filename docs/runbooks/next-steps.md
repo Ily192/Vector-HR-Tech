@@ -314,11 +314,23 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
 - Aplicar las migraciones:
   ```bash
   supabase link --project-ref <PROJECT_REF>
-  supabase db push   # aplica 0001..0006
+  supabase db push   # aplica 0001..0013
   ```
 - **Activar el hook de JWT**: Dashboard → Authentication → Hooks → Custom Access
   Token → `public.custom_access_token_hook`. **Sin esto todas las policies de HR
   deniegan.** No es opcional.
+- **Auth para el panel** (se entra con un enlace al correo, sin contraseña):
+  - Authentication → URL Configuration: *Site URL* = la URL del panel
+    (`https://vortex-hrbp.vercel.app`) y en *Redirect URLs* `https://vortex-hrbp.vercel.app/**`.
+    Sin eso, el enlace del correo no vuelve al panel.
+  - Authentication → Emails → SMTP: el propio (Resend con `vectorhr.tech`). El de Supabase
+    solo manda 2 correos por hora y solo al equipo del proyecto.
+  - Authentication → Emails → Templates: *Invite user* y *Magic link* con el asunto y el HTML
+    de `infra/supabase/templates/` (los mismos que usa el stack local, `config.toml`).
+  - *Email OTP Expiration* en 3600 s: el panel dice que el enlace dura una hora.
+- **Vercel, proyecto del panel (`vortex-hrbp`)**: `VITE_SUPABASE_URL` y
+  `VITE_SUPABASE_PUBLISHABLE_KEY` en Production y Preview. Sin ellas el panel sigue con
+  datos de ejemplo.
 - Dar de alta el primer admin de plataforma a mano (la tabla `platform_admins`
   no es escribible por ningún usuario):
   ```sql
