@@ -1,0 +1,508 @@
+# Vortex Ops · producción en un solo VPS (ADR-020). Runbook: docs/runbooks/vps.md.
+#
+# Supabase autoalojado (solo lo que se usa), el hr-engine (API, worker y un solo beat),
+# Redis, el career site, el panel y Caddy. La única entrada desde internet es Cloudflare
+# Tunnel: no se publica ningún puerto en el host. Solo el perfil `admin` (Studio y el
+# túnel a Postgres) abre puertos, y en 127.0.0.1, para entrar por SSH.
+#
+# En el servidor se usa con el wrapper que instala scripts/provisionar.sh:
+#   vortex ps            vortex logs -f auth            vortex --profile admin up -d
+#
+# Las imágenes de Supabase son las mismas que corre el CLI 2.120.0 en desarrollo; el
+# gateway (Envoy) y los SQL de arranque vienen de supabase/supabase por
+# scripts/vendorizar_supabase.py. Las de la app las construye y sube a GHCR el workflow
+# deploy-vps.yml, etiquetadas con el commit (VERSION, en /opt/vortex/version.env).
+#
+# Memoria: cada servicio tiene su tope, así el que se desborda muere solo y Docker lo
+# reinicia, en vez de tumbar el servidor (presupuesto en el runbook).
+
+name: vortex
+
+x-logs: &logs
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-url-api: &url-api ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}
+
+x-hr-engine: &hr-engine
+  image: ${REGISTRO:-ghcr.io/ily192}/vortex-hr-engine:${VERSION:?falta VERSION en version.env}
+  restart: unless-stopped
+  logging: *logs
+  networks: [datos, salida]
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  environment:
+    ENV: production
+    LOG_LEVEL: info
+    # El rol dueño, como las migraciones: el worker escribe los resultados del gancho.
+    DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?}@db:5432/postgres
+    DB_POOL_SIZE: 3
+    DB_MAX_OVERFLOW: 2
+    REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379/0
+    RATE_LIMIT_STORAGE_URI: redis://:${REDIS_PASSWORD:?}@redis:6379/1
+    CELERY_CONCURRENCY: 2
+    # Firma los run-tokens (ADR-005); no es el secreto JWT de Supabase.
+    JWT_SECRET: ${HR_ENGINE_JWT_SECRET:?}
+    CORS_ALLOW_ORIGINS: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?},${ESQUEMA_PUBLICO:-https}://${DOMINIO_EMPLEOS:?}
+    # Los CVs se bajan por la red interna, sin salir a Cloudflare.
+    SUPABASE_URL: http://api-gw:8000
+    SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+    PANEL_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}
+    SENTRY_DSN_BACKEND: ${SENTRY_DSN_BACKEND:-}
+
+services:
+  # ─── Supabase ────────────────────────────────────────────────────────────
+  db:
+    image: public.ecr.aws/supabase/postgres:17.11.0.004
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 640m
+    shm_size: 128m
+    networks: [datos]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # La llave de pgsodium y la config que la imagen deja en su primer arranque.
+      - db-config:/etc/postgresql-custom
+      # Los SQL de arranque del compose oficial que este stack necesita (el resto es de
+      # Realtime, la analítica y el pooler).
+      - ./supabase/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:ro
+      - ./supabase/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+      - ./supabase/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./supabase/db/vortex.sql:/docker-entrypoint-initdb.d/init-scripts/99-vortex.sql:ro
+      # El de la imagen más la réplica local del respaldo físico.
+      - ./supabase/db/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: supabase_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: postgres
+      PGDATABASE: postgres
+      # Los mismos que usa el CLI, para que el orden y las comparaciones de texto sean
+      # iguales que en desarrollo.
+      POSTGRES_INITDB_ARGS: --allow-group-access --locale-provider=icu --encoding=UTF-8 --icu-locale=en_US.UTF-8
+      JWT_EXP: 3600
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "effective_cache_size=1GB"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth:
+    image: public.ecr.aws/supabase/gotrue:v2.197.0
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 96m
+    # `salida` solo para el SMTP de Resend.
+    networks: [datos, salida]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:?}@db:5432/postgres
+
+      # El enlace mágico y la invitación vuelven al panel (infra/supabase/config.toml).
+      GOTRUE_SITE_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}
+      GOTRUE_URI_ALLOW_LIST: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}/**,${ESQUEMA_PUBLICO:-https}://${DOMINIO_EMPLEOS:?}/**
+      # Nadie se registra solo: las cuentas nacen de una invitación (ADR-017). En
+      # desarrollo el CLI deja el registro abierto, y el trigger handle_new_user igual
+      # rechaza a quien llega sin invitación.
+      GOTRUE_DISABLE_SIGNUP: "true"
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?}
+      GOTRUE_JWT_ISSUER: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: "true"
+      GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: 10
+
+      # empresa_id, app_role, plan y modulos en el JWT (migraciones 0003 y 0008).
+      GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
+      GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: pg-functions://postgres/public/custom_access_token_hook
+
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: "true"
+      GOTRUE_MAILER_OTP_EXP: 3600
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_SMS_AUTOCONFIRM: "false"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_URLPATHS_INVITE: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_API:?}/auth/v1/verify
+      # Las plantillas en español de infra/supabase/templates; las sirve Caddy por dentro.
+      GOTRUE_MAILER_TEMPLATES_INVITE: http://caddy:8090/plantillas/invite.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://caddy:8090/plantillas/magic_link.html
+      GOTRUE_MAILER_SUBJECTS_INVITE: ${ASUNTO_INVITACION:?}
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: ${ASUNTO_ENLACE_MAGICO:?}
+
+      # Resend por SMTP. DigitalOcean bloquea 25, 465 y 587: va por 2587 con STARTTLS.
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-2587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-resend}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:?}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:?}
+      # Un correo por persona por minuto y 60 por hora en total.
+      GOTRUE_SMTP_MAX_FREQUENCY: 60s
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 60
+      GOTRUE_RATE_LIMIT_OTP: 30
+      GOTRUE_RATE_LIMIT_VERIFY: 30
+      GOTRUE_RATE_LIMIT_TOKEN_REFRESH: 150
+      # Todo llega por Cloudflare, que fija la IP real del visitante en esta cabecera.
+      GOTRUE_RATE_LIMIT_HEADER: CF-Connecting-IP
+
+  rest:
+    image: public.ecr.aws/supabase/postgrest:v16.4
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 160m
+    networks: [datos]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:?}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+
+  storage:
+    image: public.ecr.aws/supabase/storage-api:v1.79.36
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 256m
+    networks: [datos]
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    healthcheck:
+      # Storage solo escucha en IPv4 y `localhost` puede ser ::1 dentro del contenedor.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - storage:/var/lib/storage
+    environment:
+      ANON_KEY: ${ANON_KEY:?}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY:?}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET:?}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD:?}@db:5432/postgres
+      STORAGE_PUBLIC_URL: *url-api
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      GLOBAL_S3_BUCKET: stub
+      TENANT_ID: stub
+      REGION: stub
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+      IMAGE_TRANSFORMATION_ENABLED: "false"
+      S3_PROTOCOL_ENABLED: "false"
+
+  # Envoy: el gateway por defecto del Supabase autoalojado desde agosto de 2026, en
+  # lugar de Kong (supabase/discussions#48048). Valida la apikey y enruta /auth, /rest
+  # y /storage.
+  api-gw:
+    image: envoyproxy/envoy:v1.39.1
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 128m
+    networks: [datos]
+    depends_on:
+      auth:
+        condition: service_healthy
+      rest:
+        condition: service_started
+      storage:
+        condition: service_healthy
+    healthcheck:
+      # La imagen no trae curl ni wget.
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./supabase/api/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./supabase/api/cds.yaml:/etc/envoy/cds.yaml:ro
+      - ./supabase/api/lds.template.yaml:/etc/envoy/lds.template.yaml:ro
+      - ./supabase/api/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    environment:
+      ANON_KEY: ${ANON_KEY:?}
+      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      # Claves legadas (ADR-020): sin las sb_ ni sus JWT asimétricos.
+      SUPABASE_PUBLISHABLE_KEY: ""
+      SUPABASE_SECRET_KEY: ""
+      ANON_KEY_ASYMMETRIC: ""
+      SERVICE_ROLE_KEY_ASYMMETRIC: ""
+      SUPABASE_PUBLIC_URL: *url-api
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME:-supabase}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:?}
+    entrypoint: ["/bin/sh", "/docker-entrypoint.sh"]
+
+  # ─── hr-engine ───────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.4.11-alpine
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 80m
+    networks: [datos]
+    volumes:
+      - redis-data:/data
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?}
+    # La cola de Celery: AOF para no perder tareas al reiniciar, y sin desalojo.
+    command:
+      ["redis-server", "--requirepass", "${REDIS_PASSWORD:?}", "--appendonly", "yes", "--save", "",
+       "--maxmemory", "48mb", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  hr-engine-api:
+    <<: *hr-engine
+    mem_limit: 192m
+    # Sin tráfico público: solo /ready, que Caddy expone como /salud/hr-engine. Un worker
+    # de uvicorn basta (en Fly eran dos).
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+
+  hr-engine-worker:
+    <<: *hr-engine
+    mem_limit: 512m
+    stop_grace_period: 60s
+    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    # El HEALTHCHECK de la imagen es el de la API.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app inspect ping -d celery@$$HOSTNAME -t 20 >/dev/null"]
+      interval: 5m
+      timeout: 30s
+      start_period: 60s
+      retries: 2
+
+  # Exactamente uno: dos beats programan cada tarea dos veces (Celery: "you have to
+  # ensure only a single scheduler is running").
+  hr-engine-beat:
+    <<: *hr-engine
+    mem_limit: 160m
+    command:
+      ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info",
+       "--schedule=/tmp/celerybeat-schedule"]
+    healthcheck:
+      disable: true
+
+  # ─── Sitios ──────────────────────────────────────────────────────────────
+  career-site:
+    image: ${REGISTRO:-ghcr.io/ily192}/vortex-career-site:${VERSION:?falta VERSION en version.env}
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 256m
+    stop_grace_period: 20s
+    # `salida` para la verificación de Turnstile.
+    networks: [datos, salida]
+    depends_on:
+      api-gw:
+        condition: service_started
+    environment:
+      # Supabase por la red interna; el sitio solo lo lee en el servidor.
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+
+  # Panel (estático, dentro de la imagen) y proxy de todo lo demás. HTTP: el TLS lo
+  # termina Cloudflare.
+  caddy:
+    image: ${REGISTRO:-ghcr.io/ily192}/vortex-caddy:${VERSION:?falta VERSION en version.env}
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 64m
+    networks: [borde, datos]
+    depends_on:
+      career-site:
+        condition: service_started
+      api-gw:
+        condition: service_started
+      hr-engine-api:
+        condition: service_started
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+    environment:
+      DOMINIO_EMPLEOS: ${DOMINIO_EMPLEOS:?}
+      DOMINIO_PANEL: ${DOMINIO_PANEL:?}
+      DOMINIO_API: ${DOMINIO_API:?}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8090/salud"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # La única entrada: un túnel saliente hacia Cloudflare. Las rutas públicas (los tres
+  # dominios → http://caddy:80) se configuran en el panel de Cloudflare.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.1
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 96m
+    networks: [borde, salida]
+    depends_on:
+      caddy:
+        condition: service_healthy
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+
+  # ─── Bajo demanda ────────────────────────────────────────────────────────
+  # Respaldo nocturno (scripts/respaldar.sh con el timer de systemd).
+  respaldo:
+    image: restic/restic:0.19.1
+    profiles: [respaldo]
+    logging: *logs
+    mem_limit: 512m
+    networks: [salida]
+    environment:
+      RESTIC_REPOSITORY: ${RESTIC_REPOSITORY:-}
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      # R2 usa la región `auto`.
+      AWS_DEFAULT_REGION: auto
+      RESTIC_CACHE_DIR: /cache
+    volumes:
+      - ${VORTEX_RESPALDO_TMP:-/var/lib/vortex/respaldo}:/respaldo/postgres:ro
+      - ${VORTEX_ENV:-/opt/vortex/.env}:/respaldo/config/vortex.env:ro
+      - storage:/respaldo/storage:ro
+      - db-config:/respaldo/db-config:ro
+      - restic-cache:/cache
+
+  # Studio, solo por túnel SSH: `vortex --profile admin up -d studio` y
+  # `ssh -L 3000:127.0.0.1:3000 <vps>`. No tiene usuario propio; lo protege el SSH.
+  studio:
+    image: public.ecr.aws/supabase/studio:2026.10.05-sha-94b8b06
+    profiles: [admin]
+    restart: "no"
+    logging: *logs
+    mem_limit: 512m
+    networks: [datos, admin]
+    ports:
+      - 127.0.0.1:${PUERTO_STUDIO:-3000}:3000
+    depends_on:
+      meta:
+        condition: service_started
+    environment:
+      HOSTNAME: 0.0.0.0
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: db
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_USER_READ_WRITE: postgres
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY:?}
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      DEFAULT_ORGANIZATION_NAME: Vector HR Tech
+      DEFAULT_PROJECT_NAME: Vortex Ops
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLIC_URL: *url-api
+      SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY:?}
+      AUTH_JWT_SECRET: ${JWT_SECRET:?}
+      ENABLED_FEATURES_LOGS_ALL: "false"
+      NEXT_TELEMETRY_DISABLED: 1
+
+  meta:
+    image: public.ecr.aws/supabase/postgres-meta:v0.100.0
+    profiles: [admin]
+    restart: "no"
+    logging: *logs
+    mem_limit: 128m
+    networks: [datos]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:?}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY:?}
+
+  # Postgres para pgAdmin o DBeaver, por túnel SSH: `vortex --profile admin up -d
+  # tunel-db` y `ssh -L 5432:127.0.0.1:5432 <vps>`. La base sigue sin salida a internet.
+  tunel-db:
+    image: alpine/socat:1.8.1.1
+    profiles: [admin]
+    restart: "no"
+    logging: *logs
+    mem_limit: 32m
+    networks: [datos, admin]
+    ports:
+      - 127.0.0.1:${PUERTO_DB:-5432}:5432
+    command: ["TCP-LISTEN:5432,fork,reuseaddr", "TCP:db:5432"]
+
+networks:
+  # Sin salida a internet: la base, Redis, Storage y PostgREST no pueden llamar afuera.
+  datos:
+    internal: true
+  # Entre el túnel y Caddy.
+  borde:
+    internal: true
+  # Salida a internet para quien la necesita: Auth (SMTP), el career site (Turnstile),
+  # el hr-engine, el túnel y el respaldo (R2).
+  salida: {}
+  # Solo para los puertos de 127.0.0.1 del perfil admin.
+  admin: {}
+
+volumes:
+  db-data:
+  db-config:
+  storage:
+  redis-data:
+  restic-cache:

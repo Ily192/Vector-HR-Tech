@@ -1,0 +1,19 @@
+# Contexto de infra/vps/career-site/Dockerfile (la raíz del monorepo): lo que pide el
+# build del career site, nada más.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!apps/*/package.json
+!packages/*/package.json
+!apps/career-site
+!packages/design-tokens
+!packages/supabase-client
+!packages/types
+!packages/ui
+**/node_modules
+**/.next
+**/.turbo
+**/coverage
+**/.env*
