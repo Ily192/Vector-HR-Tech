@@ -14,7 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.46.0",
     "@tanstack/react-query": "^5.59.0",
-    "@tanstack/react-router": "^1.81.0",
+    "@tanstack/react-router": "^1.170.44",
     "@vortex/design-tokens": "workspace:*",
     "@vortex/supabase-client": "workspace:*",
     "@vortex/types": "workspace:*",
