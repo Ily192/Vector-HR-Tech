@@ -96,6 +96,24 @@ dura una hora: `--reenviar` manda otro a quien no ha entrado, y también puede p
 uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueño),
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `PANEL_URL`.
 
+## Evaluación con IA del plan de pago (ADR-021)
+
+**Qué hace:**
+- **Cuándo:** un barrido de Celery beat (`evaluaciones.barrer`, cada minuto).
+- **Qué evalúa:** cada aplicación de las empresas `ia`, con el texto del CV anonimizado (`domain/anonimizacion.py`).
+- **El resultado:** la aplicación pasa a "Evaluados".
+- **Registro:** no lleva run-token. Cada evaluación deja su fila en `runs` con su costo.
+
+**Para correrlo:**
+- **Beat:** corre con un solo beat (`uv run celery -A app.workers.celery_app beat`) y el worker.
+- **Variables:** necesita `GOOGLE_API_KEY` del nivel de pago (en el gratuito, Google usa los prompts para mejorar sus productos), `SUPABASE_URL` y `SUPABASE_SECRET_KEY`.
+- **Topes:**
+  - `empresas.ia_cvs_por_mes`: 1.000 por defecto; lo ajusta Vector HR.
+  - `IA_PRESUPUESTO_MENSUAL_USD`: US$25 para toda la plataforma.
+  - Al llegar a un tope, las aplicaciones esperan; nada más se detiene.
+- **Lote:** `EVALUACIONES_LOTE` dice cuántas toma cada barrido y `EVALUACIONES_EN_PARALELO`, cuántas puntúa a la vez.
+- **Fallas:** tras 3 intentos sin éxito, la aplicación queda "sin evaluar" para revisarla a mano.
+
 ## Despliegue
 
 En el VPS, con el resto de la plataforma (ADR-020): la API, el worker y un solo beat
@@ -126,7 +144,7 @@ app/
 ├── database.py        Async session factory + tenant_guard
 ├── monitoring.py      structlog + Sentry + OTel + hash_pii
 ├── domain/            Entidades, políticas y puertos de la evaluación (solo stdlib)
-├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate, DarDeAltaEmpresa)
+├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate, EvaluarAplicacionesPendientes, CoincidirCvsPendientes, DarDeAltaEmpresa)
 ├── infrastructure/    Adaptadores de los puertos (SQL, OpenAI, Gemini) y cola por nombre
 ├── api/               Endpoints HTTP (+ rate_limit.py, common.py)
 ├── cli/               Comandos para el equipo de Vector HR (alta_empresa.py)

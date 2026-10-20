@@ -9,11 +9,19 @@ vi.mock("next/script", () => ({ default: () => null }));
 function montar(
   responder: () => ResultadoDeAplicar = () => ({ estado: "ok" }),
   sitekey: string | null = null,
+  conIa = false,
 ) {
   const accion = vi.fn(async (_anterior: ResultadoDeAplicar | null, _datos: FormData) =>
     responder(),
   );
-  render(<FormularioDeAplicacion accion={accion} empresa="Andes Logística" sitekey={sitekey} />);
+  render(
+    <FormularioDeAplicacion
+      accion={accion}
+      empresa="Andes Logística"
+      conIa={conIa}
+      sitekey={sitekey}
+    />,
+  );
   return accion;
 }
 
@@ -35,6 +43,21 @@ describe("FormularioDeAplicacion", () => {
     expect(screen.getByLabelText("Evaluar mi CV sin procesos automatizados")).not.toBeChecked();
     expect(screen.getByLabelText("Leí y acepto el aviso de privacidad")).toBeRequired();
     expect(screen.getByText("Aviso de privacidad")).toBeInTheDocument();
+  });
+
+  it("sin IA, el aviso dice que solo se cuentan menciones y que no decide nada", () => {
+    montar();
+    expect(screen.getByText(/solo un conteo de cuántos CVs las mencionan/)).toBeInTheDocument();
+    expect(screen.queryByText(/Un sistema de IA compara tu CV/)).toBeNull();
+  });
+
+  it("con IA, el aviso dice que la IA no descarta y que se puede pedir revisión humana", () => {
+    montar(undefined, null, true);
+    const aviso = screen.getByText(/Un sistema de IA compara tu CV/);
+    expect(aviso).toHaveTextContent("sin recibir tu nombre ni tus datos de contacto");
+    expect(aviso).toHaveTextContent("La IA no descarta a nadie: decide una persona de Andes");
+    expect(aviso).toHaveTextContent("pedir que lo revise una persona");
+    expect(screen.queryByText(/solo un conteo/)).toBeNull();
   });
 
   it("el campo trampa no se ve ni se alcanza con el teclado", () => {

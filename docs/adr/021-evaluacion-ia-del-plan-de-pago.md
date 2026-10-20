@@ -140,8 +140,8 @@ Son las de ADR-018, puestas al día:
 
 | PR | Qué |
 |---|---|
-| Este | ADR-021 |
-| Siguiente | **hr-engine.**<br>• Anonimizador en el dominio.<br>• `EvaluarAplicacionesPendientes`, que reusa el extractor del plan gratis.<br>• Scoring con el texto del CV y SKILL.md 0.3.0.<br>• `evaluaciones.barrer` en beat, con topes y runs internos.<br>• Migración 0014: `ia_cvs_por_mes`, `fit_strengths`, `evaluada_en` y `vacantes_publicas.evalua_con_ia` |
+| #80 | ADR-021 |
+| #81 | **hr-engine.**<br>• Anonimizador en el dominio.<br>• `EvaluarAplicacionesPendientes`, que reusa el extractor del plan gratis.<br>• Scoring con el texto del CV y SKILL.md 0.3.0.<br>• `evaluaciones.barrer` en beat, con topes y runs internos.<br>• Migración 0014: `ia_cvs_por_mes`, `fit_strengths`, `evaluada_en` y `vacantes_publicas.evalua_con_ia` |
 | Siguiente | **Panel y career site.**<br>• "Evaluados" con score, porqué y sugerencia.<br>• Descartar con motivo.<br>• Cuántas aplicaciones esperan.<br>• El cockpit con datos reales.<br>• El aviso con IA |
 | Siguiente | **Arnés de evals** con la ruta privada y los pares contrafactuales |
 

@@ -86,6 +86,7 @@ export default async function VacanteDetail({ params }: Props) {
               <FormularioDeAplicacion
                 accion={aplicarAVacante.bind(null, v.slug)}
                 empresa={v.empresa_nombre}
+                conIa={v.evalua_con_ia}
                 sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
               />
             </>

@@ -128,6 +128,14 @@ class Settings(BaseSettings):
     # CVs por barrido (cada minuto).
     coincidencias_lote: int = Field(default=25, ge=1, le=500)
 
+    # ─── Evaluación con IA del plan de pago (ADR-021) ────
+    # Aplicaciones por barrido (cada minuto) y cuántas se puntúan a la vez.
+    evaluaciones_lote: int = Field(default=50, ge=1, le=500)
+    evaluaciones_en_paralelo: int = Field(default=8, ge=1, le=32)
+    # Tope de seguridad de toda la plataforma: al llegar, no se evalúa nada nuevo
+    # hasta el mes siguiente. US$25 son unos 10.000 CVs con gemini-2.5-flash.
+    ia_presupuesto_mensual_usd: float = Field(default=25.0, ge=0)
+
     # ─── Panel de la empresa ─────────────────────────────
     # A dónde vuelve el enlace de la invitación. Solo lo usa el comando de alta de
     # empresas, no la API ni el worker. Tiene que estar en las Redirect URLs de Auth.

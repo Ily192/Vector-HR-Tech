@@ -108,3 +108,49 @@ class CvPendiente:
     #: Dónde está en el bucket `cvs`: `{empresa_id}/...` (migración 0005).
     ruta: str
     skills: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class VacanteParaEvaluar:
+    """Lo que el modelo sabe de la vacante. Sin el nombre de la empresa (ADR-021 §3)."""
+
+    titulo: str
+    descripcion: str
+    skills: tuple[str, ...]
+    nivel: str | None
+    modalidad: str | None
+    ubicacion: str | None
+    icp_text: str | None
+
+    def perfil(self) -> str:
+        """El perfil contra el que se evalúa el CV, en texto."""
+        lineas = [f"Puesto: {self.titulo}"]
+        for etiqueta, valor in (
+            ("Nivel", self.nivel),
+            ("Modalidad", self.modalidad),
+            ("Ubicación", self.ubicacion),
+        ):
+            if valor:
+                lineas.append(f"{etiqueta}: {valor}")
+        if self.skills:
+            lineas.append(f"Skills que pide: {', '.join(self.skills)}")
+        lineas += ["", "Descripción:", self.descripcion]
+        if self.icp_text:
+            lineas += ["", "Perfil ideal (ICP):", self.icp_text]
+        return "\n".join(lineas)
+
+
+@dataclass(frozen=True, slots=True)
+class AplicacionPorEvaluar:
+    """Una aplicación de una empresa con IA, reclamada por el barrido (ADR-021)."""
+
+    application_id: UUID
+    empresa_id: UUID
+    #: El plan al reclamarla: se vuelve a comprobar antes de gastar.
+    plan: str
+    #: Dónde está el CV en el bucket `cvs`.
+    ruta: str
+    #: Solo para quitarlos del texto del CV: nunca llegan al modelo.
+    nombre: str
+    correo: str | None
+    vacante: VacanteParaEvaluar

@@ -27,7 +27,7 @@ import { supabaseConfigurado } from "./supabase";
 const LIMITE = 300;
 
 const COLUMNAS =
-  "id, slug, title, jd, seniority, modality, location, created_at, empresa_nombre, empresa_slug, salario_min, salario_max, moneda, cupo_completo";
+  "id, slug, title, jd, seniority, modality, location, created_at, empresa_nombre, empresa_slug, salario_min, salario_max, moneda, cupo_completo, evalua_con_ia";
 
 /** PostgREST devuelve `+00:00`; el esquema pide ISO con `Z`. */
 const conFechaIso = <T extends { created_at: string }>(fila: T): T => ({
