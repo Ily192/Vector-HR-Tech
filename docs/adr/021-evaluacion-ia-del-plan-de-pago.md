@@ -100,6 +100,7 @@
   - La bolsa de CVs incluidos por plan es precio (ADR-018 §13).
   - Al agotarla se sigue evaluando y se cobra el excedente en CVs.
 - **El costo de cada evaluación se registra en `runs`.** El tope por run sigue en modo medición (`ENFORCE_RUN_COST_CAP`): el CV recortado ya acota lo que puede costar.
+- **La empresa ve CV, no dólares.** El cockpit le muestra los CV evaluados del mes contra su tope, que es lo que la afecta (`pricing-de-ia`). El costo es de Vector HR y no sale de la base (migración 0016).
 - **La regla de continuidad (`pricing-de-ia`):** agotar un tope nunca detiene el proceso de la empresa.
   - Publicar, recibir, descargar y mover candidatos a mano siguen igual.
   - Lo no evaluado se queda en "Aplicados", y el panel dice cuántas aplicaciones esperan.
@@ -146,7 +147,7 @@ Son las de ADR-018, puestas al día:
 | #82 | **Career site:** el aviso con IA |
 | #84 | Una caída del modelo o la falta de key no gastan intentos |
 | #85 | **Panel.**<br>• "Evaluados" con score, porqué y sugerencia, del mejor encaje al menor.<br>• Descartar con motivo. La base lo exige si evaluó la IA: migración 0015, PT422.<br>• Cuántas aplicaciones esperan, cuántas hay que revisar a mano y cuántos CVs son ilegibles |
-| Siguiente | **El cockpit con datos reales** |
+| #86 | **El cockpit con datos reales.**<br>• `resumen_del_cockpit()` (migración 0016) calcula los indicadores, la decisión del día, la vacante del día con sus mejores evaluados y su embudo, y el registro de los agentes.<br>• La decisión del día: primero, a quién entrevistar (score desde 7 y nadie lo ha movido); después, lo que hay que revisar a mano.<br>• El panel la pinta; los textos son funciones puras con test |
 | Siguiente | **Arnés de evals** con la ruta privada y los pares contrafactuales |
 
 ## Consequences

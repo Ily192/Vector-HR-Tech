@@ -195,6 +195,60 @@ export interface Database {
         }[];
       };
       /**
+       * El "hoy" del cockpit del plan con IA (0016), ya calculado y solo de las vacantes
+       * abiertas. Sin filas si tu plan no tiene IA o tu cuenta no es de HR o Dirección.
+       * El embudo cuenta las aplicaciones que llegaron a cada etapa o más allá.
+       */
+      resumen_del_cockpit: {
+        Args: Record<string, never>;
+        Returns: {
+          candidatos_en_proceso: number;
+          candidatos_nuevos_24h: number;
+          vacantes_publicadas: number;
+          vacantes_nuevas_7d: number;
+          evaluaciones_24h: number;
+          /** `null` si en 24 h no hubo evaluaciones. */
+          porcentaje_sin_error: number | null;
+          en_espera: number;
+          cvs_del_mes: number;
+          tope_del_mes: number;
+          porcentaje_del_tope: number;
+          tope_alcanzado: boolean;
+          decisiones_pendientes: number;
+          decision: {
+            tipo: "entrevistar" | "revisar";
+            vacante: { id: string; titulo: string };
+            listos: number;
+            scores: number[];
+            sin_evaluar: number;
+            ilegibles: number;
+            sin_ia: number;
+          } | null;
+          vacante: { id: string; titulo: string } | null;
+          evaluados: number;
+          mejores_evaluados: {
+            /** La aplicación. */
+            id: string;
+            candidato: string | null;
+            score: number;
+            razonamiento: string | null;
+          }[];
+          embudo: Record<
+            "applied" | "evaluated" | "shortlisted" | "interviewed" | "offered",
+            number
+          >;
+          registro: {
+            /** El run. */
+            id: string;
+            en: string;
+            agente: string;
+            aplazada: boolean;
+            vacante: string | null;
+            score: number | null;
+          }[];
+        }[];
+      };
+      /**
        * "47 de 50" por vacante (0010). Cuenta las recibidas: borrar o descartar
        * no libera cupo. `null` en límite = sin tope (plan con IA).
        */

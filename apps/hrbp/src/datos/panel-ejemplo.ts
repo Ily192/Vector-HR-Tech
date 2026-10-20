@@ -24,6 +24,7 @@ import type {
   EvaluacionConIa,
   GanchoDelPipeline,
   OrigenDelInteres,
+  ResumenCockpit,
   ResumenDeEvaluaciones,
   SesionEmpresa,
   VacanteDeLaEmpresa,
@@ -33,6 +34,7 @@ const DIA_MS = 24 * 60 * 60 * 1000;
 const VENTANA_MS = VENTANA_DE_PUBLICACIONES_DIAS * DIA_MS;
 const haceDias = (dias: number, horas = 0) =>
   new Date(Date.now() - dias * DIA_MS - horas * 3_600_000).toISOString();
+const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString();
 
 const NOMBRES = [
   "María Fernanda",
@@ -237,6 +239,39 @@ function estadoConIa(): Estado {
   };
 }
 
+/**
+ * El cockpit de Grupo Cobalto: su única vacante con las 84 aplicaciones del pipeline de
+ * ejemplo, de las que la IA evaluó 41. Los tres mejores son los mismos que ahí.
+ */
+function resumenDelCockpit(): ResumenCockpit {
+  const vacante = { id: "senior-software-engineer", titulo: "Senior Software Engineer" };
+  const { razonamiento } = evaluacionDeEjemplo(9);
+  return {
+    decision: { tipo: "entrevistar", vacante, listos: 17, scores: [9.4, 9.3, 9.1] },
+    decisionesPendientes: 2,
+    candidatosEnProceso: { total: 84, nuevos24h: 8 },
+    vacantesPublicadas: { total: 1, nuevas7d: 0 },
+    evaluaciones24h: { total: 27, porcentajeSinError: 96 },
+    enEspera: { total: 40, topeAlcanzado: false },
+    cvsDelMes: { evaluados: 41, tope: 1000, porcentajeDelTope: 4 },
+    vacante,
+    mejoresEvaluados: {
+      total: 41,
+      filas: [
+        { id: `${vacante.id}-1`, candidato: "María Fernanda Ramírez", score: 9.4 },
+        { id: `${vacante.id}-2`, candidato: "José Luis Herrera", score: 9.3 },
+        { id: `${vacante.id}-3`, candidato: "Ana Sofía Villarreal", score: 9.1 },
+      ].map((f) => ({ ...f, razonamiento, siguientePaso: siguientePaso(f.score) })),
+    },
+    embudo: { applied: 84, evaluated: 41, shortlisted: 12, interviewed: 3, offered: 2 },
+    registro: [
+      { id: "run-3", en: haceMinutos(12), vacante: vacante.titulo, score: 8.5 },
+      { id: "run-2", en: haceMinutos(47), vacante: vacante.titulo, score: 6.1 },
+      { id: "run-1", en: haceMinutos(95), vacante: vacante.titulo, score: null },
+    ].map((e) => ({ ...e, agente: "cv-evaluator", aplazada: e.score === null })),
+  };
+}
+
 function estadoInicial(): Estado {
   const plan = new URLSearchParams(window.location.search).get("plan");
   return plan === "ia" ? estadoConIa() : estadoGratis();
@@ -366,6 +401,10 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
           })
         : null,
     };
+  },
+
+  async obtenerResumenCockpit() {
+    return estado.sesion.modulos.includes("cockpit") ? resumenDelCockpit() : null;
   },
 
   /** Como la base (0015): lo que evaluó la IA no se descarta sin un motivo que sirva. */

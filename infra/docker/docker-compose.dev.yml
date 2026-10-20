@@ -46,6 +46,7 @@ services:
       - ../supabase/migrations/0013_interes_en_la_ia.sql:/docker-entrypoint-initdb.d/22_0013_interes_en_la_ia.sql:ro
       - ../supabase/migrations/0014_evaluacion_ia_del_plan_de_pago.sql:/docker-entrypoint-initdb.d/23_0014_evaluacion_ia_del_plan_de_pago.sql:ro
       - ../supabase/migrations/0015_descartar_con_motivo.sql:/docker-entrypoint-initdb.d/24_0015_descartar_con_motivo.sql:ro
+      - ../supabase/migrations/0016_resumen_del_cockpit.sql:/docker-entrypoint-initdb.d/25_0016_resumen_del_cockpit.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

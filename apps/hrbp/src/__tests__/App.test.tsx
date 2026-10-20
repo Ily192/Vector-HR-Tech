@@ -252,26 +252,59 @@ describe("panel de empresa · plan con servicios de IA", () => {
 
     expect(await encabezado()).toHaveTextContent("Tu día, ya ordenado");
     expect(screen.getByRole("navigation", { name: "Operación" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Decisión del día" })).toHaveTextContent(
-      "3 candidatas listas para entrevista",
+    const decision = screen.getByRole("region", { name: "Decisión del día" });
+    expect(decision).toHaveTextContent("Decisión del día · 1 de 2");
+    expect(decision).toHaveTextContent(
+      "17 candidatos listos para entrevista en Senior Software Engineer",
     );
+    expect(decision).toHaveTextContent("Los 3 mejores: 9.4, 9.3 y 9.1.");
 
-    for (const [etiqueta, valor] of [
-      ["Candidatos en proceso", "142"],
-      ["Vacantes publicadas", "8"],
-      ["Evaluaciones IA (24 h)", "327"],
-      ["En espera del modelo", "2"],
-    ]) {
-      expect(screen.getByText(etiqueta as string).parentElement).toHaveTextContent(valor as string);
+    for (const [etiqueta, valor, variacion] of [
+      ["Candidatos en proceso", "84", "+8 en 24 h"],
+      ["Vacantes publicadas", "1", "ninguna nueva en 7 días"],
+      ["Evaluaciones IA (24 h)", "27", "96 % sin error"],
+      ["En espera del modelo", "40", "se evalúan solas"],
+    ] as const) {
+      const kpi = screen.getByText(etiqueta).parentElement;
+      expect(kpi).toHaveTextContent(valor);
+      expect(kpi).toHaveTextContent(variacion);
     }
 
     const embudo = screen.getByRole("region", { name: "Pipeline" });
     expect(within(embudo).getByText("Aplicados").closest("[data-etapa]")).toHaveTextContent("84");
     expect(within(embudo).getByText("Evaluados").closest("[data-etapa]")).toHaveTextContent("49 %");
 
+    // Los mismos tres que encabezan los evaluados de su pipeline.
     const evaluados = screen.getByRole("region", { name: "Mejores evaluados" });
-    expect(within(evaluados).getAllByText("Entrevista")).toHaveLength(2);
-    expect(within(evaluados).getByText("Psicométrico")).toBeInTheDocument();
+    expect(within(evaluados).getByText("María Fernanda Ramírez")).toBeInTheDocument();
+    expect(within(evaluados).getAllByText("Entrevista")).toHaveLength(3);
+    expect(evaluados).toHaveTextContent("41 evaluados en proceso.");
+
+    const registro = screen.getByRole("region", { name: "Registro de los agentes" });
+    expect(
+      within(registro).getByText("Senior Software Engineer · 8.5 · Entrevista"),
+    ).toBeInTheDocument();
+    expect(within(registro).getByText("reintento")).toBeInTheDocument();
+
+    // CVs contra el tope de la empresa: el costo en dólares no se le muestra.
+    expect(screen.getByRole("region", { name: "CV evaluados del mes" })).toHaveTextContent(
+      "41 de 1,000",
+    );
+    expect(screen.queryByText(/\$\d/)).toBeNull();
+  });
+
+  it("de la decisión del día se va a la vacante", async () => {
+    montarPanel("/?plan=ia");
+    const decision = await screen.findByRole("region", { name: "Decisión del día" });
+
+    fireEvent.click(within(decision).getByRole("link", { name: "Ir a Senior Software Engineer" }));
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Senior Software Engineer" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Evaluados" })).toHaveTextContent(
+      "María Fernanda Ramírez",
+    );
   });
 
   it("no tiene tope de vacantes ni de aplicaciones", async () => {
