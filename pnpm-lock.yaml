@@ -137,7 +137,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/design-tokens
       '@vortex/supabase-client':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../../packages/supabase-client
       '@vortex/types':
         specifier: workspace:*
