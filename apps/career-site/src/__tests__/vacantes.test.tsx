@@ -126,15 +126,16 @@ describe("career-site · /vacantes/[slug]", () => {
     });
   });
 
-  it("ofrece el CTA de aplicar deshabilitado (la subida de CV llega después)", async () => {
+  it("sin Supabase no recibe aplicaciones y lo dice", async () => {
     render(await detalle("senior-software-engineer"));
-    expect(screen.getByRole("button", { name: /Subir CV/i })).toBeDisabled();
+    expect(screen.getByText(/Las aplicaciones a esta vacante se abren pronto/)).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Aplicar a la vacante" })).toBeNull();
   });
 
   it("con el cupo completo no ofrece aplicar y lo explica", async () => {
     render(await detalle("data-analyst"));
     expect(screen.getByText("Esta vacante ya no recibe aplicaciones.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Subir CV/i })).toBeNull();
+    expect(screen.queryByRole("form", { name: "Aplicar a la vacante" })).toBeNull();
   });
 
   it("incluye el link de vuelta al listado", async () => {

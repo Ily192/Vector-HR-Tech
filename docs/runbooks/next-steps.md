@@ -714,7 +714,9 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
       garantiza: el contenedor usa stubs de `auth` y no tiene el hook de JWT,
       las policies de Storage ni los roles reales de Supabase.
 - [ ] **Rate limiting / captcha en `aplicar_a_vacante()`** antes de exponer el
-      formulario público.
+      formulario público. El formulario ya verifica Cloudflare Turnstile y trae un
+      campo trampa; falta configurar `NEXT_PUBLIC_TURNSTILE_SITE_KEY` y
+      `TURNSTILE_SECRET_KEY` en Vercel. Sin la secreta no se verifica.
 - [ ] **Destino de deploy del backend.** ADR-012 eligió Fly.io y no existe ni
       un `fly.toml` ni un step de `flyctl` en ningún workflow.
   - El hr-engine son tres procesos con la misma imagen: la API, el worker de
@@ -731,9 +733,11 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 
 ### Producto pendiente
 
-- [ ] **2.1** Career-site: formulario de aplicación en `/vacantes/[slug]/aplicar`
-      con subida de CV. El SQL ya está (`0005`); falta la Server Action y la UI.
-      Hoy el detalle de vacante tiene un botón deshabilitado y datos mock.
+- [x] ~~**2.1** Career-site: formulario de aplicación.~~ Hecho en el sprint del MVP:
+      está en el detalle de la vacante, sube el CV (PDF o DOCX, hasta 4 MB por el
+      límite de 4.5 MB de Vercel) con la clave secreta y llama a `aplicar_a_vacante`.
+      Probado contra el Supabase local de punta a punta, con el worker de
+      coincidencias.
 - [ ] **2.2** Candidate app: scaffold Vite + React, rutas `/`,
       `/applications/:id`, `/test/:token`, `/profile`. El HTML legacy del test
       psicométrico va a `apps/candidate/public/psicometrico/` (ADR-014).

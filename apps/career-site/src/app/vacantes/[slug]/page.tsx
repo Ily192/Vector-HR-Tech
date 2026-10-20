@@ -3,13 +3,15 @@ import {
   ETIQUETA_MODALIDAD,
   ETIQUETA_SENIORITY,
 } from "@vortex/types/etiquetas";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
-import { ArrowLeft, Upload } from "lucide-react";
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FormularioDeAplicacion } from "../../../components/formulario-de-aplicacion";
 import { formatearSalario } from "../../../lib/formato";
-import { obtenerVacante } from "../../../lib/vacantes";
+import { obtenerVacante, recibeAplicaciones } from "../../../lib/vacantes";
+import { aplicarAVacante } from "./acciones";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -75,16 +77,22 @@ export default async function VacanteDetail({ params }: Props) {
               <b className="text-ink-900">Esta vacante ya no recibe aplicaciones.</b> Llegó al
               máximo que la empresa puede recibir. Mira otras vacantes abiertas.
             </p>
-          ) : (
+          ) : recibeAplicaciones() ? (
             <>
               <p className="mb-4 text-sm text-muted-foreground">
-                Sube tu CV. Lo evaluamos sin usar tu nombre y te avisamos por correo del siguiente
-                paso: una entrevista, un test psicométrico breve o una respuesta clara si no encaja.
+                Envía tu CV a {v.empresa_nombre}. Si avanzas en el proceso, te escriben al correo
+                que dejes.
               </p>
-              <Button size="lg" disabled>
-                <Upload className="h-4 w-4" /> Subir CV (próximamente)
-              </Button>
+              <FormularioDeAplicacion
+                accion={aplicarAVacante.bind(null, v.slug)}
+                empresa={v.empresa_nombre}
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
+              />
             </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Las aplicaciones a esta vacante se abren pronto.
+            </p>
           )}
         </CardContent>
       </Card>

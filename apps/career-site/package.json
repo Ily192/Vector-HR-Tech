@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "@vortex/design-tokens": "workspace:*",
+    "@vortex/supabase-client": "workspace:^",
     "@vortex/types": "workspace:*",
     "@vortex/ui": "workspace:*",
     "lucide-react": "^0.460.0",
     "next": "^16.4.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -31,9 +33,9 @@
     "autoprefixer": "^10.4.20",
     "jsdom": "^26.0.0",
     "postcss": "^8.4.47",
+    "postcss-import": "^16.1.0",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.5.0",
-    "postcss-import": "^16.1.0",
     "vitest": "^4.1.12"
   }
 }
