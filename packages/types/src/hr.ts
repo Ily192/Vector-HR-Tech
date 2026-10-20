@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_LARGO_DE_SKILL, MAX_SKILLS_POR_VACANTE } from "./reglas";
+
 export const VacanteStatusSchema = z.enum(["draft", "open", "paused", "closed", "filled"]);
 export type VacanteStatus = z.infer<typeof VacanteStatusSchema>;
 
@@ -37,6 +39,11 @@ export const VacanteSchema = z.object({
   /** Borrado lógico al eliminarla desde el panel (0008). */
   deleted_at: z.string().datetime().nullable().default(null),
   /**
+   * Primera vez que pasó a `open`; la fija la base (0010). Con ella se cuentan las
+   * publicaciones de los últimos 30 días. PostgREST la devuelve con `+00:00`.
+   */
+  publicada_en: z.string().datetime({ offset: true }).nullable().default(null),
+  /**
    * Skills que pide la vacante, hasta 15 (0010). En el plan gratis el hr-engine
    * cuenta cuántos CVs las mencionan, sin IA (ADR-019).
    */
@@ -44,10 +51,10 @@ export const VacanteSchema = z.object({
     .array(
       z.string().refine((s) => {
         const largo = s.trim().length;
-        return largo >= 1 && largo <= 60;
-      }, "cada skill lleva de 1 a 60 caracteres"),
+        return largo >= 1 && largo <= MAX_LARGO_DE_SKILL;
+      }, `cada skill lleva de 1 a ${MAX_LARGO_DE_SKILL} caracteres`),
     )
-    .max(15)
+    .max(MAX_SKILLS_POR_VACANTE)
     .default([]),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;

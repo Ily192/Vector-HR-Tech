@@ -51,6 +51,7 @@ type Generated =
   | "limite_vacantes"
   | "salario_publico"
   | "deleted_at"
+  | "publicada_en"
   | "skills"
   | "sin_ia";
 
@@ -202,6 +203,14 @@ export interface Database {
           p_sin_ia?: boolean;
         };
         Returns: string;
+      };
+      /**
+       * La empresa gratuita pide los servicios de IA desde el panel (0013). La
+       * empresa y la persona salen del JWT.
+       */
+      registrar_interes_en_ia: {
+        Args: { p_origen: "pipeline" | "crear-empleo" };
+        Returns: undefined;
       };
       submit_psicometrico: {
         Args: {

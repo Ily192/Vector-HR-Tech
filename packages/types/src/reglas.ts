@@ -84,6 +84,14 @@ export const LIMITES_DEL_PLAN = {
 >;
 
 /**
+ * Skills de una vacante: hasta 15, de 1 a 60 caracteres cada una. Dueña:
+ * `services/hr-engine/app/domain/coincidencia.py`; las aplica la base
+ * (`skills_validas()`, 0010). Aquí no llevan zod: el panel las usa sin cargarlo.
+ */
+export const MAX_SKILLS_POR_VACANTE = 15;
+export const MAX_LARGO_DE_SKILL = 60;
+
+/**
  * Días de la ventana móvil en la que el plan gratis publica tantas vacantes nuevas
  * como vacantes activas permite (ADR-019). Reabrir una vacante no cuenta. Cuántas
  * le quedan a una empresa lo da la base (`mi_cupo_de_vacantes()`).
