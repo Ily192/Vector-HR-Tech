@@ -44,4 +44,12 @@ E2E_CORREO=… pnpm e2e:flujo
 - **Worker.** Lo corre el servidor cada minuto, y el test espera hasta 4 minutos a que aparezca el gancho.
 - **Cuota.** Cada corrida gasta una de las publicaciones de 30 días de esa empresa, porque eliminar la vacante no la devuelve.
 - **Clave secreta.** Va solo en la variable de esa corrida, nunca en un archivo.
-- **Estado.** Todavía no se ha corrido contra un despliegue; se prueba cuando el VPS esté en línea (ADR-020).
+- **En el VPS (ADR-020)** las claves son las legadas del `.env` del servidor:
+  - `E2E_SUPABASE_PUBLISHABLE_KEY` es `ANON_KEY`;
+  - `E2E_SUPABASE_SECRET_KEY` es `SERVICE_ROLE_KEY`;
+  - las dos van en `apikey` y como Bearer.
+- **Estado.**
+  - Se corrió el 2026-10-20 contra el stack del VPS levantado en local:
+    `infra/vps/pruebas/probar_en_local.sh` lo corre antes y después de restaurar un
+    respaldo.
+  - Falta correrlo contra el VPS real cuando esté en línea.

@@ -1,5 +1,22 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+/**
+ * En el VPS el sitio corre como servidor Node (ADR-020): el Dockerfile
+ * (infra/vps/career-site) pide `standalone` con NEXT_OUTPUT. El trazado parte de la
+ * raíz del monorepo para incluir los packages del workspace. Vercel no lo usa.
+ */
+const standalone =
+  process.env.NEXT_OUTPUT === "standalone"
+    ? {
+        output: "standalone",
+        outputFileTracingRoot: path.join(path.dirname(fileURLToPath(import.meta.url)), "../.."),
+      }
+    : {};
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...standalone,
   reactStrictMode: true,
   transpilePackages: [
     "@vortex/ui",

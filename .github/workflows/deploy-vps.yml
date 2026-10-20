@@ -1,0 +1,140 @@
+name: Deploy VPS (DigitalOcean)
+
+# Toda la plataforma en un VPS (ADR-020): construye las tres imágenes de la app, las
+# sube a GHCR con el commit como etiqueta y despliega por SSH con la llave de despliegue,
+# que en el servidor solo puede correr vortex-desplegar (infra/vps/scripts/desplegar.sh).
+# El servidor solo acepta commits que estén en main. A mano mientras el MVP no tenga
+# clientes; para volver atrás, se corre desde un commit anterior de main.
+# Primer despliegue, secrets y variables: docs/runbooks/vps.md.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRO: ghcr.io/ily192
+
+jobs:
+  imagenes:
+    name: Imagen ${{ matrix.nombre }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - nombre: hr-engine
+            contexto: services/hr-engine
+            dockerfile: services/hr-engine/Dockerfile
+            # Los SKILL.md de producto (ver el Dockerfile del hr-engine).
+            contextos: skills=.agents/skills
+          - nombre: career-site
+            contexto: .
+            dockerfile: infra/vps/career-site/Dockerfile
+            contextos: ""
+          - nombre: caddy
+            contexto: .
+            dockerfile: infra/vps/caddy/Dockerfile
+            contextos: ""
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # El panel y el career site llevan sus URLs y la clave pública dentro del build.
+      - name: Comprobar las variables
+        env:
+          DOMINIO_EMPLEOS: ${{ vars.DOMINIO_EMPLEOS }}
+          DOMINIO_PANEL: ${{ vars.DOMINIO_PANEL }}
+          DOMINIO_API: ${{ vars.DOMINIO_API }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          for nombre in DOMINIO_EMPLEOS DOMINIO_PANEL DOMINIO_API SUPABASE_ANON_KEY; do
+            if [ -z "${!nombre}" ]; then
+              echo "::error::Falta la variable $nombre (Settings → Secrets and variables → Actions → Variables)."
+              exit 1
+            fi
+          done
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.contexto }}
+          file: ${{ matrix.dockerfile }}
+          build-contexts: ${{ matrix.contextos }}
+          # Públicos: van al navegador. La imagen del hr-engine no los usa.
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=https://${{ vars.DOMINIO_EMPLEOS }}
+            NEXT_PUBLIC_PANEL_EMPRESAS_URL=https://${{ vars.DOMINIO_PANEL }}
+            NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TURNSTILE_SITE_KEY }}
+            VITE_SUPABASE_URL=https://${{ vars.DOMINIO_API }}
+            VITE_SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}
+          # Liga el paquete de GHCR al repo, para que el GITHUB_TOKEN pueda bajarlo.
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          push: true
+          tags: ${{ env.REGISTRO }}/vortex-${{ matrix.nombre }}:${{ github.sha }}
+          cache-from: type=gha,scope=vps-${{ matrix.nombre }}
+          cache-to: type=gha,mode=max,scope=vps-${{ matrix.nombre }}
+
+  desplegar:
+    name: Desplegar en el VPS
+    needs: imagenes
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      # El servidor baja las imágenes con el GITHUB_TOKEN de este job, que caduca al acabar.
+      packages: read
+    steps:
+      - name: Comprobar los secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          for nombre in VPS_HOST VPS_SSH_KEY VPS_KNOWN_HOSTS; do
+            if [ -z "${!nombre}" ]; then
+              echo "::error::Falta el secret $nombre (docs/runbooks/vps.md, paso 7)."
+              exit 1
+            fi
+          done
+
+      # La llave de despliegue solo puede correr vortex-desplegar: el commit y el usuario
+      # van como argumentos, y el token por la entrada estándar (no queda en el disco).
+      - name: Desplegar
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/despliegue
+          chmod 600 ~/.ssh/despliegue
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/despliegue -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
+            "despliegue@$VPS_HOST" "desplegar $GITHUB_SHA $GITHUB_ACTOR"
+
+      - name: Comprobar desde internet
+        env:
+          DOMINIO_EMPLEOS: ${{ vars.DOMINIO_EMPLEOS }}
+          DOMINIO_PANEL: ${{ vars.DOMINIO_PANEL }}
+          DOMINIO_API: ${{ vars.DOMINIO_API }}
+        run: |
+          for url in "https://$DOMINIO_PANEL/" "https://$DOMINIO_EMPLEOS/" "https://$DOMINIO_API/salud/hr-engine"; do
+            curl -fsS -o /dev/null --retry 5 --retry-delay 5 --retry-all-errors "$url"
+            echo "ok $url"
+          done

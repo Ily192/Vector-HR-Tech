@@ -1,0 +1,99 @@
+# Caddy en el VPS (ADR-020): sirve el panel y reparte lo demás por dominio.
+#
+# Todo llega por Cloudflare Tunnel (cloudflared → http://caddy:80). Cloudflare termina
+# el TLS, así que aquí todo es HTTP y no hay certificados que renovar. Los dominios
+# salen del .env del servidor (DOMINIO_*).
+
+{
+	auto_https off
+	# Sin API de administración: la config solo cambia con un despliegue.
+	admin off
+	servers {
+		# Solo llegan cloudflared y los contenedores; la IP real del visitante viene en
+		# CF-Connecting-IP.
+		trusted_proxies static private_ranges
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
+}
+
+(comunes) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+# Career site (Next.js). Las cabeceras de seguridad las pone next.config.mjs.
+http://{$DOMINIO_EMPLEOS} {
+	import comunes
+	# El CV va dentro de la Server Action, hasta 5 MB (next.config.mjs).
+	request_body {
+		max_size 6MB
+	}
+	reverse_proxy career-site:3000
+}
+
+# Panel de la empresa: la SPA de Vite, estática.
+http://{$DOMINIO_PANEL} {
+	import comunes
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+	root * /srv/panel
+	@hasheados path /assets/*
+	header @hasheados Cache-Control "public, max-age=31536000, immutable"
+	try_files {path} /index.html
+	header /index.html Cache-Control "no-cache"
+	file_server
+}
+
+# API de Supabase. Solo las rutas que usan el panel, el career site y el hr-engine: el
+# resto del gateway (y Studio) no se publica.
+http://{$DOMINIO_API} {
+	import comunes
+	request_body {
+		max_size 6MB
+	}
+	@supabase path /auth/v1/* /rest/v1/* /storage/v1/*
+	handle @supabase {
+		reverse_proxy api-gw:8000
+	}
+	# Para el monitoreo externo: sin el detalle del /ready del hr-engine.
+	handle /salud/hr-engine {
+		reverse_proxy hr-engine-api:8000 {
+			rewrite /ready
+			@sano status 2xx
+			handle_response @sano {
+				respond "ok" 200
+			}
+			handle_response {
+				respond "no" 503
+			}
+		}
+	}
+	handle {
+		respond 404
+	}
+}
+
+# Cualquier otro dominio.
+:80 {
+	respond 404
+}
+
+# Solo dentro de la red de Docker: las plantillas de correo de Auth y la salud de Caddy.
+:8090 {
+	handle_path /plantillas/* {
+		root * /srv/plantillas
+		file_server
+	}
+	handle /salud {
+		respond "ok" 200
+	}
+	handle {
+		respond 404
+	}
+}

@@ -1,0 +1,91 @@
+# Para probar el stack del VPS en una máquina de desarrollo (pruebas/probar_en_local.sh).
+# Va encima de ../compose.yml; las rutas relativas son las de ese archivo (infra/vps).
+#
+# Construye las imágenes en local en vez de bajarlas de GHCR, cambia Resend por Mailpit
+# y R2 por un S3 local (RustFS, el que usa el Supabase autoalojado en sus pruebas), no
+# levanta el túnel, y publica en 127.0.0.1 los tres sitios de Caddy con los dominios de
+# la prueba: localhost:8080 (career site), :8081 (panel) y :8082 (API), más Mailpit en
+# :8025. Con `localhost` y puerto, y no `*.localhost`, porque Node y Python no resuelven
+# subdominios de localhost en Windows y el e2e llama a la API desde Node.
+
+x-cors-de-prueba: &cors-de-prueba
+  # El hr-engine en producción rechaza CORS con localhost (app/config.py). Nadie lo llama
+  # desde el navegador, así que en la prueba basta un origen cualquiera.
+  CORS_ALLOW_ORIGINS: https://panel.prueba-local.invalid
+
+services:
+  hr-engine-api:
+    image: vortex-local/hr-engine:prueba
+    build:
+      context: ../../services/hr-engine
+      additional_contexts:
+        skills: ../../.agents/skills
+    environment: *cors-de-prueba
+  hr-engine-worker:
+    image: vortex-local/hr-engine:prueba
+    environment: *cors-de-prueba
+  hr-engine-beat:
+    image: vortex-local/hr-engine:prueba
+    environment: *cors-de-prueba
+
+  career-site:
+    image: vortex-local/career-site:prueba
+    build:
+      context: ../..
+      dockerfile: infra/vps/career-site/Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: http://${DOMINIO_EMPLEOS}
+        NEXT_PUBLIC_PANEL_EMPRESAS_URL: http://${DOMINIO_PANEL}
+
+  caddy:
+    image: vortex-local/caddy:prueba
+    build:
+      context: ../..
+      dockerfile: infra/vps/caddy/Dockerfile
+      args:
+        VITE_SUPABASE_URL: http://${DOMINIO_API}
+        VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
+    networks: [borde, datos, local]
+    ports:
+      - 127.0.0.1:8080:8080
+      - 127.0.0.1:8081:8081
+      - 127.0.0.1:8082:8082
+
+  cloudflared:
+    profiles: [nunca]
+
+  auth:
+    depends_on:
+      mailpit:
+        condition: service_started
+    environment:
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: 1025
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_SMTP_PASS: ""
+
+  mailpit:
+    image: public.ecr.aws/supabase/mailpit:v1.31.3
+    networks: [datos, local]
+    ports:
+      - 127.0.0.1:8025:8025
+
+  respaldo:
+    depends_on:
+      s3:
+        condition: service_started
+
+  s3:
+    image: rustfs/rustfs:1.0.1
+    networks: [salida]
+    environment:
+      RUSTFS_ACCESS_KEY: ${R2_ACCESS_KEY_ID}
+      RUSTFS_SECRET_KEY: ${R2_SECRET_ACCESS_KEY}
+    volumes:
+      - s3-local:/data
+
+networks:
+  local: {}
+
+volumes:
+  s3-local:

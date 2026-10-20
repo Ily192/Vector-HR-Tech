@@ -5,6 +5,13 @@ import { FiltrosRapidos } from "../components/filtros-rapidos";
 import { TarjetaVacante } from "../components/tarjeta-vacante";
 import { listarVacantes } from "../lib/vacantes";
 
+/**
+ * El inicio se pinta en cada request, como /vacantes. Sin esto Next lo prerenderiza en
+ * el build con las vacantes de ese momento, o con las de ejemplo si el build no ve
+ * Supabase, como en el VPS, donde se construye en CI (ADR-020).
+ */
+export const dynamic = "force-dynamic";
+
 /** Cuántas vacantes recientes se muestran en el inicio. */
 const VACANTES_EN_INICIO = 6;
 

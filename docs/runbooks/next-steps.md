@@ -311,8 +311,8 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
 
 > **Reemplazado por ADR-020 (2026-10-20):** la plataforma va completa en un VPS, con
 > Supabase autoalojado y Docker Compose. Lo de Auth (Site URL, Redirect URLs, SMTP,
-> plantillas y expiración del enlace) sigue valiendo y pasa a las variables del VPS. Esta
-> sección se retira cuando llegue el runbook del VPS.
+> plantillas y expiración del enlace) sigue valiendo y está en las variables del VPS. El
+> runbook es `docs/runbooks/vps.md`; esta sección queda como referencia de Supabase Cloud.
 
 - supabase.com → New project (region `sa-east-1` para LATAM).
 - Habilitar la extensión `vector` desde el dashboard.
