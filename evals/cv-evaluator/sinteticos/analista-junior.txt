@@ -1,0 +1,18 @@
+Daniela Fuentes Ibarra
+Correo: dani.fuentes@example.test · Tel. 81 5550 0103
+
+Objetivo
+Mi primer puesto de análisis de datos, para aplicar lo que aprendí en la carrera y en las prácticas.
+
+Experiencia
+Prácticas de análisis — Aseguradora Regia (empresa ficticia) · 6 meses, 2025
+- Limpieza de bases de datos de pólizas en Excel.
+- Consultas básicas en SQL (SELECT, JOIN y GROUP BY), con supervisión.
+
+Educación
+Licenciatura en Economía, 2025
+Curso en línea de Python para análisis de datos (40 horas), 2025
+Curso de Power BI básico, 2024
+
+Habilidades
+Excel intermedio, SQL básico, Python básico (pandas), Power BI básico.

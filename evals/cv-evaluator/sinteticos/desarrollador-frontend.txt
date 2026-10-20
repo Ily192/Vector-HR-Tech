@@ -1,0 +1,18 @@
+Óscar Villanueva Prieto
+oscar.villanueva@example.test · +52 81 5550 0105 · github.com/ovillanueva-ejemplo
+
+Desarrollo frontend con React y TypeScript desde 2021.
+
+Experiencia
+Frontend — Agencia Digital Faro (empresa ficticia) · 2022 a la fecha
+- Sitios y aplicaciones web en React, Next.js y Tailwind para clientes de comercio electrónico.
+- Integración con APIs REST y pruebas con Jest y Playwright.
+
+Frontend junior — Estudio Pixel (empresa ficticia) · 2021 a 2022
+- Maquetación en HTML y CSS, y componentes en React.
+
+Educación
+Ingeniería en Sistemas Computacionales, 2021
+
+Habilidades
+React, TypeScript, Next.js, CSS, Git, Figma.

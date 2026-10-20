@@ -1,0 +1,26 @@
+Mariana Quiroga Ledesma
+Analista de datos · Monterrey, NL
+mariana.quiroga@example.test · +52 81 5550 0101 · linkedin.com/in/mquiroga-ejemplo
+
+Perfil
+Cuatro años analizando ventas e inventarios en retail. Construyo los tableros que los
+gerentes usan cada semana y automatizo los reportes repetitivos.
+
+Experiencia
+Analista de datos — Comercializadora del Norte (empresa ficticia), Monterrey · 2022 a la fecha
+- Diseño y mantengo 14 tableros de Power BI de ventas, margen y quiebres de inventario para 60 tiendas.
+- Escribo consultas en SQL (PostgreSQL y SQL Server) contra el almacén de datos: funciones de
+  ventana, CTE y optimización de consultas lentas.
+- Automaticé con Python (pandas y SQLAlchemy) el cierre semanal de ventas: pasó de 6 horas en
+  Excel a 15 minutos.
+- Presento los resultados a gerencia y capacito a los equipos de tienda para leer los tableros.
+
+Analista de información — Distribuidora Cumbres (empresa ficticia), San Nicolás · 2020 a 2022
+- Reportes de ventas y cobranza en Excel avanzado: tablas dinámicas y Power Query.
+- Primeras consultas en SQL y migración de los reportes a Power BI.
+
+Educación
+Licenciatura en Actuaría, 2019
+
+Habilidades
+SQL, Python (pandas), Power BI (DAX y modelado), Excel avanzado, Git.

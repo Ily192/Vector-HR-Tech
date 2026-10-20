@@ -7,6 +7,13 @@ thresholds:
   pass_rate: 0.7    # ≥70% de las predicciones dentro de ±1.5 puntos del expected
   min_cases: 10     # Cycle 1 DoD: con menos casos Pearson r no es estable
 notes: |
+  El arnés de cv-evaluator vive en el hr-engine, porque tiene que recorrer el mismo
+  camino que producción (extractor, anonimizador y prompt):
+  `python -m app.cli.evals_cv_evaluator` (ADR-021 §9). Su set sintético está en
+  sinteticos/ y el real, fuera del repo. Los umbrales de abajo son los mismos
+  (app/domain/evals.py). Este runner y sus .jsonl son anteriores a ADR-021, de
+  cuando se evaluaban el titular y el resumen.
+
   Ground truth aún por poblar (Cycle 1 wk2 entregable 2.5): golden.jsonl y
   regression.jsonl tienen 0 casos reales, solo comentarios.
 
