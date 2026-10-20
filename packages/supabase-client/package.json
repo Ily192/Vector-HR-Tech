@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./browser": "./src/browser.ts",
+    "./public": "./src/public.ts",
     "./server": "./src/server.ts",
     "./service-role": "./src/service-role.ts",
     "./types": "./src/types/database.ts"

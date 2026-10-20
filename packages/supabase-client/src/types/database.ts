@@ -31,6 +31,9 @@ import type {
   VacanteStatus,
 } from "@vortex/types";
 
+// Cada tabla y vista declara `Relationships`: postgrest-js 2.116 lo exige en su
+// `GenericSchema`, y sin él toda consulta tipada salía como `never`.
+
 /**
  * Columnas que la base rellena sola y que por tanto son opcionales al insertar.
  * `applications` es la única tabla del core cuyo timestamp de alta se llama
@@ -72,32 +75,54 @@ export interface Database {
         Row: Empresa;
         Insert: Insert<Empresa>;
         Update: Update<Empresa>;
+        Relationships: [];
       };
       profiles: {
         Row: Profile;
         Insert: Insert<Profile>;
         Update: Update<Profile>;
+        Relationships: [];
       };
       vacantes: {
         Row: Vacante;
         Insert: Insert<Vacante>;
         Update: Update<Vacante>;
+        Relationships: [];
       };
       candidatos: {
         Row: Candidato;
         Insert: Insert<Candidato>;
         Update: Update<Candidato>;
+        Relationships: [];
       };
       applications: {
         Row: Application;
         Insert: Insert<Application>;
         Update: Update<Application>;
+        // FK compuestas de 0004 §5: el embebido `candidatos(...)` trae un solo objeto.
+        Relationships: [
+          {
+            foreignKeyName: "applications_candidato_fk";
+            columns: ["candidato_id", "empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "candidatos";
+            referencedColumns: ["id", "empresa_id"];
+          },
+          {
+            foreignKeyName: "applications_vacante_fk";
+            columns: ["vacante_id", "empresa_id"];
+            isOneToOne: false;
+            referencedRelation: "vacantes";
+            referencedColumns: ["id", "empresa_id"];
+          },
+        ];
       };
     };
     Views: {
       /** Lo único que `anon` puede leer de vacantes desde 0004. */
       vacantes_publicas: {
         Row: VacantePublica;
+        Relationships: [];
       };
     };
     Functions: {
@@ -159,6 +184,24 @@ export interface Database {
           limite: number | null;
           completo: boolean;
         }[];
+      };
+      /**
+       * La única vía por la que un candidato entra al pipeline (0005, 0008 y 0010).
+       * La ejecuta `anon`. Devuelve el id de la application; volver a aplicar
+       * devuelve la misma. PT409 si la vacante llegó a su tope de recibidas.
+       */
+      aplicar_a_vacante: {
+        Args: {
+          p_vacante_id: string;
+          p_full_name: string;
+          p_email: string;
+          p_cv_path?: string | null;
+          p_headline?: string | null;
+          p_linkedin?: string | null;
+          /** El candidato se opone a la evaluación automatizada (0010). */
+          p_sin_ia?: boolean;
+        };
+        Returns: string;
       };
       submit_psicometrico: {
         Args: {

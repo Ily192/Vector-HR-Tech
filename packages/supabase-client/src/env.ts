@@ -23,14 +23,23 @@ function readEnv(name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Las claves nuevas de Supabase reemplazan a las legadas, que se retiran a fines
+ * de 2026: la `publishable` (sb_publishable_…) hace de anon y la `secret`
+ * (sb_secret_…) de service role. Se aceptan los dos nombres. La secreta nunca con
+ * prefijo NEXT_PUBLIC_ ni VITE_: eso la metería en el bundle del navegador.
+ */
 const ALIASES: Record<string, readonly string[]> = {
   SUPABASE_URL: ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "VITE_SUPABASE_URL"],
   SUPABASE_ANON_KEY: [
     "SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "VITE_SUPABASE_ANON_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
   ],
-  SUPABASE_SERVICE_ROLE_KEY: ["SUPABASE_SERVICE_ROLE_KEY"],
+  SUPABASE_SERVICE_ROLE_KEY: ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"],
 };
 
 export function getOptionalEnv(canonical: keyof typeof ALIASES): string | undefined {
