@@ -1,6 +1,6 @@
 # ADR-010 · Frontends deployment: Vercel + subdominio default
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-020 para el MVP (2026-10-20): los frontends van en el VPS, detrás de Caddy
 - **Fecha:** 2026-05-25
 - **Decisores:** Ilyra
 - **Supersedes:** —
