@@ -157,8 +157,9 @@ Menos que con ADR-018, porque el plan gratis ya no trata datos con IA:
 | PR | Qué |
 |---|---|
 | #68 | Migración 0010, `domain/coincidencia.py`, `domain/gancho.py`, `verificar_ia` en el hr-engine, contratos, tipos y el gancho del panel con datos de ejemplo |
-| Este | Worker del hr-engine (`CoincidirCvsPendientes`): Storage con la clave secreta, texto con pypdf y del XML del DOCX (defusedxml), Celery beat cada minuto y purga diaria. Marca cada CV como ilegible antes de leerlo, para que un PDF malicioso no bloquee los barridos |
-| Siguiente | Panel conectado a Supabase: campo de skills en "Crear empleo", gancho real, cupos y descarga en .zip |
+| #69 | Worker del hr-engine (`CoincidirCvsPendientes`): Storage con la clave secreta, texto con pypdf y del XML del DOCX (defusedxml), Celery beat cada minuto y purga diaria. Marca cada CV como ilegible antes de leerlo, para que un PDF malicioso no bloquee los barridos |
+| Este | Panel conectado a Supabase: entrar con enlace al correo (y la invitación), campo de skills en "Crear empleo", gancho real, cupos de vacantes y de publicaciones, descarga en .zip armada en el navegador y migración 0013, que guarda el interés por la IA ("Evaluarlos con IA", "Quiero saber más") como señal de venta (§14). Aún no se registran "abrir el pipeline 2 o más veces" ni "descargar en bloque" |
+| Siguiente | Alta de empresas con invitación por correo y despliegue: Supabase Cloud, Vercel y Fly.io |
 
 ## Consequences
 

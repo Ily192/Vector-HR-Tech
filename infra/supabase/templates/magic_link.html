@@ -1,0 +1,16 @@
+<!-- Enlace para entrar al panel (signInWithOtp). En Supabase Cloud se pega en Auth → Email Templates → Magic link. -->
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 520px; color: #181854; line-height: 1.5">
+  <p style="font-size: 18px; font-weight: 800; margin: 0 0 16px">VORTEX OPS</p>
+  <h2 style="font-size: 22px; margin: 0 0 12px">Tu enlace para entrar</h2>
+  <p style="margin: 0 0 20px">Dura una hora y sirve una sola vez.</p>
+  <p style="margin: 0 0 24px">
+    <a
+      href="{{ .ConfirmationURL }}"
+      style="background: #fe7802; color: #181854; font-weight: 700; padding: 12px 20px; border-radius: 12px; text-decoration: none; display: inline-block"
+      >Entrar al panel</a
+    >
+  </p>
+  <p style="margin: 0; font-size: 14px; color: #686b78">
+    Si no lo pediste, ignora este correo: sin abrir el enlace nadie entra a tu cuenta.
+  </p>
+</div>

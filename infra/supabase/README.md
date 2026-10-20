@@ -23,6 +23,11 @@ http://127.0.0.1:54324 · Postgres: `postgresql://postgres:postgres@127.0.0.1:54
 Es el único entorno local con Storage de verdad. Ahí apareció el bug de 0011: en
 el banco de pruebas, que no tiene Storage, la empresa sí podía leer sus CVs.
 
+Los correos de Auth (la invitación y el enlace para entrar) salen en español con
+las plantillas de `templates/`; Mailpit los muestra. Para ver el panel contra este
+stack, `apps/hrbp/.env.local` lleva `VITE_SUPABASE_URL` y
+`VITE_SUPABASE_PUBLISHABLE_KEY` con los valores de `pnpm db:status`.
+
 **B. docker compose** — Postgres + Redis + hr-engine, sin Auth ni Storage.
 
 ```bash
@@ -69,6 +74,7 @@ tener PITR o un dump reciente, porque no existe otro camino de vuelta.
 | `0010_plan_gratis_sin_ia.sql` | El plan gratis sin IA (ADR-019). Quita las preevaluaciones, la muestra, las visitas y el interruptor de 0009. El gancho pasa a ser una coincidencia de skills: `vacantes.skills`, `privado.coincidencias` y `resumen_del_gancho()` por lotes de 5. Cierra la frontera con lo de pago: tope de 50 aplicaciones **recibidas** por cualquier vía (`privado.aplicaciones_recibidas`), publicaciones nuevas cada 30 días (`vacantes.publicada_en`), cockpit solo con el plan con IA (PT403) y oposición del candidato que la empresa no puede retirar. Además, `aplicar_a_vacante(p_sin_ia)`, `cupos_de_aplicaciones()` y `mi_cupo_de_vacantes()` con las publicaciones |
 | `0011_app_role_en_storage.sql` | `public.app_role()` lee primero `app_metadata.app_role` del JWT. La Storage API define `request.jwt.claim.role = 'authenticated'` y, con el orden de 0001, la empresa no podía bajar ni firmar sus propios CVs (policy `cvs_tenant_read`). El GUC queda de respaldo solo con un rol de la aplicación, como lo usa el hr-engine |
 | `0012_slug_unico_en_el_career_site.sql` | El slug de una vacante es único en todo el career site (`/vacantes/<slug>`), no solo en su empresa: dos empresas con el mismo slug chocaban en la misma URL |
+| `0013_interes_en_la_ia.sql` | La empresa gratuita pide los servicios de IA desde el panel ("Evaluarlos con IA", "Quiero saber más"): `registrar_interes_en_ia()` lo guarda en `privado.intereses_en_ia`, sin datos de candidatos (ADR-019 §14) |
 
 ## RLS — reglas vigentes
 
@@ -125,6 +131,13 @@ deniegan** — no es un paso opcional.
 No hay auto-registro. `handle_new_user` exige un `invite_token` válido en el
 metadata del signup y saca `empresa_id` y `role` de la tabla `invitations`,
 nunca del metadata.
+
+El alta de una empresa, mientras no exista el script: crear la empresa y la
+invitación (con `token_hash = sha256` del token en hex) y llamar a
+`auth.admin.inviteUserByEmail(email, { data: { invite_token, full_name }, redirectTo: <panel> })`.
+El enlace del correo deja a la persona dentro del panel. Después entra con
+`signInWithOtp({ shouldCreateUser: false })`: un correo sin cuenta recibe la misma
+respuesta y ningún correo, para no revelar quién usa el panel.
 
 La versión anterior sí los sacaba del metadata, que es el `options.data` de
 `supabase.auth.signUp()` y lo controla el cliente al 100%: cualquiera con la
