@@ -42,6 +42,7 @@ services:
       - ../supabase/migrations/0009_gancho_plan_gratis.sql:/docker-entrypoint-initdb.d/18_0009_gancho_plan_gratis.sql:ro
       - ../supabase/migrations/0010_plan_gratis_sin_ia.sql:/docker-entrypoint-initdb.d/19_0010_plan_gratis_sin_ia.sql:ro
       - ../supabase/migrations/0011_app_role_en_storage.sql:/docker-entrypoint-initdb.d/20_0011_app_role_en_storage.sql:ro
+      - ../supabase/migrations/0012_slug_unico_en_el_career_site.sql:/docker-entrypoint-initdb.d/21_0012_slug_unico_en_el_career_site.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

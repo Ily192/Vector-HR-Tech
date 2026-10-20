@@ -6,19 +6,44 @@
  * `empresa_id`, salario solo si la empresa lo publica, cupo completo según su
  * plan) es de la vista `vacantes_publicas` en Supabase (migraciones 0004, 0007 y 0008).
  *
- * Hasta que el career-site lea Supabase, los datos salen de `VACANTES_DE_EJEMPLO`,
- * con la misma forma que una fila de la vista, y los filtros se aplican en memoria.
- * Con Supabase serán la consulta (`ilike`, `eq`) y cambiará solo este fichero.
+ * Con Supabase configurado (`lib/supabase.ts`) los datos salen de la vista con la
+ * clave pública; sin él, de `VACANTES_DE_EJEMPLO`, con la misma forma que una fila.
+ * Los filtros se aplican en memoria en los dos casos: así la búsqueda ignora
+ * acentos y mayúsculas, y el career site del MVP tiene pocas vacantes.
  *
  * Es la Data Access Layer que recomienda Next.js (guía "Data Security"): solo
  * corre en el servidor y devuelve DTOs con lo mínimo que la página pinta.
  */
 import "server-only";
 
+import { createPublicClient } from "@vortex/supabase-client";
 import { type VacantePublica, VacantePublicaSchema } from "@vortex/types/hr";
 import { cache } from "react";
 
 import type { FiltrosVacantes } from "./filtros";
+import { supabaseConfigurado } from "./supabase";
+
+/** Tope de vacantes que se leen para el listado: el MVP tiene pocas. */
+const LIMITE = 300;
+
+const COLUMNAS =
+  "id, slug, title, jd, seniority, modality, location, created_at, empresa_nombre, empresa_slug, salario_min, salario_max, moneda, cupo_completo";
+
+/** PostgREST devuelve `+00:00`; el esquema pide ISO con `Z`. */
+const conFechaIso = <T extends { created_at: string }>(fila: T): T => ({
+  ...fila,
+  created_at: new Date(fila.created_at).toISOString(),
+});
+
+async function deSupabase(slug?: string): Promise<VacantePublica[]> {
+  const base = createPublicClient().from("vacantes_publicas").select(COLUMNAS);
+  const consulta = slug
+    ? base.eq("slug", slug).limit(1)
+    : base.order("created_at", { ascending: false }).limit(LIMITE);
+  const { data, error } = await consulta;
+  if (error) throw new Error(`career-site: no se pudieron leer las vacantes: ${error.message}`);
+  return VacantePublicaSchema.array().parse((data ?? []).map(conFechaIso));
+}
 
 const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse([
   {
@@ -113,13 +138,16 @@ const normalizar = (texto: string) =>
 export async function listarVacantes(filtros: FiltrosVacantes = {}): Promise<VacantePublica[]> {
   const q = filtros.q ? normalizar(filtros.q) : null;
   const ubicacion = filtros.ubicacion ? normalizar(filtros.ubicacion) : null;
-  return VACANTES_DE_EJEMPLO.filter(
-    (v) =>
-      (!q || normalizar(`${v.title} ${v.empresa_nombre} ${v.jd}`).includes(q)) &&
-      (!ubicacion || normalizar(v.location ?? "").includes(ubicacion)) &&
-      (!filtros.modalidad || v.modality === filtros.modalidad) &&
-      (!filtros.conSalario || v.salario_min !== null),
-  ).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const todas = supabaseConfigurado() ? await deSupabase() : VACANTES_DE_EJEMPLO;
+  return todas
+    .filter(
+      (v) =>
+        (!q || normalizar(`${v.title} ${v.empresa_nombre} ${v.jd}`).includes(q)) &&
+        (!ubicacion || normalizar(v.location ?? "").includes(ubicacion)) &&
+        (!filtros.modalidad || v.modality === filtros.modalidad) &&
+        (!filtros.conSalario || v.salario_min !== null),
+    )
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
 }
 
 /**
@@ -127,5 +155,9 @@ export async function listarVacantes(filtros: FiltrosVacantes = {}): Promise<Vac
  * Con `cache`, la página y sus metadatos comparten la misma lectura por request.
  */
 export const obtenerVacante = cache(async (slug: string): Promise<VacantePublica | null> => {
+  if (supabaseConfigurado()) return (await deSupabase(slug))[0] ?? null;
   return VACANTES_DE_EJEMPLO.find((v) => v.slug === slug) ?? null;
 });
+
+/** Si el career site recibe aplicaciones: solo con Supabase, que es donde se guardan. */
+export const recibeAplicaciones = supabaseConfigurado;

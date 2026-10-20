@@ -643,3 +643,25 @@ async def test_el_panel_sabe_cuando_podra_publicar_otra(db: asyncpg.Connection) 
         "select extract(day from $1::timestamptz - now())::int", cupo["proxima_publicacion"]
     )
     assert dias == VENTANA - 10 - 1  # se libera 20 días después, menos lo que va del día
+
+
+# ─────────────────────── el slug en el career site (0012) ───────────────────────
+
+
+async def test_dos_empresas_no_pueden_usar_el_mismo_slug(db: asyncpg.Connection) -> None:
+    """El career site es uno solo y la vacante vive en /vacantes/<slug>."""
+    una, otra = await _empresa(db), await _empresa(db)
+    slug = f"analista-{uuid.uuid4().hex[:8]}"
+    for empresa_id in (una, otra):
+        await assume_tenant(db, empresa_id)
+        insertar = db.execute(
+            "insert into vacantes (empresa_id, slug, title, jd, status)"
+            " values ($1::uuid, $2, 'Analista', 'Descripción', 'draft')",
+            empresa_id,
+            slug,
+        )
+        if empresa_id == una:
+            await insertar
+        else:
+            with pytest.raises(asyncpg.UniqueViolationError):
+                await insertar

@@ -13,6 +13,12 @@ const TODOS_LOS_ALIAS = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY",
   "VITE_SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+  "NEXT_PUBLIC_SUPABASE_SECRET_KEY",
+  "VITE_SUPABASE_SECRET_KEY",
 ] as const;
 
 beforeEach(() => {
@@ -91,6 +97,29 @@ describe("getOptionalEnv — service role key", () => {
 
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-raw");
     expect(getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY")).toBe("service-raw");
+  });
+});
+
+describe("getOptionalEnv — claves nuevas de Supabase", () => {
+  it("la publishable hace de anon con sus tres prefijos", () => {
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_vite");
+    expect(getOptionalEnv("SUPABASE_ANON_KEY")).toBe("sb_publishable_vite");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_next");
+    expect(getOptionalEnv("SUPABASE_ANON_KEY")).toBe("sb_publishable_next");
+  });
+
+  it("si están las dos, gana la legada: el cambio es opt-in", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "sb_publishable_next");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-next");
+    expect(getOptionalEnv("SUPABASE_ANON_KEY")).toBe("anon-next");
+  });
+
+  it("la secret hace de service role, y solo sin prefijo público", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_SECRET_KEY", "sb_secret_next");
+    vi.stubEnv("VITE_SUPABASE_SECRET_KEY", "sb_secret_vite");
+    expect(getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY")).toBeUndefined();
+    vi.stubEnv("SUPABASE_SECRET_KEY", "sb_secret_raw");
+    expect(getOptionalEnv("SUPABASE_SERVICE_ROLE_KEY")).toBe("sb_secret_raw");
   });
 });
 
