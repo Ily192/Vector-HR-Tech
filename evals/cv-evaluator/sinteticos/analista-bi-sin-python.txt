@@ -1,0 +1,20 @@
+Tomás Elizondo Rangel
+tomas.elizondo@example.test | 81 5550 0102
+
+Resumen
+Inteligencia de negocios desde 2023: tableros y reportes para el área comercial.
+
+Experiencia
+Analista BI — Grupo Ferretero Sierra (empresa ficticia), Monterrey · 2023 a la fecha
+- Desarrollo tableros en Power BI para ventas: venta por región y cumplimiento de cuota.
+- Consultas en SQL Server para alimentar los tableros; modelado de datos en estrella.
+- Atiendo las solicitudes de reportes de los gerentes regionales.
+
+Auxiliar administrativo — Ferretería Sierra (empresa ficticia) · 2021 a 2023
+- Captura y conciliación de pedidos en Excel.
+
+Educación
+Ingeniería Industrial, 2021
+
+Habilidades
+Power BI, SQL Server, Excel (tablas dinámicas y BUSCARV).

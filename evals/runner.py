@@ -95,9 +95,9 @@ def _run_cv_evaluator(case: EvalCase) -> dict[str, Any]:
     la llamada y borrar esta excepción.
     """
     raise EvalNotWired(
-        "cv-evaluator no está conectado al modelo: _run_cv_evaluator() es un "
-        "stub. Integrar con app.clients.scoring.score_candidate_fit antes de "
-        "usar estos evals como gate de calidad."
+        "cv-evaluator se mide con el arnés del hr-engine, que recorre el mismo "
+        "camino que producción: `python -m app.cli.evals_cv_evaluator` desde "
+        "services/hr-engine (ADR-021 §9). Este runner es anterior a ADR-021."
     )
 
 

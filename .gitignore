@@ -67,6 +67,8 @@ secrets/
 
 # eval results
 evals/results/
+# Los informes del arnés de cv-evaluator (app/cli/evals_cv_evaluator.py).
+evals/**/resultados/
 
 # docker
 docker-compose.override.yml

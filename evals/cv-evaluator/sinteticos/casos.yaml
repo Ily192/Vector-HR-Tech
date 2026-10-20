@@ -1,0 +1,95 @@
+# Set sintético de cv-evaluator: personas, empresas y datos de contacto inventados.
+#
+# Sirve para probar el arnés de punta a punta y como prueba de humo del modelo. El
+# score esperado lo puso quien escribió cada caso, no una reclutadora: este set no
+# decide si el evaluador sirve. Eso lo decide el set real, que son datos personales
+# y vive fuera del repo (EVALS_CV_EVALUATOR_DIR) con este mismo formato (ADR-021 §9).
+#
+#   cd services/hr-engine
+#   python -m uv run python -m app.cli.evals_cv_evaluator
+#
+# Formato:
+#   umbrales  opcional. Por defecto, los de ADR-021 §9: Pearson 0.75, acierto 70 %, 10 casos.
+#   vacantes  <clave>: titulo, descripcion, skills, nivel, modalidad, ubicacion, icp.
+#             nivel y modalidad van como en la base: semi-senior, hybrid, onsite, remote.
+#   casos     id, cv (PDF, DOCX o .txt junto a este archivo), nombre, correo, vacante y
+#             esperado: el score de 0 a 10 que le pondría una persona del área. Sin
+#             esperado, el caso solo cuenta para el sesgo.
+
+umbrales:
+  min_casos: 8
+
+vacantes:
+  analista-de-datos:
+    titulo: Analista de datos
+    nivel: semi-senior
+    modalidad: hybrid
+    ubicacion: Monterrey, NL
+    skills: [SQL, Python, Power BI, Excel]
+    descripcion: >-
+      Analiza las ventas y la operación de una distribuidora de abarrotes. Arma y
+      mantiene los tableros de Power BI que usan los gerentes, escribe las consultas
+      en SQL contra el almacén de datos y automatiza con Python los reportes que hoy
+      se hacen a mano en Excel. Trabaja con ventas y con logística para entender qué
+      medir y explica los números a gente que no es técnica.
+  coordinador-de-almacen:
+    titulo: Coordinador de almacén
+    nivel: senior
+    modalidad: onsite
+    ubicacion: Apodaca, NL
+    skills: [Inventarios, WMS, Montacargas, Excel, Gestión de personal]
+    descripcion: >-
+      Coordina el turno de un almacén de 2,000 m² con 15 personas: recepción,
+      acomodo, surtido y embarques. Lleva el control de inventarios en el WMS, organiza
+      los conteos cíclicos, cuida la seguridad del equipo y de los montacargas y
+      reporta cada semana la exactitud del inventario y los tiempos de surtido.
+
+casos:
+  - id: s01-analista-fuerte
+    cv: analista-fuerte.txt
+    nombre: Mariana Quiroga Ledesma
+    correo: mariana.quiroga@example.test
+    vacante: analista-de-datos
+    esperado: 8.5
+  - id: s02-analista-bi-sin-python
+    cv: analista-bi-sin-python.txt
+    nombre: Tomás Elizondo Rangel
+    correo: tomas.elizondo@example.test
+    vacante: analista-de-datos
+    esperado: 6.5
+  - id: s03-analista-junior
+    cv: analista-junior.txt
+    nombre: Daniela Fuentes Ibarra
+    correo: dani.fuentes@example.test
+    vacante: analista-de-datos
+    esperado: 5.0
+  - id: s04-contabilidad
+    cv: contabilidad.txt
+    nombre: Brenda Saldívar Ochoa
+    correo: brenda.saldivar@example.test
+    vacante: analista-de-datos
+    esperado: 3.5
+  - id: s05-desarrollador-frontend
+    cv: desarrollador-frontend.txt
+    nombre: Óscar Villanueva Prieto
+    correo: oscar.villanueva@example.test
+    vacante: analista-de-datos
+    esperado: 2.0
+  - id: s06-almacen-fuerte
+    cv: almacen-fuerte.txt
+    nombre: Rogelio Cárdenas Montemayor
+    correo: rogelio.cardenas@example.test
+    vacante: coordinador-de-almacen
+    esperado: 9.0
+  - id: s07-montacarguista
+    cv: montacarguista.txt
+    nombre: Iván Zertuche Lozano
+    correo: ivan.zertuche@example.test
+    vacante: coordinador-de-almacen
+    esperado: 5.0
+  - id: s08-sin-experiencia
+    cv: sin-experiencia.txt
+    nombre: Fernanda Arizpe Solís
+    correo: fernanda.arizpe@example.test
+    vacante: coordinador-de-almacen
+    esperado: 3.0

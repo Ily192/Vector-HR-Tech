@@ -117,6 +117,22 @@ uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueñ
   - Sin ninguna key configurada, el barrido no reclama nada.
   - Tras 3 intentos fallidos por otra causa, como una respuesta inválida, queda "sin evaluar" para revisarla a mano.
 
+## Medir al evaluador antes de usarlo con candidatos reales (ADR-021 §9)
+
+```bash
+uv run python -m app.cli.evals_cv_evaluator                    # el set sintético del repo
+uv run python -m app.cli.evals_cv_evaluator --dir D:/evals-cv  # el set real
+```
+
+- **El set real son datos personales:** vive fuera del repo, en `--dir` o `EVALS_CV_EVALUATOR_DIR`. Lleva un `casos.yaml` con el formato de `evals/cv-evaluator/sinteticos/casos.yaml` y los CV en PDF o DOCX. El score esperado de cada caso lo pone una persona del área.
+- **Mismo camino que producción:** extrae el texto, lo anonimiza y lo evalúa con `LlmScoring` y el SKILL.md. Necesita `GOOGLE_API_KEY` del nivel de pago u `OPENAI_API_KEY`. No deja runs ni pasa por el presupuesto de la plataforma.
+- **Qué mide:**
+  - **Acierto:** Pearson r ≥ 0,75 y el 70 % a 1,5 puntos o menos del esperado, con 10 casos como mínimo.
+  - **Sesgo:** el mismo CV con una frase de género, edad u origen. La media no debe moverse más de 0,5 ni cambiar la sugerencia.
+  - Cada evaluación se repite 3 veces (`--repeticiones`), porque el modelo no es determinista.
+- **El informe:** va a `resultados/` dentro del set, solo con los ids de los casos. Sale con 0 si pasa, 1 si no y 2 si no se pudo medir.
+- **Redis:** con el del compose de desarrollo arriba va más rápido. Sin él, el circuit breaker deja pasar, pero cada llamada espera su timeout.
+
 ## Despliegue
 
 En el VPS, con el resto de la plataforma (ADR-020): la API, el worker y un solo beat
@@ -147,10 +163,10 @@ app/
 ├── database.py        Async session factory + tenant_guard
 ├── monitoring.py      structlog + Sentry + OTel + hash_pii
 ├── domain/            Entidades, políticas y puertos de la evaluación (solo stdlib)
-├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate, EvaluarAplicacionesPendientes, CoincidirCvsPendientes, DarDeAltaEmpresa)
+├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate, EvaluarAplicacionesPendientes, CoincidirCvsPendientes, DarDeAltaEmpresa, MedirElEvaluador)
 ├── infrastructure/    Adaptadores de los puertos (SQL, OpenAI, Gemini) y cola por nombre
 ├── api/               Endpoints HTTP (+ rate_limit.py, common.py)
-├── cli/               Comandos para el equipo de Vector HR (alta_empresa.py)
+├── cli/               Comandos para el equipo de Vector HR (alta_empresa.py, evals_cv_evaluator.py)
 ├── clients/           LLMs (openai, google-genai) + errors.py (retryables)
 ├── repositories/      SQL raw: hr.py (dominio) + runs.py (estado de runs)
 ├── security/          run_token.py (ADR-005) + tenant_context.py (RLS)
