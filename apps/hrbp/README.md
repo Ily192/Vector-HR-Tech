@@ -31,11 +31,11 @@ src/
   datos/
     tipos.ts           forma de lo que devuelve el backend y el contrato de los adaptadores
     panel.ts           elige el adaptador según las variables y lo carga aparte
-    panel-supabase.ts  RLS, topes y gancho los pone la base; aquí se traducen las filas
+    panel-supabase.ts  RLS, topes, gancho y cockpit los pone la base; aquí se traducen las filas
     panel-ejemplo.ts   datos de ejemplo en memoria: la demo y los tests
     consultas.ts       hooks de TanStack Query: las pantallas solo piden datos por aquí
   cockpit/
-    resumen.ts         forma del resumen del cockpit y su ejemplo
+    textos.ts          los textos del cockpit a partir de sus números (puros, con test)
     embudo.ts          cálculos de dibujo del embudo (puros, con test)
   test/montar.tsx      monta el panel en una URL con datos recién reiniciados
 ```
@@ -46,7 +46,7 @@ src/
 
 Ver [ADR-016](../../docs/adr/016-logica-de-negocio-fuera-de-la-ui.md).
 
-- **Indicadores** (conteos, variaciones, % del tope): los calcula el backend. `cockpit/resumen.ts` define la forma en que llegan; el componente no suma nada.
+- **Indicadores del cockpit** (conteos, variaciones, % del tope, la decisión del día y el embudo): los calcula la base con `resumen_del_cockpit()` (migración 0016) y llegan con la forma de `ResumenCockpit` en `datos/tipos.ts`. El componente no suma nada; `cockpit/textos.ts` solo los pone en palabras.
 - **Límites del plan** (vacantes activas, publicaciones cada 30 días, aplicaciones por vacante, etapas habilitadas) y **números del gancho**: los aplica la base (migraciones 0008 y 0010; la dueña de las reglas es `domain/plan.py`) y llegan ya decididos en `datos/tipos.ts`. El adaptador de ejemplo los imita solo para que la demo se comporte como el producto.
 - **Módulos visibles**: `sesion.modulos`, que salen del plan de la empresa (`LIMITES_DEL_PLAN`, ADR-017).
 - **Etapas del embudo y su orden**: `ETAPAS_DEL_PIPELINE` de `@vortex/types/reglas`.

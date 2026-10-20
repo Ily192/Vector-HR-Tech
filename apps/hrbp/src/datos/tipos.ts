@@ -188,12 +188,89 @@ export class SinAccesoAlPanel extends Error {
 /** De dónde vino el interés de la empresa por los servicios de IA. */
 export type OrigenDelInteres = "crear-empleo" | "pipeline";
 
-/** Fila de "mejores evaluados" del cockpit: evaluación a ciegas, sin nombre. */
+/** Fila de "mejores evaluados" del cockpit. La IA evaluó a ciegas; quien decide ve el nombre. */
 export interface Evaluado {
+  /** La aplicación. */
+  id: string;
   candidato: string;
   score: number;
   razonamiento: string;
   siguientePaso: SiguientePaso;
+}
+
+/** La vacante que destaca el cockpit: la de la decisión del día, o la de más candidatos en proceso. */
+export interface VacanteDelDia {
+  id: string;
+  titulo: string;
+}
+
+/**
+ * Lo más urgente del día, elegido por la base (`resumen_del_cockpit()`, 0016): primero
+ * a quién entrevistar y después lo que una persona tiene que revisar a mano.
+ */
+export type DecisionDelDia =
+  | {
+      tipo: "entrevistar";
+      vacante: VacanteDelDia;
+      /** Evaluados desde el umbral de entrevista que nadie ha movido de "Evaluados". */
+      listos: number;
+      /** Los 3 mejores scores de esos, de mayor a menor. */
+      scores: number[];
+    }
+  | {
+      tipo: "revisar";
+      vacante: VacanteDelDia;
+      /** Fallaron sus intentos. */
+      sinEvaluar: number;
+      /** CVs escaneados, protegidos o dañados. */
+      ilegibles: number;
+      /** El candidato pidió no ser evaluado con procesos automatizados. */
+      sinIa: number;
+    };
+
+/** Una ejecución de un agente en las últimas 24 h, sin nombres. */
+export interface EntradaDelRegistro {
+  /** El run. En un mismo barrido varios empiezan a la vez. */
+  id: string;
+  /** Cuándo empezó (ISO 8601). */
+  en: string;
+  agente: string;
+  /** La vacante de la aplicación, si la ejecución era de una. */
+  vacante: string | null;
+  /** El score que quedó; `null` si no lo hay o si después el candidato se opuso. */
+  score: number | null;
+  /** Falló; el barrido la vuelve a intentar. */
+  aplazada: boolean;
+}
+
+/**
+ * El "hoy" del cockpit (`resumen_del_cockpit()`, 0016), de las vacantes abiertas de la
+ * empresa. Llega calculado: la pantalla no suma ni compara ventanas de tiempo (ADR-016).
+ */
+export interface ResumenCockpit {
+  /** `null` si no hay nada que decidir. */
+  decision: DecisionDelDia | null;
+  /** Cuántas decisiones esperan, contando la del día: una por vacante y tipo. */
+  decisionesPendientes: number;
+  candidatosEnProceso: { total: number; nuevos24h: number };
+  vacantesPublicadas: { total: number; nuevas7d: number };
+  /** Evaluaciones de la IA en 24 h; `porcentajeSinError` es `null` si no hubo. */
+  evaluaciones24h: { total: number; porcentajeSinError: number | null };
+  /** Aplicaciones que la IA todavía va a evaluar. Con el tope del mes, esperan al siguiente. */
+  enEspera: { total: number; topeAlcanzado: boolean };
+  /**
+   * CVs evaluados desde el día 1 contra el tope de la empresa (ADR-021 §6). El costo en
+   * dólares es de Vector HR y no sale de la base.
+   */
+  cvsDelMes: { evaluados: number; tope: number; porcentajeDelTope: number };
+  /** `null` si la empresa no tiene vacantes abiertas. */
+  vacante: VacanteDelDia | null;
+  /** Los 3 mejores de la vacante del día y cuántos evaluados tiene en proceso. */
+  mejoresEvaluados: { total: number; filas: Evaluado[] };
+  /** Cuántas aplicaciones de la vacante del día llegaron a cada etapa o más allá. */
+  embudo: Record<EtapaDelPipeline, number>;
+  /** Lo más reciente primero, hasta 6. */
+  registro: EntradaDelRegistro[];
 }
 
 /**
@@ -207,6 +284,8 @@ export interface AdaptadorDelPanel {
   publicarVacante(borrador: BorradorDeVacante): Promise<ResultadoDePublicar>;
   eliminarVacante(vacanteId: string): Promise<void>;
   obtenerPipeline(vacanteId: string): Promise<PipelineDeVacante | null>;
+  /** El "hoy" del cockpit; `null` si el plan de la empresa no lo tiene. */
+  obtenerResumenCockpit(): Promise<ResumenCockpit | null>;
   /** Una persona descarta una aplicación y deja el motivo (ADR-021 §4). */
   descartar(aplicacionId: string, motivo: string): Promise<ResultadoDeDescartar>;
   solicitarDescargaDeCvs(vacanteId: string): Promise<DescargaDeCvs>;

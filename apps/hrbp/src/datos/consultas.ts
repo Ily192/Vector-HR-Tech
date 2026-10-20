@@ -5,7 +5,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import { obtenerResumenCockpit } from "../cockpit/resumen";
 import {
   alCambiarLaSesion,
   descartar,
@@ -13,6 +12,7 @@ import {
   entrar,
   listarMisVacantes,
   obtenerPipeline,
+  obtenerResumenCockpit,
   obtenerSesion,
   publicarVacante,
   registrarInteres,

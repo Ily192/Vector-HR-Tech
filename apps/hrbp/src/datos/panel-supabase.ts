@@ -382,6 +382,60 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       };
     },
 
+    /** Todo lo calcula la base (0016); aquí solo se cambia la forma y se pone la sugerencia. */
+    async obtenerResumenCockpit() {
+      const { data: r, error } = await supabase.rpc("resumen_del_cockpit").maybeSingle();
+      if (error) throw error;
+      // Sin filas: la empresa no tiene el plan con IA, o la cuenta no es de HR.
+      if (!r) return null;
+      const d = r.decision;
+      return {
+        decision: !d
+          ? null
+          : d.tipo === "entrevistar"
+            ? { tipo: "entrevistar", vacante: d.vacante, listos: d.listos, scores: d.scores }
+            : {
+                tipo: "revisar",
+                vacante: d.vacante,
+                sinEvaluar: d.sin_evaluar,
+                ilegibles: d.ilegibles,
+                sinIa: d.sin_ia,
+              },
+        decisionesPendientes: r.decisiones_pendientes,
+        candidatosEnProceso: { total: r.candidatos_en_proceso, nuevos24h: r.candidatos_nuevos_24h },
+        vacantesPublicadas: { total: r.vacantes_publicadas, nuevas7d: r.vacantes_nuevas_7d },
+        evaluaciones24h: { total: r.evaluaciones_24h, porcentajeSinError: r.porcentaje_sin_error },
+        enEspera: { total: r.en_espera, topeAlcanzado: r.tope_alcanzado },
+        cvsDelMes: {
+          evaluados: r.cvs_del_mes,
+          tope: r.tope_del_mes,
+          porcentajeDelTope: r.porcentaje_del_tope,
+        },
+        vacante: r.vacante,
+        mejoresEvaluados: {
+          total: r.evaluados,
+          filas: r.mejores_evaluados.map((m) => ({
+            id: m.id,
+            candidato: m.candidato ?? "Sin nombre",
+            score: m.score,
+            razonamiento: m.razonamiento ?? "",
+            siguientePaso: siguientePaso(m.score),
+          })),
+        },
+        embudo: Object.fromEntries(
+          ETAPAS_DEL_PIPELINE.map((etapa) => [etapa, r.embudo[etapa] ?? 0]),
+        ) as Record<EtapaDelPipeline, number>,
+        registro: r.registro.map((e) => ({
+          id: e.id,
+          en: e.en,
+          agente: e.agente,
+          vacante: e.vacante,
+          score: e.score,
+          aplazada: e.aplazada,
+        })),
+      };
+    },
+
     /**
      * La base pide el motivo si la evaluó la IA (PT422) y que mida de 10 a 500
      * caracteres (23514, 0015): los dos son "falta un motivo que sirva".

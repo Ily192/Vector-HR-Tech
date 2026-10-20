@@ -681,3 +681,130 @@ describe("pipeline", () => {
     expect(peticiones[0]?.cuerpo).toEqual({ p_origen: "pipeline" });
   });
 });
+
+describe("cockpit", () => {
+  const VACANTE_DEL_DIA = { id: VACANTE, titulo: "Analista de inventarios" };
+  const FILA = {
+    candidatos_en_proceso: 84,
+    candidatos_nuevos_24h: 8,
+    vacantes_publicadas: 1,
+    vacantes_nuevas_7d: 0,
+    evaluaciones_24h: 27,
+    porcentaje_sin_error: 96,
+    en_espera: 40,
+    cvs_del_mes: 41,
+    tope_del_mes: 1000,
+    porcentaje_del_tope: 4,
+    tope_alcanzado: false,
+    decisiones_pendientes: 2,
+    decision: {
+      tipo: "entrevistar",
+      vacante: VACANTE_DEL_DIA,
+      listos: 5,
+      scores: [9.1, 8.5, 7.2],
+      sin_evaluar: 0,
+      ilegibles: 0,
+      sin_ia: 0,
+    },
+    vacante: VACANTE_DEL_DIA,
+    evaluados: 12,
+    mejores_evaluados: [
+      { id: "a1", candidato: "Ana Paz", score: 9.1, razonamiento: "Cinco años con inventarios." },
+      { id: "a2", candidato: null, score: 6.4, razonamiento: null },
+    ],
+    embudo: { applied: 30, evaluated: 12, shortlisted: 4, interviewed: 1, offered: 0 },
+    registro: [
+      {
+        id: "r1",
+        en: "2026-10-20T14:42:00+00:00",
+        agente: "cv-evaluator",
+        aplazada: false,
+        vacante: "Analista de inventarios",
+        score: 9.1,
+      },
+    ],
+  };
+
+  it("traduce el resumen de la base y pone la sugerencia de cada evaluado (0016)", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/rpc/resumen_del_cockpit" ? { filas: [FILA] } : undefined,
+    );
+
+    const resumen = await adaptador.obtenerResumenCockpit();
+
+    expect(peticiones).toHaveLength(1);
+    expect(resumen).toEqual({
+      decision: {
+        tipo: "entrevistar",
+        vacante: VACANTE_DEL_DIA,
+        listos: 5,
+        scores: [9.1, 8.5, 7.2],
+      },
+      decisionesPendientes: 2,
+      candidatosEnProceso: { total: 84, nuevos24h: 8 },
+      vacantesPublicadas: { total: 1, nuevas7d: 0 },
+      evaluaciones24h: { total: 27, porcentajeSinError: 96 },
+      enEspera: { total: 40, topeAlcanzado: false },
+      cvsDelMes: { evaluados: 41, tope: 1000, porcentajeDelTope: 4 },
+      vacante: VACANTE_DEL_DIA,
+      mejoresEvaluados: {
+        total: 12,
+        filas: [
+          {
+            id: "a1",
+            candidato: "Ana Paz",
+            score: 9.1,
+            razonamiento: "Cinco años con inventarios.",
+            siguientePaso: "entrevista",
+          },
+          {
+            id: "a2",
+            candidato: "Sin nombre",
+            score: 6.4,
+            razonamiento: "",
+            siguientePaso: "psicometrico",
+          },
+        ],
+      },
+      embudo: { applied: 30, evaluated: 12, shortlisted: 4, interviewed: 1, offered: 0 },
+      registro: [
+        {
+          id: "r1",
+          en: "2026-10-20T14:42:00+00:00",
+          agente: "cv-evaluator",
+          vacante: "Analista de inventarios",
+          score: 9.1,
+          aplazada: false,
+        },
+      ],
+    });
+  });
+
+  it("lo que hay que revisar a mano llega con sus motivos, y sin decisión no hay", async () => {
+    const revisar = {
+      ...FILA.decision,
+      tipo: "revisar",
+      listos: 0,
+      scores: [],
+      sin_evaluar: 1,
+      ilegibles: 2,
+      sin_ia: 3,
+    };
+    const { adaptador } = clienteDePrueba(() => ({ filas: [{ ...FILA, decision: revisar }] }));
+    expect((await adaptador.obtenerResumenCockpit())?.decision).toEqual({
+      tipo: "revisar",
+      vacante: VACANTE_DEL_DIA,
+      sinEvaluar: 1,
+      ilegibles: 2,
+      sinIa: 3,
+    });
+
+    const sinDecision = clienteDePrueba(() => ({ filas: [{ ...FILA, decision: null }] }));
+    expect((await sinDecision.adaptador.obtenerResumenCockpit())?.decision).toBeNull();
+  });
+
+  it("sin filas no hay cockpit: la empresa no tiene IA o la cuenta no es de HR", async () => {
+    const { adaptador } = clienteDePrueba(() => ({ filas: [] }));
+    expect(await adaptador.obtenerResumenCockpit()).toBeNull();
+  });
+});
