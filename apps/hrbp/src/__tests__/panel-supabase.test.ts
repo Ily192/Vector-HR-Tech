@@ -128,8 +128,13 @@ const BORRADOR = {
   skills: ["Excel", "Inventarios"],
 } as const;
 
-/** El `Blob` de jsdom no trae `arrayBuffer()`; `FileReader` sí. */
+/**
+ * El .zip llega como `Blob` de Node o de jsdom según la versión de Node (en CI, de
+ * Node). El de jsdom no trae `arrayBuffer()` y el `FileReader` de jsdom no acepta el
+ * de Node: se usa lo que haya.
+ */
 function leer(blob: Blob): Promise<ArrayBuffer> {
+  if (typeof blob.arrayBuffer === "function") return blob.arrayBuffer();
   return new Promise((resolve, reject) => {
     const lector = new FileReader();
     lector.onload = () => resolve(lector.result as ArrayBuffer);
