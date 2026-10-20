@@ -1,8 +1,9 @@
 import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@vortex/types/etiquetas";
 import type { Modality, Seniority } from "@vortex/types/hr";
+import { MAX_LARGO_DE_SKILL, MAX_SKILLS_POR_VACANTE } from "@vortex/types/reglas";
 import { Button, buttonVariants, formatearSalario, iniciales } from "@vortex/ui";
-import { FileCheck2, ScanSearch, SquareCheckBig } from "lucide-react";
-import { type FormEvent, type ReactNode, useState } from "react";
+import { FileCheck2, ScanSearch, SquareCheckBig, X } from "lucide-react";
+import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
 
 import {
   useMisVacantes,
@@ -27,10 +28,13 @@ const BORRADOR_VACIO: BorradorDeVacante = {
   salarioMax: null,
   moneda: "MXN",
   salarioPublico: true,
+  skills: [],
 };
 
 const MENSAJE_DE_RECHAZO: Record<MotivoDeRechazo, string> = {
   "sin-cupo": "Ya tienes todas las vacantes de tu plan activas. Elimina una para publicar esta.",
+  "sin-publicaciones":
+    "Ya publicaste las vacantes nuevas que tu plan permite en 30 días. Eliminar una no te devuelve la publicación.",
   "datos-invalidos": "Revisa el puesto y la descripción: los dos son obligatorios.",
 };
 
@@ -53,6 +57,88 @@ function Campo({
 }
 
 const aNumero = (texto: string) => (texto === "" ? null : Number(texto));
+
+const formatoDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long" });
+
+/**
+ * Las skills que pide la vacante, como etiquetas: Enter o coma agrega, la × quita.
+ * Al salir del campo se agrega lo escrito, para no perderlo al publicar.
+ */
+function CampoDeSkills({
+  skills,
+  alCambiar,
+}: { skills: string[]; alCambiar: (skills: string[]) => void }) {
+  const [texto, setTexto] = useState("");
+  const llenas = skills.length >= MAX_SKILLS_POR_VACANTE;
+
+  function agregar() {
+    const nuevas = [...skills];
+    for (const parte of texto.split(",")) {
+      const skill = parte.trim().slice(0, MAX_LARGO_DE_SKILL).trim();
+      const repetida = nuevas.some((s) => s.toLowerCase() === skill.toLowerCase());
+      if (skill && !repetida && nuevas.length < MAX_SKILLS_POR_VACANTE) nuevas.push(skill);
+    }
+    if (nuevas.length !== skills.length) alCambiar(nuevas);
+    setTexto("");
+  }
+
+  function alTeclear(evento: KeyboardEvent<HTMLInputElement>) {
+    if (evento.key === "Enter" || evento.key === ",") {
+      evento.preventDefault();
+      agregar();
+    } else if (evento.key === "Backspace" && texto === "" && skills.length > 0) {
+      alCambiar(skills.slice(0, -1));
+    }
+  }
+
+  return (
+    <fieldset>
+      <legend className="text-sm font-bold">
+        Skills que pide la vacante
+        <span className="ml-1.5 font-normal text-mist-600">
+          Hasta {MAX_SKILLS_POR_VACANTE}. Te decimos cuántos CVs las mencionan.
+        </span>
+      </legend>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 rounded-xl border-[1.5px] border-mist-200 bg-white px-3 py-2 focus-within:border-aqua-500 focus-within:ring-2 focus-within:ring-aqua-500/30">
+        {skills.map((s) => (
+          <span
+            key={s}
+            className="inline-flex items-center gap-1 rounded-full bg-aqua-50 py-1 pl-3 pr-1.5 text-sm font-bold text-aqua-700"
+          >
+            {s}
+            <button
+              type="button"
+              aria-label={`Quitar ${s}`}
+              onClick={() => alCambiar(skills.filter((x) => x !== s))}
+              className="grid h-5 w-5 place-items-center rounded-full hover:bg-aqua-100"
+            >
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
+            </button>
+          </span>
+        ))}
+        <input
+          aria-label="Agregar skill"
+          value={texto}
+          disabled={llenas}
+          onChange={(e) => setTexto(e.target.value)}
+          onKeyDown={alTeclear}
+          onBlur={agregar}
+          placeholder={
+            llenas
+              ? `Llegaste a ${MAX_SKILLS_POR_VACANTE} skills`
+              : skills.length === 0
+                ? "Excel, montacargas, inglés…"
+                : "Agrega otra"
+          }
+          className="min-w-[10rem] flex-1 border-0 bg-transparent py-1 text-[15px] text-ink-900 placeholder:text-mist-500 focus:outline-none"
+        />
+      </div>
+      <p className="mt-1.5 text-[13px] text-mist-600">
+        Escríbelas como aparecerían en un CV. Contamos menciones, no juzgamos experiencia.
+      </p>
+    </fieldset>
+  );
+}
 
 /** Así verán la vacante los candidatos: misma tarjeta que el career site. */
 function VistaPrevia({ borrador, empresa }: { borrador: BorradorDeVacante; empresa: string }) {
@@ -202,6 +288,11 @@ function Brochure() {
           Quiero saber más
         </Button>
       )}
+      {interes.isError && (
+        <p role="alert" className="text-sm font-bold text-flame-300">
+          No pudimos avisar a Vector HR. Inténtalo de nuevo.
+        </p>
+      )}
       <span className="text-xs text-ink-300">
         Te escribe tu contacto en Vector HR. Tu plan gratis no cambia.
       </span>
@@ -220,10 +311,13 @@ export function CrearEmpleo() {
   const { cupo } = mis;
   const editar = (cambio: Partial<BorradorDeVacante>) => setBorrador((b) => ({ ...b, ...cambio }));
 
-  async function alPublicar(evento: FormEvent) {
+  function alPublicar(evento: FormEvent) {
     evento.preventDefault();
-    const resultado = await publicar.mutateAsync(borrador);
-    if (resultado.ok) navegar(`/vacantes/${resultado.vacanteId}`);
+    publicar.mutate(borrador, {
+      onSuccess: (resultado) => {
+        if (resultado.ok) navegar(`/vacantes/${resultado.vacanteId}`);
+      },
+    });
   }
 
   const rechazo = publicar.data && !publicar.data.ok ? publicar.data.motivo : null;
@@ -232,6 +326,27 @@ export function CrearEmpleo() {
       Crear <i>empleo</i>
     </>
   );
+
+  // Primero las publicaciones: si se acabaron, eliminar una vacante no ayuda.
+  if (cupo.publicacionesLibres === 0) {
+    return (
+      <>
+        <Encabezado etiqueta="Career site" titulo={titulo} />
+        <section className="max-w-xl rounded-[22px] border border-mist-200 bg-white p-6">
+          <h2 className="text-xl">Ya publicaste {cupo.limite} vacantes en 30 días</h2>
+          <p className="mt-2 text-[15px] text-mist-700">
+            Tu plan publica hasta {cupo.limite} vacantes nuevas cada 30 días, aunque elimines
+            alguna.
+            {cupo.proximaPublicacion &&
+              ` Podrás publicar otra el ${formatoDia.format(new Date(cupo.proximaPublicacion))}.`}
+          </p>
+          <Enlace href="/vacantes" className={`${buttonVariants({ variant: "ink" })} mt-5`}>
+            Ir a Mis vacantes
+          </Enlace>
+        </section>
+      </>
+    );
+  }
 
   if (cupo.libres === 0) {
     return (
@@ -257,7 +372,9 @@ export function CrearEmpleo() {
         etiqueta={
           cupo.libres === null
             ? "Career site"
-            : `Te quedan ${cupo.libres} de ${cupo.limite} vacantes`
+            : cupo.publicacionesLibres !== null && cupo.publicacionesLibres < cupo.libres
+              ? `Puedes publicar ${cupo.publicacionesLibres} ${cupo.publicacionesLibres === 1 ? "vacante" : "vacantes"} más en estos 30 días`
+              : `Te quedan ${cupo.libres} de ${cupo.limite} vacantes`
         }
         titulo={titulo}
       />
@@ -366,6 +483,7 @@ export function CrearEmpleo() {
                 Mostrar el salario en el career site
               </label>
             </fieldset>
+            <CampoDeSkills skills={borrador.skills} alCambiar={(skills) => editar({ skills })} />
             <Campo
               etiqueta="Descripción"
               ayuda="Qué hará la persona, a quién reporta y qué necesitas."
@@ -387,12 +505,28 @@ export function CrearEmpleo() {
               {MENSAJE_DE_RECHAZO[rechazo]}
             </p>
           )}
+          {publicar.isError && (
+            <p
+              role="alert"
+              className="rounded-2xl bg-danger-50 p-4 text-sm font-bold text-danger-700"
+            >
+              No pudimos publicar la vacante. Revisa tu conexión e inténtalo de nuevo.
+            </p>
+          )}
           <div className="flex flex-wrap items-center justify-end gap-3">
-            {cupo.libres === 1 && (
+            {/* Si las dos son la última, manda la publicación: eliminar no la devuelve. */}
+            {cupo.publicacionesLibres === 1 ? (
               <span className="mr-auto max-w-sm text-[13.5px] text-mist-600">
-                Al publicarla usas tu última vacante libre. Para publicar otra después, elimina una
-                de las activas.
+                Es tu última vacante nueva de estos 30 días: eliminar una no te devuelve la
+                publicación.
               </span>
+            ) : (
+              cupo.libres === 1 && (
+                <span className="mr-auto max-w-sm text-[13.5px] text-mist-600">
+                  Al publicarla usas tu última vacante libre. Para publicar otra después, elimina
+                  una de las activas.
+                </span>
+              )
             )}
             <Button type="submit" disabled={publicar.isPending}>
               Publicar en el career site

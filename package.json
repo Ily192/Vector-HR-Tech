@@ -63,7 +63,7 @@
     },
     {
       "name": "hrbp · bundle principal (brotli)",
-      "path": "apps/hrbp/dist/assets/index-*.js",
+      "path": "apps/hrbp/dist/assets/entrada-*.js",
       "limit": "90 KB"
     }
   ]

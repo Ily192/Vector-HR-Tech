@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 
 import { App } from "../App";
-import { reiniciarDatosDeEjemplo } from "../datos/panel";
+import { reiniciarDatosDeEjemplo } from "../datos/panel-ejemplo";
 
 /**
  * Monta el panel en `url` con datos de ejemplo recién reiniciados y una caché

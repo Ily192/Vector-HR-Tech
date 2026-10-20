@@ -8,6 +8,8 @@ import type { CupoDeVacantes, VacanteDeLaEmpresa } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
 
+const formatoDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long" });
+
 function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacantes }) {
   const [confirmando, setConfirmando] = useState(false);
   const eliminar = useEliminarVacante();
@@ -59,8 +61,10 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
           className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-danger-50 p-4 text-sm"
         >
           <p className="flex-1 basis-64 text-danger-700">
-            <b>¿Eliminar «{v.titulo}»?</b> Deja de aparecer en el career site y libera un cupo. Las
-            aplicaciones que recibió no se recuperan desde el panel.
+            <b>¿Eliminar «{v.titulo}»?</b> Deja de aparecer en el career site
+            {cupo.limite !== null &&
+              " y libera un lugar entre tus activas, aunque su publicación sigue contando 30 días"}
+            . Las aplicaciones que recibió no se recuperan desde el panel.
           </p>
           <Button variant="secondary" size="sm" onClick={() => setConfirmando(false)}>
             Cancelar
@@ -99,7 +103,8 @@ export function MisVacantes() {
           </>
         }
         accion={
-          cupo.libres !== 0 && (
+          cupo.libres !== 0 &&
+          cupo.publicacionesLibres !== 0 && (
             <Enlace href="/vacantes/nueva" className={buttonVariants()}>
               <Plus aria-hidden="true" className="h-4 w-4" />
               Crear empleo
@@ -107,10 +112,18 @@ export function MisVacantes() {
           )
         }
       />
-      {cupo.libres === 0 && (
+      {cupo.publicacionesLibres === 0 ? (
         <output className="block rounded-2xl bg-flame-50 p-4 text-sm text-flame-700">
-          Tienes las {cupo.limite} vacantes de tu plan activas. Para publicar otra, elimina una.
+          Ya publicaste las {cupo.limite} vacantes nuevas que tu plan permite en 30 días.
+          {cupo.proximaPublicacion &&
+            ` Podrás publicar otra el ${formatoDia.format(new Date(cupo.proximaPublicacion))}.`}
         </output>
+      ) : (
+        cupo.libres === 0 && (
+          <output className="block rounded-2xl bg-flame-50 p-4 text-sm text-flame-700">
+            Tienes las {cupo.limite} vacantes de tu plan activas. Para publicar otra, elimina una.
+          </output>
+        )
       )}
       {vacantes.length === 0 ? (
         <div className="rounded-[22px] border border-dashed border-mist-300 bg-white p-10 text-center">

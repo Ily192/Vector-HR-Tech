@@ -2,7 +2,7 @@ import { Badge } from "@vortex/ui";
 import { Briefcase, LayoutGrid, type LucideIcon, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { useMisVacantes, useSesion } from "../datos/consultas";
+import { useMisVacantes, useSalir, useSesion } from "../datos/consultas";
 import { ES_DE_EJEMPLO } from "../datos/panel";
 import type { CupoDeVacantes, Modulo } from "../datos/tipos";
 import { Enlace } from "../navegacion/ruta";
@@ -46,6 +46,20 @@ function Logo() {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function Salir() {
+  const salir = useSalir();
+  return (
+    <button
+      type="button"
+      onClick={() => salir.mutate()}
+      disabled={salir.isPending}
+      className="rounded-lg px-2 py-1 text-[13px] font-bold text-mist-600 hover:text-ink-900"
+    >
+      Salir
+    </button>
   );
 }
 
@@ -171,6 +185,7 @@ export function Marco({
                 >
                   {sesion.usuario.iniciales}
                 </span>
+                {!ES_DE_EJEMPLO && <Salir />}
               </div>
             )}
           </div>

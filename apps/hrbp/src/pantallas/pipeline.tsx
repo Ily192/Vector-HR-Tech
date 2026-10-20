@@ -4,7 +4,7 @@ import { Download, Lock } from "lucide-react";
 
 import { anchoRelativo } from "../cockpit/embudo";
 import { useDescargarCvs, usePipeline, useRegistrarInteres } from "../datos/consultas";
-import type { GanchoDelPipeline, PipelineDeVacante } from "../datos/tipos";
+import type { DescargaDeCvs, GanchoDelPipeline, PipelineDeVacante } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
 
@@ -12,6 +12,27 @@ import { Enlace } from "../navegacion/ruta";
 const APLICADOS_VISIBLES = 8;
 
 const formatoHora = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+/** Ofrece al navegador el .zip ya armado y suelta la memoria después. */
+function bajarArchivo(url: string, nombre: string) {
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function mensajeDeLaDescarga(descarga: DescargaDeCvs): string {
+  if (descarga.url === null) {
+    return descarga.motivo === "ejemplo"
+      ? "Con datos de ejemplo no hay CVs que bajar."
+      : "Ninguna aplicación de esta vacante trae CV.";
+  }
+  if (descarga.omitidos === 0) return "Listo: el .zip está en tus descargas.";
+  return descarga.omitidos === 1
+    ? "Listo. Un CV no se pudo bajar y no va en el .zip."
+    : `Listo. ${descarga.omitidos} CVs no se pudieron bajar y no van en el .zip.`;
+}
 
 /** "Hoy, 09:12", "Ayer, 19:30" o "Hace 3 días". */
 function cuandoAplico(fechaIso: string) {
@@ -28,16 +49,26 @@ function cuandoAplico(fechaIso: string) {
  */
 function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
   const interes = useRegistrarInteres();
-  if (gancho.skills === 0) {
+  if (gancho.skills === 0 || gancho.revisados === 0) {
     return (
       <section
         aria-label="Coincidencia de skills"
         className="rounded-[22px] border border-mist-200 bg-white p-5 text-[14.5px] text-mist-700"
       >
-        Agrega las skills que pide esta vacante y te decimos cuántos CVs las mencionan.
+        {gancho.skills === 0
+          ? "Esta vacante no pide skills, así que no hay CVs que contar. Agrégalas al crear la próxima y te decimos cuántos CVs las mencionan."
+          : `Revisamos los CVs de 5 en 5 contra las ${gancho.skills} skills de la vacante. Con los primeros 5 te decimos cuántos las mencionan.`}
       </section>
     );
   }
+  const notas = [
+    gancho.enEspera > 0 &&
+      (gancho.enEspera === 1 ? "Falta 1 por revisar." : `Faltan ${gancho.enEspera} por revisar.`),
+    gancho.ilegibles > 0 &&
+      (gancho.ilegibles === 1
+        ? "Un CV no se pudo leer (escaneado o protegido)."
+        : `${gancho.ilegibles} CVs no se pudieron leer (escaneados o protegidos).`),
+  ].filter(Boolean);
   return (
     <section
       aria-label="Coincidencia de skills"
@@ -53,7 +84,7 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
         <p className="text-[14.5px] text-ink-200">
           Contamos menciones, no juzgamos experiencia. Con los servicios de IA ves quiénes son,
           ordenados por encaje y con el porqué de cada uno.
-          {gancho.enEspera > 0 && ` Faltan ${gancho.enEspera} por revisar.`}
+          {notas.length > 0 && ` ${notas.join(" ")}`}
         </p>
       </div>
       <p className="flex flex-col">
@@ -73,9 +104,16 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
           Listo. Tu contacto en Vector HR te escribe pronto.
         </output>
       ) : (
-        <Button disabled={interes.isPending} onClick={() => interes.mutate("pipeline")}>
-          Evaluarlos con IA
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button disabled={interes.isPending} onClick={() => interes.mutate("pipeline")}>
+            Evaluarlos con IA
+          </Button>
+          {interes.isError && (
+            <p role="alert" className="text-sm font-bold text-flame-300">
+              No pudimos avisar a Vector HR. Inténtalo de nuevo.
+            </p>
+          )}
+        </div>
       )}
     </section>
   );
@@ -151,10 +189,14 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
 
   const { vacante, aplicados } = pipeline;
   const tope = pipeline.maxAplicaciones ? ` de ${pipeline.maxAplicaciones}` : "";
+  const conCv = aplicados.filter((a) => a.cvFormato !== null).length;
 
-  async function descargar() {
-    const { url } = await descarga.mutateAsync(vacante.id);
-    if (url) window.location.assign(url);
+  function descargar() {
+    descarga.mutate(vacante.id, {
+      onSuccess: (resultado) => {
+        if (resultado.url) bajarArchivo(resultado.url, resultado.nombre);
+      },
+    });
   }
 
   return (
@@ -163,18 +205,22 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
         etiqueta={`Publicada ${haceCuanto(vacante.publicadaEn).toLowerCase()} · ${vacante.aplicaciones}${tope} aplicaciones`}
         titulo={vacante.titulo}
         accion={
-          aplicados.length > 0 && (
+          conCv > 0 && (
             <Button variant="secondary" disabled={descarga.isPending} onClick={descargar}>
               <Download aria-hidden="true" className="h-4 w-4" />
-              Descargar los {aplicados.length} CVs (.zip)
+              {descarga.isPending
+                ? "Armando el .zip…"
+                : `Descargar ${conCv === 1 ? "el CV" : `los ${conCv} CVs`} (.zip)`}
             </Button>
           )
         }
       />
       <p aria-live="polite" className="text-sm text-mist-600 empty:hidden">
-        {descarga.data && descarga.data.url === null
-          ? "La descarga del .zip se activa cuando el panel se conecte al hr-engine."
-          : ""}
+        {descarga.isError
+          ? "No pudimos armar el .zip. Inténtalo de nuevo."
+          : descarga.data && !descarga.isPending
+            ? mensajeDeLaDescarga(descarga.data)
+            : ""}
       </p>
       {pipeline.gancho && <Gancho gancho={pipeline.gancho} />}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,1fr)_minmax(0,1.6fr)]">
@@ -212,12 +258,19 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
                     <td className="py-3 font-bold">{a.nombre}</td>
                     <td className="py-3 text-mist-600">{cuandoAplico(a.aplicoEn)}</td>
                     <td className="py-3">
-                      {a.cvUrl ? (
-                        <a href={a.cvUrl} className="font-bold text-aqua-700 hover:underline">
-                          CV.pdf
+                      {a.cvFormato === null ? (
+                        <span className="text-mist-500">Sin CV</span>
+                      ) : a.cvUrl ? (
+                        <a
+                          href={a.cvUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-aqua-700 hover:underline"
+                        >
+                          CV.{a.cvFormato}
                         </a>
                       ) : (
-                        <span className="text-mist-500">CV.pdf</span>
+                        <span className="text-mist-500">CV.{a.cvFormato}</span>
                       )}
                     </td>
                   </tr>
