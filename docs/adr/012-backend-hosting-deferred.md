@@ -51,6 +51,6 @@ El plan original (`09_PROJECT_PLAN.md`, Cycle 1 tareas 1.1 + 1.2) propone **Cool
 ## Acciones
 
 - [x] Eliminar tareas Coolify de `next-steps.md` Cycle 1 wk1 (1.1, 1.2). Reemplazar por "preparar imágenes Docker".
-- [ ] Cycle 2 wk1: provisionar app Fly.io para `hr-engine` (api + worker), `agent-plane`, `control-plane`.
-- [ ] Documentar en `docs/runbooks/deploy.md` el flow Fly.io.
+- [ ] Cycle 2 wk1: provisionar app Fly.io para `hr-engine` (api + worker), `agent-plane`, `control-plane`. Para el MVP, `hr-engine` ya tiene `fly.toml` (una app con `api`, `worker` y un solo `beat`) y el workflow `deploy-hr-engine.yml`; falta crear la app y sus secretos.
+- [x] Documentar en `docs/runbooks/deploy.md` el flow Fly.io (2026-10-20).
 - [ ] Coolify queda como opción para Enterprise tier on-prem en `docs/specs/enterprise-tier.md` (futuro).

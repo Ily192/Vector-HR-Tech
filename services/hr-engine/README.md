@@ -96,6 +96,12 @@ dura una hora: `--reenviar` manda otro a quien no ha entrado, y también puede p
 uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueño),
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `PANEL_URL`.
 
+## Despliegue
+
+En Fly.io con `fly.toml` (la API, el worker y un solo beat) y el workflow
+`deploy-hr-engine.yml`, que construye la imagen con el contexto `skills`. Primer
+despliegue y secretos: `docs/runbooks/deploy.md`.
+
 ## Salud
 
 - `GET /health` — liveness. Constante, no toca dependencias.
