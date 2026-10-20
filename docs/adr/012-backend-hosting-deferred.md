@@ -1,6 +1,6 @@
 # ADR-012 · Backend hosting: defer Coolify, target Fly.io / Railway
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR-020 para el MVP (2026-10-20): el hr-engine va en el VPS con Docker Compose, no en Fly.io
 - **Fecha:** 2026-05-25
 - **Decisores:** Ilyra
 - **Relacionado:** ADR-010 (frontends Vercel), ADR-009 (vendoring Paperclip/OpenClaw)

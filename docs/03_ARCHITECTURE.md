@@ -123,7 +123,7 @@
 
 | Worker | Función |
 |---|---|
-| `pipeline` | Orquestador 70% DB Siete + 30% Apollo |
+| `pipeline` | Orquestador de la prospección (Apollo) |
 | `company_discovery` | Apollo company search |
 | `company_context` | Web scraping + AI scoring |
 | `contact_discovery` | Apollo people search |

@@ -28,6 +28,10 @@
 
 ## hr-engine en Fly.io (MVP)
 
+> **Reemplazado por ADR-020 (2026-10-20):** el hr-engine va en el VPS con el resto de la
+> plataforma. `fly.toml` y `deploy-hr-engine.yml` se retiran cuando el stack del VPS esté
+> listo.
+
 Esto sí existe desde el 2026-10-20: `services/hr-engine/fly.toml` y el workflow
 `deploy-hr-engine.yml` (ADR-012). Una sola app con la misma imagen y tres grupos
 de procesos:
