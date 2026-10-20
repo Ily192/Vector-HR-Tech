@@ -74,7 +74,11 @@ def bloques(lineas: list[str], inicio: re.Pattern[str]) -> list[tuple[int, int]]
 
 def sin_elementos(texto: str, inicio: str, quitar: re.Pattern[str]) -> tuple[str, int]:
     lineas = texto.splitlines(keepends=True)
-    fuera = [r for r in bloques(lineas, re.compile(inicio)) if quitar.search("".join(lineas[r[0] : r[1]]))]
+    fuera = [
+        r
+        for r in bloques(lineas, re.compile(inicio))
+        if quitar.search("".join(lineas[r[0] : r[1]]))
+    ]
     for a, b in reversed(fuera):
         del lineas[a:b]
     return "".join(lineas), len(fuera)
@@ -96,7 +100,9 @@ def con_cabecera(contenido: str, encabezado: str) -> str:
 
 
 def imagen_de_la_base() -> str:
-    coincidencia = re.search(r"^\s*image:\s*(\S*supabase/postgres:\S+)", COMPOSE.read_text("utf-8"), re.M)
+    coincidencia = re.search(
+        r"^\s*image:\s*(\S*supabase/postgres:\S+)", COMPOSE.read_text("utf-8"), re.M
+    )
     if not coincidencia:
         raise SystemExit("no encontré la imagen de la base en compose.yml")
     return coincidencia.group(1)
@@ -110,7 +116,9 @@ def escribir(ruta: pathlib.Path, contenido: str) -> None:
 
 def main() -> None:
     if len(sys.argv) != 2 or not re.fullmatch(r"[0-9a-f]{40}", sys.argv[1]):
-        raise SystemExit("uso: vendorizar_supabase.py <commit de 40 caracteres de supabase/supabase>")
+        raise SystemExit(
+            "uso: vendorizar_supabase.py <commit de 40 caracteres de supabase/supabase>"
+        )
     commit = sys.argv[1]
     servicios = re.compile(r"cluster:\s*(" + "|".join(QUITAR) + r")\s*$", re.M)
     nota = "Sin " + ", ".join(QUITAR) + "."
@@ -130,14 +138,20 @@ def main() -> None:
     print(f"Gateway: quité {n_clusters} clusters y {n_rutas} rutas ({', '.join(QUITAR)}).")
 
     api = DESTINO / "api"
-    escribir(api / "cds.yaml", con_cabecera(cds, cabecera(commit, "volumes/api/envoy/cds.yaml", "#", nota)))
+    escribir(
+        api / "cds.yaml",
+        con_cabecera(cds, cabecera(commit, "volumes/api/envoy/cds.yaml", "#", nota)),
+    )
     escribir(
         api / "lds.template.yaml",
         con_cabecera(lds, cabecera(commit, "volumes/api/envoy/lds.template.yaml", "#", nota)),
     )
     for archivo in ("envoy.yaml", "docker-entrypoint.sh"):
         ruta = f"volumes/api/envoy/{archivo}"
-        escribir(api / archivo, con_cabecera(bajar(commit, ruta), cabecera(commit, ruta, "#", "Sin cambios.")))
+        escribir(
+            api / archivo,
+            con_cabecera(bajar(commit, ruta), cabecera(commit, ruta, "#", "Sin cambios.")),
+        )
     for archivo in ("webhooks.sql", "roles.sql", "jwt.sql"):
         ruta = f"volumes/db/{archivo}"
         escribir(

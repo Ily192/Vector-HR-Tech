@@ -96,7 +96,9 @@ def rol_si_es_valida(clave: str, secreto: str) -> str | None:
     partes = clave.split(".")
     if len(partes) != 3:
         return None
-    esperada = hmac.new(secreto.encode(), f"{partes[0]}.{partes[1]}".encode(), hashlib.sha256).digest()
+    esperada = hmac.new(
+        secreto.encode(), f"{partes[0]}.{partes[1]}".encode(), hashlib.sha256
+    ).digest()
     if not hmac.compare_digest(_b64url(esperada), partes[2]):
         return None
     cuerpo = json.loads(base64.urlsafe_b64decode(partes[1] + "=" * (-len(partes[1]) % 4)))
@@ -143,10 +145,14 @@ def completar(actuales: dict[str, str]) -> tuple[list[str], dict[str, str], list
         coincidencia = LINEA.match(linea)
         if coincidencia:
             de_la_plantilla.add(coincidencia.group(1))
-        salida.append(f"{coincidencia.group(1)}={valores[coincidencia.group(1)]}" if coincidencia else linea)
+        salida.append(
+            f"{coincidencia.group(1)}={valores[coincidencia.group(1)]}" if coincidencia else linea
+        )
     extra = [n for n in actuales if n not in de_la_plantilla]
     if extra:
-        salida += ["", "# ─── Sin plantilla (se conservan) ───"] + [f"{n}={actuales[n]}" for n in extra]
+        salida += ["", "# ─── Sin plantilla (se conservan) ───"] + [
+            f"{n}={actuales[n]}" for n in extra
+        ]
     return salida, valores, generados
 
 
