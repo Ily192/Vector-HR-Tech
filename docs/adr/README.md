@@ -26,6 +26,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [018](018-preseleccion-ia-del-plan-gratis.md) | Preseleccionar con IA el plan gratis: a ciegas, con topes y por instrucción de la empresa | Superseded by ADR-019 (siguen vigentes §10-§12 y §14) |
 | [019](019-plan-gratis-sin-ia.md) | El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho | Accepted |
 | [020](020-plataforma-en-un-vps.md) | Toda la plataforma en un VPS, con Supabase autoalojado y Docker Compose | Accepted |
+| [021](021-evaluacion-ia-del-plan-de-pago.md) | La evaluación con IA del plan de pago, a ciegas y como trabajo interno del hr-engine | Accepted |
 
 ## Cómo escribir una ADR
 

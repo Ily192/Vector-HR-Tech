@@ -98,6 +98,8 @@ La base aplica cada fila (PT409 y PT403, que PostgREST devuelve como 409 y 403) 
 
 Al pasar de `gratis` a `ia` se borran las coincidencias: el gancho ya cumplió. Las aplicaciones siguen en "Aplicados" y la evaluación con IA corre sobre ellas en el flujo de pago, que se configura en Paperclip al activar la empresa (runbook).
 
+*Actualizado el 2026-10-20 (ADR-021):* no se configura en Paperclip. Un barrido del hr-engine evalúa solo las aplicaciones de la empresa en cuanto pasa a `ia`.
+
 ### 7. Los huecos de la frontera, cerrados (migración 0010)
 
 | Hueco | Cómo se cierra |
