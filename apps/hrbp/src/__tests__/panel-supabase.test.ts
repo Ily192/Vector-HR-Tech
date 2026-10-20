@@ -382,6 +382,9 @@ describe("vacantes", () => {
   });
 });
 
+/** Las columnas de la evaluación de una aplicación que la IA no evaluó. */
+const SIN_EVALUAR = { fit_score: null, fit_rationale: null, fit_gaps: [], fit_strengths: [] };
+
 describe("pipeline", () => {
   it("una vacante que no es un uuid no se busca", async () => {
     const { adaptador, peticiones } = clienteDePrueba(() => undefined);
@@ -410,12 +413,14 @@ describe("pipeline", () => {
                 id: "a2",
                 status: "applied",
                 applied_at: "2026-10-12T10:00:00+00:00",
+                ...SIN_EVALUAR,
                 candidatos: { full_name: "José Ruiz", cv_url: `${EMPRESA}/b.docx` },
               },
               {
                 id: "a1",
                 status: "applied",
                 applied_at: "2026-10-11T10:00:00+00:00",
+                ...SIN_EVALUAR,
                 candidatos: { full_name: "Ana Paz", cv_url: null },
               },
             ],
@@ -436,6 +441,9 @@ describe("pipeline", () => {
               },
             ],
           };
+        // En el plan gratis no hay evaluación con IA: la rpc no devuelve filas (0014).
+        case "/rest/v1/rpc/resumen_de_evaluaciones":
+          return { filas: [] };
         case "/rest/v1/empresas":
           return { filas: [{ plan: "gratis" }] };
         case "/storage/v1/object/sign/cvs":
@@ -453,6 +461,7 @@ describe("pipeline", () => {
     });
 
     const pipeline = await adaptador.obtenerPipeline(VACANTE);
+    expect(pipeline?.evaluaciones).toBeNull();
     expect(pipeline?.vacante.aplicaciones).toBe(3);
     expect(pipeline?.maxAplicaciones).toBe(50);
     expect(pipeline?.etapas.map((e) => e.conteo)).toEqual([3, null, null, null, null]);
@@ -469,17 +478,139 @@ describe("pipeline", () => {
         id: "a2",
         nombre: "José Ruiz",
         aplicoEn: "2026-10-12T10:00:00+00:00",
+        estado: "applied",
         cvUrl: `${URL_DE_PRUEBA}/storage/v1/object/sign/cvs/${EMPRESA}/b.docx?token=t`,
         cvFormato: "docx",
+        evaluacion: null,
       },
       {
         id: "a1",
         nombre: "Ana Paz",
         aplicoEn: "2026-10-11T10:00:00+00:00",
+        estado: "applied",
         cvUrl: null,
         cvFormato: null,
+        evaluacion: null,
       },
     ]);
+  });
+
+  it("en el plan con IA trae la evaluación de cada aplicación y el resumen (0014)", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) => {
+      switch (p.ruta) {
+        case "/rest/v1/vacantes":
+          return {
+            filas: [
+              {
+                id: VACANTE,
+                title: "Backend",
+                publicada_en: "2026-10-10T12:00:00+00:00",
+                created_at: "2026-10-10T12:00:00+00:00",
+              },
+            ],
+          };
+        case "/rest/v1/applications":
+          return {
+            filas: [
+              {
+                id: "a1",
+                status: "evaluated",
+                applied_at: "2026-10-11T10:00:00+00:00",
+                fit_score: 7.5,
+                fit_rationale: "Lidera equipos backend con Python.",
+                fit_gaps: ["Celery"],
+                fit_strengths: ["Python", "FastAPI"],
+                candidatos: { full_name: "Ana Paz", cv_url: null },
+              },
+              {
+                id: "a2",
+                status: "applied",
+                applied_at: "2026-10-12T10:00:00+00:00",
+                fit_score: null,
+                fit_rationale: null,
+                fit_gaps: [],
+                fit_strengths: [],
+                candidatos: { full_name: "José Ruiz", cv_url: null },
+              },
+            ],
+          };
+        case "/rest/v1/rpc/cupos_de_aplicaciones":
+          return { filas: [{ vacante_id: VACANTE, recibidas: 2, limite: null, completo: false }] };
+        case "/rest/v1/rpc/resumen_del_gancho":
+          return { filas: [] };
+        case "/rest/v1/rpc/resumen_de_evaluaciones":
+          return {
+            filas: [
+              {
+                aplicaciones: 2,
+                evaluadas: 1,
+                en_espera: 1,
+                sin_evaluar: 0,
+                ilegibles: 0,
+                sin_ia: 0,
+              },
+            ],
+          };
+        case "/rest/v1/empresas":
+          return { filas: [{ plan: "ia" }] };
+      }
+      return undefined;
+    });
+
+    const pipeline = await adaptador.obtenerPipeline(VACANTE);
+
+    const select = peticiones.find((p) => p.ruta === "/rest/v1/applications")?.url.searchParams;
+    expect(select?.get("select")).toContain("fit_strengths");
+    expect(pipeline?.gancho).toBeNull();
+    expect(pipeline?.evaluaciones).toEqual({
+      aplicaciones: 2,
+      evaluadas: 1,
+      enEspera: 1,
+      sinEvaluar: 0,
+      ilegibles: 0,
+      sinIa: 0,
+    });
+    expect(pipeline?.aplicados.map((a) => [a.id, a.estado, a.evaluacion])).toEqual([
+      [
+        "a1",
+        "evaluated",
+        {
+          score: 7.5,
+          razonamiento: "Lidera equipos backend con Python.",
+          fortalezas: ["Python", "FastAPI"],
+          brechas: ["Celery"],
+          // La sugiere la política del dominio: ≥ 7 es entrevista.
+          siguientePaso: "entrevista",
+        },
+      ],
+      ["a2", "applied", null],
+    ]);
+  });
+
+  it("descartar manda el motivo y pasa la aplicación a descartada", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/applications" && p.metodo === "PATCH" ? { estado: 204 } : undefined,
+    );
+    expect(
+      await adaptador.descartar("a1", "  No tiene la experiencia que pide el puesto. "),
+    ).toEqual({ ok: true });
+    const [patch] = peticiones;
+    expect(patch?.url.searchParams.get("id")).toBe("eq.a1");
+    expect(patch?.cuerpo).toEqual({
+      status: "rejected",
+      motivo_de_descarte: "No tiene la experiencia que pide el puesto.",
+    });
+  });
+
+  it.each([
+    ["PT422", "la evaluó la IA y no hay motivo"],
+    ["23514", "el motivo no mide de 10 a 500"],
+  ])("si la base responde %s (%s), falta el motivo", async (code) => {
+    const { adaptador } = clienteDePrueba(() => ({
+      estado: code === "PT422" ? 422 : 400,
+      filas: { code, message: "rechazado", details: null, hint: null },
+    }));
+    expect(await adaptador.descartar("a1", "")).toEqual({ ok: false, motivo: "sin-motivo" });
   });
 
   it("arma el .zip con los CVs por orden de llegada y cuenta los que no bajaron", async () => {

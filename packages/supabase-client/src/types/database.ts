@@ -53,7 +53,11 @@ type Generated =
   | "deleted_at"
   | "publicada_en"
   | "skills"
-  | "sin_ia";
+  | "sin_ia"
+  // Con default o los pone el hr-engine (0014 y 0015).
+  | "fit_strengths"
+  | "evaluada_en"
+  | "motivo_de_descarte";
 
 type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
   Partial<Pick<T, Extract<keyof T, Generated>>>;
@@ -171,6 +175,23 @@ export interface Database {
           ilegibles: number;
           con_la_mayoria: number;
           con_todas: number;
+        }[];
+      };
+      /**
+       * Lo que el panel muestra de la evaluación con IA de una vacante (0014, ADR-021):
+       * cuántas evaluó, cuántas esperan, cuántas quedaron sin evaluar tras sus intentos,
+       * cuántos CVs no se pudieron leer y cuántos candidatos se opusieron. Sin filas si
+       * la vacante no es tuya o si tu plan no tiene IA.
+       */
+      resumen_de_evaluaciones: {
+        Args: { p_vacante: string };
+        Returns: {
+          aplicaciones: number;
+          evaluadas: number;
+          en_espera: number;
+          sin_evaluar: number;
+          ilegibles: number;
+          sin_ia: number;
         }[];
       };
       /**

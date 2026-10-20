@@ -1,10 +1,23 @@
-import { ETIQUETA_ESTADO_APLICACION } from "@vortex/types/etiquetas";
+import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@vortex/types/etiquetas";
 import { Button, buttonVariants, haceCuanto } from "@vortex/ui";
 import { Download, Lock } from "lucide-react";
+import { type FormEvent, useState } from "react";
 
 import { anchoRelativo } from "../cockpit/embudo";
-import { useDescargarCvs, usePipeline, useRegistrarInteres } from "../datos/consultas";
-import type { DescargaDeCvs, GanchoDelPipeline, PipelineDeVacante } from "../datos/tipos";
+import {
+  useDescargarCvs,
+  useDescartar,
+  usePipeline,
+  useRegistrarInteres,
+} from "../datos/consultas";
+import type {
+  Aplicado,
+  DescargaDeCvs,
+  EvaluacionConIa,
+  GanchoDelPipeline,
+  PipelineDeVacante,
+  ResumenDeEvaluaciones,
+} from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
 
@@ -119,6 +132,193 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
   );
 }
 
+const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : `${n} ${varios}`);
+
+/**
+ * Cómo va la evaluación con IA de la vacante (plan de pago, ADR-021). Dice lo que
+ * espera y lo que hay que revisar a mano: nada se pierde en silencio.
+ */
+function ResumenDeLaEvaluacion({ resumen }: { resumen: ResumenDeEvaluaciones }) {
+  const notas = [
+    resumen.enEspera > 0 &&
+      plural(resumen.enEspera, "Una espera su evaluación.", "esperan su evaluación."),
+    resumen.sinEvaluar > 0 &&
+      plural(
+        resumen.sinEvaluar,
+        "Una no se pudo evaluar: revísala a mano.",
+        "no se pudieron evaluar: revísalas a mano.",
+      ),
+    resumen.ilegibles > 0 &&
+      plural(resumen.ilegibles, "Un CV no se pudo leer.", "CVs no se pudieron leer."),
+    resumen.sinIa > 0 &&
+      plural(
+        resumen.sinIa,
+        "Un candidato pidió no ser evaluado con IA.",
+        "candidatos pidieron no ser evaluados con IA.",
+      ),
+  ].filter(Boolean);
+  return (
+    <section
+      aria-label="Evaluación con IA"
+      className="flex flex-col gap-2 rounded-[22px] bg-ink-900 p-6 text-white"
+    >
+      <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-aqua-300">
+        Evaluación con IA · a ciegas
+      </span>
+      <h2 className="text-2xl leading-tight tracking-[-0.02em]">
+        Evaluamos {resumen.evaluadas} de {resumen.aplicaciones} aplicaciones.
+      </h2>
+      <p className="text-[14.5px] text-ink-200">
+        La IA no vio nombres ni datos de contacto. Sugiere un siguiente paso; la decisión es tuya.
+        {notas.length > 0 && ` ${notas.join(" ")}`}
+      </p>
+    </section>
+  );
+}
+
+/** Un evaluado: su score, la sugerencia, el porqué y descartar con motivo. */
+function FilaEvaluada({
+  vacanteId,
+  aplicado,
+  evaluacion,
+}: {
+  vacanteId: string;
+  aplicado: Aplicado;
+  evaluacion: EvaluacionConIa;
+}) {
+  const [descartando, setDescartando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const descartar = useDescartar(vacanteId);
+  const sinMotivo = descartar.data?.ok === false;
+
+  function alDescartar(evento: FormEvent) {
+    evento.preventDefault();
+    descartar.mutate(
+      { aplicacionId: aplicado.id, motivo },
+      { onSuccess: (resultado) => resultado.ok && setDescartando(false) },
+    );
+  }
+
+  return (
+    <li data-aplicacion={aplicado.id} className="py-4">
+      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        <b className="text-[1.9rem] font-extrabold leading-none tabular-nums">
+          {evaluacion.score.toFixed(1)}
+        </b>
+        <div className="min-w-0 flex-1 basis-48">
+          <p className="font-bold">{aplicado.nombre}</p>
+          <p className="text-sm text-mist-600">
+            Sugerencia: {ETIQUETA_SIGUIENTE_PASO[evaluacion.siguientePaso]}
+          </p>
+        </div>
+        {aplicado.cvUrl && (
+          <a
+            href={aplicado.cvUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-bold text-aqua-700 hover:underline"
+          >
+            CV.{aplicado.cvFormato}
+          </a>
+        )}
+        {!descartando && (
+          <Button variant="ghost" size="sm" onClick={() => setDescartando(true)}>
+            Descartar
+          </Button>
+        )}
+      </div>
+      <details className="mt-2 text-[14.5px]">
+        <summary className="cursor-pointer font-bold text-aqua-700">Por qué</summary>
+        <p className="mt-2 text-mist-700">{evaluacion.razonamiento}</p>
+        {evaluacion.fortalezas.length > 0 && (
+          <p className="mt-1.5 text-mist-700">
+            <b className="text-ink-900">Fortalezas:</b> {evaluacion.fortalezas.join(", ")}
+          </p>
+        )}
+        {evaluacion.brechas.length > 0 && (
+          <p className="mt-1 text-mist-700">
+            <b className="text-ink-900">Le falta:</b> {evaluacion.brechas.join(", ")}
+          </p>
+        )}
+      </details>
+      {descartando && (
+        <form
+          onSubmit={alDescartar}
+          aria-label={`Descartar a ${aplicado.nombre}`}
+          className="mt-3 flex flex-col gap-3 rounded-2xl bg-danger-50 p-4 text-sm"
+        >
+          <label className="flex flex-col gap-1.5 font-bold text-danger-700">
+            Por qué la descartas
+            <textarea
+              required
+              minLength={10}
+              maxLength={500}
+              rows={3}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="rounded-xl border-[1.5px] border-mist-200 bg-white px-3 py-2 font-normal text-ink-900"
+            />
+          </label>
+          <span className="text-mist-700">
+            La IA solo sugiere: el descarte lo decides tú y queda con tu motivo.
+          </span>
+          {(sinMotivo || descartar.isError) && (
+            <p role="alert" className="font-bold text-danger-700">
+              {sinMotivo
+                ? "Escribe el motivo, de 10 a 500 caracteres."
+                : "No pudimos descartarla. Inténtalo de nuevo."}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setDescartando(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="destructive" size="sm" disabled={descartar.isPending}>
+              Sí, descartar
+            </Button>
+          </div>
+        </form>
+      )}
+    </li>
+  );
+}
+
+/** Cuántos evaluados se ven antes de "Ver todos". */
+const EVALUADOS_VISIBLES = 10;
+
+/** Lo que evaluó la IA, del mejor encaje al menor. Los descartados ya no aparecen. */
+function Evaluados({ vacanteId, aplicados }: { vacanteId: string; aplicados: Aplicado[] }) {
+  const [todos, setTodos] = useState(false);
+  const evaluados = aplicados
+    .flatMap((a) => (a.evaluacion && a.estado !== "rejected" ? [{ a, e: a.evaluacion }] : []))
+    .sort((x, y) => y.e.score - x.e.score);
+  if (evaluados.length === 0) return null;
+  const visibles = todos ? evaluados : evaluados.slice(0, EVALUADOS_VISIBLES);
+  return (
+    <section aria-label="Evaluados" className="rounded-[22px] border border-mist-200 bg-white p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[19px]">Evaluados</h2>
+        <span className="text-[13.5px] text-mist-600">Del mejor encaje al menor</span>
+      </div>
+      <ul className="mt-1 flex flex-col divide-y divide-mist-150">
+        {visibles.map(({ a, e }) => (
+          <FilaEvaluada key={a.id} vacanteId={vacanteId} aplicado={a} evaluacion={e} />
+        ))}
+      </ul>
+      {!todos && evaluados.length > EVALUADOS_VISIBLES && (
+        <Button variant="secondary" size="sm" className="mt-3" onClick={() => setTodos(true)}>
+          Ver los {evaluados.length} evaluados
+        </Button>
+      )}
+    </section>
+  );
+}
+
 function Etapas({ pipeline }: { pipeline: PipelineDeVacante }) {
   const habilitadas = pipeline.etapas.flatMap((e) => (e.conteo === null ? [] : [e.conteo]));
   return (
@@ -223,6 +423,8 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
             : ""}
       </p>
       {pipeline.gancho && <Gancho gancho={pipeline.gancho} />}
+      {pipeline.evaluaciones && <ResumenDeLaEvaluacion resumen={pipeline.evaluaciones} />}
+      {pipeline.evaluaciones && <Evaluados vacanteId={vacante.id} aplicados={aplicados} />}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,1fr)_minmax(0,1.6fr)]">
         <Etapas pipeline={pipeline} />
         <section

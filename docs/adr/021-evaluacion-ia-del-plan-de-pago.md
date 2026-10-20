@@ -132,8 +132,8 @@ Son las de ADR-018, puestas al día:
 
 - [ ] Key de Gemini del nivel de pago, probada con `gemini-2.5-flash`.
 - [ ] Términos del plan de pago y contrato de encargo, con los LLM como subencargados.
-- [ ] Aviso al candidato con IA en el career site (§7).
-- [ ] Descartar con acción humana y motivo en el panel (§4).
+- [x] Aviso al candidato con IA en el career site (§7): #82.
+- [x] Descartar con acción humana y motivo en el panel (§4): #85, y la base lo exige (0015).
 - [ ] Acceso del candidato a su evaluación (portal del candidato).
 - [ ] Evaluación de impacto con las pruebas de sesgo (§9).
 
@@ -143,7 +143,10 @@ Son las de ADR-018, puestas al día:
 |---|---|
 | #80 | ADR-021 |
 | #81 | **hr-engine.**<br>• Anonimizador en el dominio.<br>• `EvaluarAplicacionesPendientes`, que reusa el extractor del plan gratis.<br>• Scoring con el texto del CV y SKILL.md 0.3.0.<br>• `evaluaciones.barrer` en beat, con topes y runs internos.<br>• Migración 0014: `ia_cvs_por_mes`, `fit_strengths`, `evaluada_en` y `vacantes_publicas.evalua_con_ia` |
-| Siguiente | **Panel y career site.**<br>• "Evaluados" con score, porqué y sugerencia.<br>• Descartar con motivo.<br>• Cuántas aplicaciones esperan.<br>• El cockpit con datos reales.<br>• El aviso con IA |
+| #82 | **Career site:** el aviso con IA |
+| #84 | Una caída del modelo o la falta de key no gastan intentos |
+| #85 | **Panel.**<br>• "Evaluados" con score, porqué y sugerencia, del mejor encaje al menor.<br>• Descartar con motivo. La base lo exige si evaluó la IA: migración 0015, PT422.<br>• Cuántas aplicaciones esperan, cuántas hay que revisar a mano y cuántos CVs son ilegibles |
+| Siguiente | **El cockpit con datos reales** |
 | Siguiente | **Arnés de evals** con la ruta privada y los pares contrafactuales |
 
 ## Consequences
