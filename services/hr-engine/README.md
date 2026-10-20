@@ -79,6 +79,23 @@ suelen morderte:
 `ENV=production` valida todo eso al construir `Settings`: si algo está mal, el
 proceso no arranca (mejor que descubrirlo con tráfico real encima).
 
+## Alta de una empresa
+
+Vector HR da de alta a cada empresa del plan gratis y la invita al panel:
+
+```bash
+uv run python -m app.cli.alta_empresa --empresa "Ferretería Norte" \
+    --correo ana@ferreterianorte.mx --nombre "Ana Ruiz" --tamano 35
+uv run python -m app.cli.alta_empresa --reenviar ana@ferreterianorte.mx
+```
+
+Crea la empresa con plan gratis y una invitación de un solo uso (en la base solo
+queda el hash del token), y Supabase Auth manda el correo; el enlace deja a la
+persona dentro del panel. Si el correo no sale, no queda nada a medias. El enlace
+dura una hora: `--reenviar` manda otro a quien no ha entrado, y también puede pedir
+uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueño),
+`SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `PANEL_URL`.
+
 ## Salud
 
 - `GET /health` — liveness. Constante, no toca dependencias.
@@ -101,9 +118,10 @@ app/
 ├── database.py        Async session factory + tenant_guard
 ├── monitoring.py      structlog + Sentry + OTel + hash_pii
 ├── domain/            Entidades, políticas y puertos de la evaluación (solo stdlib)
-├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate)
+├── application/       Casos de uso sobre los puertos del dominio (EvaluateCandidate, DarDeAltaEmpresa)
 ├── infrastructure/    Adaptadores de los puertos (SQL, OpenAI, Gemini) y cola por nombre
 ├── api/               Endpoints HTTP (+ rate_limit.py, common.py)
+├── cli/               Comandos para el equipo de Vector HR (alta_empresa.py)
 ├── clients/           LLMs (openai, google-genai) + errors.py (retryables)
 ├── repositories/      SQL raw: hr.py (dominio) + runs.py (estado de runs)
 ├── security/          run_token.py (ADR-005) + tenant_context.py (RLS)

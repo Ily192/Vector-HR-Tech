@@ -132,9 +132,10 @@ No hay auto-registro. `handle_new_user` exige un `invite_token` válido en el
 metadata del signup y saca `empresa_id` y `role` de la tabla `invitations`,
 nunca del metadata.
 
-El alta de una empresa, mientras no exista el script: crear la empresa y la
-invitación (con `token_hash = sha256` del token en hex) y llamar a
-`auth.admin.inviteUserByEmail(email, { data: { invite_token, full_name }, redirectTo: <panel> })`.
+El alta de una empresa la hace Vector HR con `python -m app.cli.alta_empresa`
+(hr-engine, ver su README): crea la empresa y la invitación con el hash del token,
+y llama a la API de administración de Auth (`POST /auth/v1/invite`, lo mismo que
+`auth.admin.inviteUserByEmail(email, { data: { invite_token, full_name }, redirectTo })`).
 El enlace del correo deja a la persona dentro del panel. Después entra con
 `signInWithOtp({ shouldCreateUser: false })`: un correo sin cuenta recibe la misma
 respuesta y ningún correo, para no revelar quién usa el panel.

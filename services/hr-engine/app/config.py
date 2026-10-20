@@ -128,6 +128,11 @@ class Settings(BaseSettings):
     # CVs por barrido (cada minuto).
     coincidencias_lote: int = Field(default=25, ge=1, le=500)
 
+    # ─── Panel de la empresa ─────────────────────────────
+    # A dónde vuelve el enlace de la invitación. Solo lo usa el comando de alta de
+    # empresas, no la API ni el worker. Tiene que estar en las Redirect URLs de Auth.
+    panel_url: str = "http://localhost:3001"
+
     # ─── Control plane ───────────────────────────────────
     paperclip_url: str = "http://localhost:4000"
     paperclip_api_key: str = ""

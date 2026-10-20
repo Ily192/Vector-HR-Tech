@@ -92,6 +92,8 @@ async def _ensure_auth_schema(conn: asyncpg.Connection) -> None:
             email text,
             raw_user_meta_data jsonb default '{}'::jsonb,
             raw_app_meta_data jsonb default '{}'::jsonb,
+            -- La pone Auth al aceptar la invitación; el alta de empresas la consulta.
+            email_confirmed_at timestamptz,
             created_at timestamptz not null default now()
         );
         -- Replica literal de la `auth.uid()` de Supabase. El orden importa: el

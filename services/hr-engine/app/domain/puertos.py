@@ -1,5 +1,5 @@
-"""Puertos de la evaluación y de la coincidencia de skills: lo que el dominio necesita del
-mundo exterior.
+"""Puertos de la evaluación, de la coincidencia de skills y del alta de empresas: lo que el
+dominio necesita del mundo exterior.
 
 Los implementan los adaptadores de infraestructura (SQL, OpenAI, Gemini) y, en
 los tests, adaptadores falsos. El dominio solo conoce estas firmas.
@@ -7,9 +7,10 @@ los tests, adaptadores falsos. El dominio solo conoce estas firmas.
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
+from app.domain.alta import SolicitudDeAlta
 from app.domain.entidades import (
     Candidato,
     CvPendiente,
@@ -121,3 +122,49 @@ class RepositorioDeCoincidencias(Protocol):
     async def marcar_ilegible(self, cv: CvPendiente) -> None: ...
 
     async def desmarcar_ilegible(self, cv: CvPendiente) -> None: ...
+
+
+# ─── Alta de empresas (plan gratis) ──────────────────────────────────────────
+
+#: Qué hay en Auth para un correo: nada, una invitación sin aceptar o una cuenta en uso.
+EstadoDeCuenta = Literal["sin-cuenta", "pendiente", "confirmada"]
+
+
+class CuentaYaExisteError(RuntimeError):
+    """El correo ya tiene cuenta en Auth: no se le puede dar de alta otra vez."""
+
+
+class InvitacionNoEnviadaError(RuntimeError):
+    """Auth no mandó la invitación: caído, sin clave válida o con el límite de correos."""
+
+
+class RepositorioDeAltas(Protocol):
+    """Las empresas, sus invitaciones y las cuentas de Auth, con el rol dueño de la base."""
+
+    async def estado_de_la_cuenta(self, correo: str) -> EstadoDeCuenta: ...
+
+    async def crear_empresa_con_invitacion(
+        self, solicitud: SolicitudDeAlta, slug: str, token_hash: str
+    ) -> UUID | None:
+        """Crea la empresa con plan gratis y su invitación, juntas y confirmadas.
+
+        Devuelve el id de la empresa, o None si el slug ya es de otra.
+        """
+        ...
+
+    async def deshacer(self, empresa_id: UUID) -> None:
+        """Borra la empresa recién creada; su invitación se va en cascada."""
+        ...
+
+
+class ServicioDeInvitaciones(Protocol):
+    """El correo de invitación de Supabase Auth. Solo del lado del servidor."""
+
+    async def invitar(self, correo: str, token: str, nombre: str) -> None:
+        """Crea la cuenta y manda el correo. `handle_new_user` (0003) la liga a su empresa
+        con el token. Lanza `CuentaYaExisteError` o `InvitacionNoEnviadaError`."""
+        ...
+
+    async def reenviar(self, correo: str) -> None:
+        """Vuelve a mandar el correo a una cuenta que todavía no entra."""
+        ...

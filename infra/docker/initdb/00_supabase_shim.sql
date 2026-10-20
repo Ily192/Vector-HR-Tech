@@ -32,6 +32,8 @@ create table if not exists auth.users (
     email text,
     raw_user_meta_data jsonb default '{}'::jsonb,
     raw_app_meta_data jsonb default '{}'::jsonb,
+    -- La pone Auth al aceptar la invitación; el alta de empresas la consulta.
+    email_confirmed_at timestamptz,
     created_at timestamptz not null default now()
 );
 
