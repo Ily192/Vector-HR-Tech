@@ -331,6 +331,13 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
 - **Vercel, proyecto del panel (`vortex-hrbp`)**: `VITE_SUPABASE_URL` y
   `VITE_SUPABASE_PUBLISHABLE_KEY` en Production y Preview. Sin ellas el panel sigue con
   datos de ejemplo.
+- **Dar de alta cada empresa** desde `services/hr-engine`, con `DATABASE_URL` (rol
+  dueño), `SUPABASE_URL`, `SUPABASE_SECRET_KEY` y `PANEL_URL` (la URL del panel):
+  ```bash
+  uv run python -m app.cli.alta_empresa --empresa "<Nombre>" --correo <correo> \
+      --nombre "<Persona>" --tamano <personas>
+  ```
+  Si no entra en una hora, `--reenviar <correo>`.
 - Dar de alta el primer admin de plataforma a mano (la tabla `platform_admins`
   no es escribible por ningún usuario):
   ```sql
