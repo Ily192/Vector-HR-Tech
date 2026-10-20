@@ -18,6 +18,8 @@ celery_app = Celery(
         "app.workers.cv_evaluator",
         # Coincidencia de skills del plan gratis, sin IA (ADR-019).
         "app.workers.coincidencias",
+        # Evaluación con IA del plan de pago (ADR-021).
+        "app.workers.evaluaciones",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -76,6 +78,12 @@ celery_app.conf.update(
         "coincidencias-purgar": {
             "task": "coincidencias.purgar",
             "schedule": crontab(hour=4, minute=0),
+        },
+        # El score visible en menos de 2 minutos desde que el candidato aplica (ADR-021).
+        "evaluaciones-barrer": {
+            "task": "evaluaciones.barrer",
+            "schedule": 60.0,
+            "options": {"expires": 55},
         },
     },
 )

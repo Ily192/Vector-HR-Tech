@@ -11,7 +11,9 @@ from typing import Literal, Protocol
 from uuid import UUID
 
 from app.domain.alta import SolicitudDeAlta
+from app.domain.anonimizacion import CvAnonimo
 from app.domain.entidades import (
+    AplicacionPorEvaluar,
     Candidato,
     CvPendiente,
     Embedding,
@@ -122,6 +124,53 @@ class RepositorioDeCoincidencias(Protocol):
     async def marcar_ilegible(self, cv: CvPendiente) -> None: ...
 
     async def desmarcar_ilegible(self, cv: CvPendiente) -> None: ...
+
+
+# ─── Evaluación con IA del plan de pago (ADR-021) ────────────────────────────
+
+
+class EvaluadorDeCvs(Protocol):
+    """Puntúa el CV de un candidato contra el perfil de la vacante.
+
+    Recibe un `CvAnonimo`, que solo crea `anonimizar`: así el tipo impide que el
+    CV llegue al modelo con el nombre o el contacto. Si ningún modelo está
+    disponible lanza `ProveedorNoDisponibleError` y la aplicación espera.
+    """
+
+    async def evaluar(self, cv: CvAnonimo, vacante: str) -> ResultadoScoring: ...
+
+
+class RepositorioDeEvaluaciones(Protocol):
+    """Las evaluaciones del plan de pago y su cuenta, en `privado.evaluaciones_ia`."""
+
+    async def gastado_este_mes(self) -> float:
+        """Lo que costaron este mes las evaluaciones de cv-evaluator, de todas las empresas."""
+        ...
+
+    async def reclamar(self, limite: int) -> list[AplicacionPorEvaluar]:
+        """Toma hasta `limite` aplicaciones pendientes de empresas con IA bajo su tope.
+
+        Cada una suma un intento al reclamarla, y ningún otro barrido la toma mientras.
+        """
+        ...
+
+    async def guardar(self, aplicacion: AplicacionPorEvaluar, resultado: ResultadoScoring) -> bool:
+        """Guarda la evaluación y la pasa a "Evaluados".
+
+        No la guarda si entretanto el candidato se opuso o la empresa dejó el plan con
+        IA, y devuelve si la guardó. El costo se registra igual: ya se gastó.
+        """
+        ...
+
+    async def aplazar(self, aplicacion: AplicacionPorEvaluar, *, motivo: str) -> None:
+        """La deja para el siguiente barrido. Con `MAX_INTENTOS` queda sin evaluar."""
+        ...
+
+    async def soltar(self, aplicacion: AplicacionPorEvaluar) -> None:
+        """La devuelve sin gastar su intento: lo que falló fue Storage, no el CV."""
+        ...
+
+    async def marcar_ilegible(self, aplicacion: AplicacionPorEvaluar) -> None: ...
 
 
 # ─── Alta de empresas (plan gratis) ──────────────────────────────────────────

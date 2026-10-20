@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.embeddings import embed_text
 from app.clients.errors import is_retryable_llm_error
-from app.clients.scoring import score_candidate_fit
+from app.clients.scoring import ScoringResult, score_candidate_fit
+from app.domain.anonimizacion import CvAnonimo
 from app.domain.entidades import (
     Candidato,
     Embedding,
@@ -99,24 +100,31 @@ class OpenAIEmbeddings:
 
 
 class LlmScoring:
-    """`ScoringProvider` sobre Gemini con OpenAI de respaldo (`app.clients.scoring`).
+    """`ScoringProvider` y `EvaluadorDeCvs` sobre Gemini con OpenAI de respaldo
+    (`app.clients.scoring`).
 
     Sin ningún modelo disponible, `score_candidate_fit` lanza `LLMUnavailableError`,
-    que es un `ProveedorNoDisponibleError`: sale tal cual y la tarea aplaza.
+    que es un `ProveedorNoDisponibleError`: sale tal cual y quien llama aplaza.
     """
 
     async def score(self, perfil: PerfilAnonimo, icp: str) -> ResultadoScoring:
-        resultado = await score_candidate_fit(
-            {"headline": perfil.headline, "summary": perfil.summary}, icp
+        return _resultado(
+            await score_candidate_fit({"headline": perfil.headline, "summary": perfil.summary}, icp)
         )
-        r = resultado.response
-        return ResultadoScoring(
-            fit=FitScore(
-                score=r.score,
-                rationale=r.rationale,
-                gaps=tuple(r.gaps),
-                strengths=tuple(r.strengths),
-            ),
-            cost_usd=resultado.cost_usd,
-            model=resultado.model,
-        )
+
+    async def evaluar(self, cv: CvAnonimo, vacante: str) -> ResultadoScoring:
+        return _resultado(await score_candidate_fit({"cv": cv.texto}, vacante))
+
+
+def _resultado(resultado: ScoringResult) -> ResultadoScoring:
+    r = resultado.response
+    return ResultadoScoring(
+        fit=FitScore(
+            score=r.score,
+            rationale=r.rationale,
+            gaps=tuple(r.gaps),
+            strengths=tuple(r.strengths),
+        ),
+        cost_usd=resultado.cost_usd,
+        model=resultado.model,
+    )
