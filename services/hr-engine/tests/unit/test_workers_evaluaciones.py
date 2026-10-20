@@ -34,6 +34,33 @@ def test_sin_storage_configurado_no_barre(monkeypatch: pytest.MonkeyPatch) -> No
     assert worker.barrer() == {}
 
 
+def test_sin_ningun_modelo_configurado_no_reclama_nada(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Si no, cada barrido gastaría un intento de cada aplicación hasta dejarlas "sin evaluar"."""
+    monkeypatch.setattr(worker.settings, "supabase_url", "http://storage")
+    monkeypatch.setattr(worker.settings, "supabase_secret_key", "sb_secret_x")
+    monkeypatch.setattr(worker.settings, "google_api_key", "")
+    monkeypatch.setattr(worker.settings, "openai_api_key", "")
+
+    async def no_deberia_correr() -> dict[str, Any]:
+        raise AssertionError("sin modelo no hay barrido")
+
+    monkeypatch.setattr(worker, "_barrer", no_deberia_correr)
+    assert worker.barrer() == {}
+
+
+def test_con_solo_el_respaldo_configurado_si_barre(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(worker.settings, "supabase_url", "http://storage")
+    monkeypatch.setattr(worker.settings, "supabase_secret_key", "sb_secret_x")
+    monkeypatch.setattr(worker.settings, "google_api_key", "")
+    monkeypatch.setattr(worker.settings, "openai_api_key", "sk-x")
+
+    async def barrido() -> dict[str, Any]:
+        return {"evaluadas": 1}
+
+    monkeypatch.setattr(worker, "_barrer", barrido)
+    assert worker.barrer() == {"evaluadas": 1}
+
+
 async def test_el_barrido_usa_el_lote_el_paralelo_y_el_presupuesto_de_la_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

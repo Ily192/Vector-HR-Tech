@@ -57,4 +57,9 @@ def barrer() -> dict[str, Any]:
     if not (settings.supabase_url and settings.supabase_secret_key):
         logger.warning("evaluaciones.sin_storage", motivo="faltan SUPABASE_URL o la clave secreta")
         return {}
+    # Sin ningún modelo configurado no se reclama nada: las aplicaciones esperan sin
+    # gastar intentos ni bajar sus CVs cada minuto.
+    if not (settings.google_api_key or settings.openai_api_key):
+        logger.warning("evaluaciones.sin_llm", motivo="faltan GOOGLE_API_KEY y OPENAI_API_KEY")
+        return {}
     return asyncio.run(_barrer())

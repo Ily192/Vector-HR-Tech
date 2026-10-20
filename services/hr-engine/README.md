@@ -112,7 +112,10 @@ uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueñ
   - `IA_PRESUPUESTO_MENSUAL_USD`: US$25 para toda la plataforma.
   - Al llegar a un tope, las aplicaciones esperan; nada más se detiene.
 - **Lote:** `EVALUACIONES_LOTE` dice cuántas toma cada barrido y `EVALUACIONES_EN_PARALELO`, cuántas puntúa a la vez.
-- **Fallas:** tras 3 intentos sin éxito, la aplicación queda "sin evaluar" para revisarla a mano.
+- **Fallas:**
+  - Si el modelo no está disponible, la aplicación espera sin gastar intentos.
+  - Sin ninguna key configurada, el barrido no reclama nada.
+  - Tras 3 intentos fallidos por otra causa, como una respuesta inválida, queda "sin evaluar" para revisarla a mano.
 
 ## Despliegue
 
