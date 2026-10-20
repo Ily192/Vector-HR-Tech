@@ -7,8 +7,13 @@ Lo corre un barrido de Celery beat cada minuto, sin run-token:
    bajo su tope del mes.
 3. Baja cada CV, saca su texto y lo anonimiza. Lo ilegible se marca y no se manda.
 4. Puntúa en paralelo: es solo espera de red.
-5. Guarda cada resultado. Lo que no se pudo puntuar se aplaza y se reintenta
-   hasta `MAX_INTENTOS` veces.
+5. Guarda cada resultado.
+
+Lo que no se pudo puntuar espera al siguiente barrido:
+- Si el modelo no estaba disponible (caído, sin key, con el circuito abierto), se
+  suelta sin gastar su intento: no es culpa del CV.
+- Si falló por otra causa, como una respuesta inválida, se aplaza y gasta un
+  intento. Con `MAX_INTENTOS` queda "sin evaluar" para revisarla a mano.
 
 El siguiente paso que se muestra lo decide la política del dominio, no el modelo,
 y es una sugerencia: descartar sigue siendo de una persona (ADR-021 §4).
@@ -30,6 +35,7 @@ from app.domain.puertos import (
     CvInaccesibleError,
     EvaluadorDeCvs,
     ExtractorDeTexto,
+    ProveedorNoDisponibleError,
     RepositorioDeEvaluaciones,
 )
 
@@ -41,6 +47,8 @@ class ResultadoDeLasEvaluaciones:
     #: Sin puntuar en este barrido (modelo caído, respuesta inválida, Storage sin
     #: responder): se reintentan en el siguiente.
     aplazadas: int = 0
+    #: De las aplazadas, las que esperan porque el modelo no estaba disponible.
+    sin_modelo: int = 0
     #: El presupuesto del mes de la plataforma se acabó y no se evaluó nada.
     en_pausa: bool = False
     costo_usd: float = 0.0
@@ -86,6 +94,11 @@ class EvaluarAplicacionesPendientes:
 
         puntuadas = await asyncio.gather(*(puntuar(a, cv) for a, cv in listas))
         for (aplicacion, _), puntuada in zip(listas, puntuadas, strict=True):
+            if isinstance(puntuada, ProveedorNoDisponibleError):
+                await self._repositorio.soltar(aplicacion)
+                resultado.aplazadas += 1
+                resultado.sin_modelo += 1
+                continue
             if isinstance(puntuada, Exception):
                 await self._repositorio.aplazar(aplicacion, motivo=type(puntuada).__name__)
                 resultado.aplazadas += 1

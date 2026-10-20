@@ -139,7 +139,8 @@ async def test_si_storage_no_responde_suelta_el_resto_sin_gastar_intentos() -> N
     assert evaluador.recibido == []
 
 
-async def test_si_el_modelo_falla_esa_se_aplaza_y_las_demas_se_guardan() -> None:
+async def test_si_el_modelo_no_esta_disponible_espera_sin_gastar_su_intento() -> None:
+    """Una caída de Gemini no es culpa del CV: no puede dejarlo "sin evaluar"."""
     ana, jose = _aplicacion("Ana Paz"), _aplicacion("José Ruiz")
     evaluador = EvaluadorFalso(
         fit=FIT, errores={"falla aquí": ProveedorNoDisponibleError("Gemini caído")}
@@ -152,8 +153,9 @@ async def test_si_el_modelo_falla_esa_se_aplaza_y_las_demas_se_guardan() -> None
 
     resultado = await caso.ejecutar(lote=10)
 
-    assert (resultado.evaluadas, resultado.aplazadas) == (1, 1)
-    assert repositorio.aplazadas == {ana.application_id: "ProveedorNoDisponibleError"}
+    assert (resultado.evaluadas, resultado.aplazadas, resultado.sin_modelo) == (1, 1, 1)
+    assert repositorio.sueltas == {ana.application_id}
+    assert repositorio.aplazadas == {}
     assert set(repositorio.guardadas) == {jose.application_id}
 
 

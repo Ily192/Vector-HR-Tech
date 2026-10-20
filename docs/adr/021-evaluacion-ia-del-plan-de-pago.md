@@ -40,7 +40,8 @@
   - **Plan:** antes de gastar se comprueba `verificar_ia`.
   - **Llaves:** ninguna llave global expuesta.
 - **Fallas:**
-  - Si el modelo no responde, la aplicación queda para el siguiente barrido. Tras 3 intentos queda "sin evaluar: revisar a mano".
+  - Si el modelo no está disponible (caído, sin key o con el circuito abierto), la aplicación espera al siguiente barrido sin gastar su intento. Sin ninguna key configurada, el barrido no reclama nada.
+  - Si falla por otra causa, como una respuesta inválida, gasta un intento. Tras 3 queda "sin evaluar: revisar a mano".
   - Un CV ilegible no se manda al modelo y queda marcado igual que en el plan gratis.
 - **El endpoint con run-token no cambia.** Queda para los agentes que orqueste Paperclip.
 
