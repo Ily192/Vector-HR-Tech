@@ -7,10 +7,10 @@
 # .env del snapshot (el actual queda en .env.antes-de-restaurar): la base restaurada
 # trae las contraseñas y el secreto JWT de ese momento.
 #
-# En un VPS nuevo basta con un /opt/vortex/.env que tenga RESTIC_REPOSITORY,
-# RESTIC_PASSWORD, R2_ACCESS_KEY_ID y R2_SECRET_ACCESS_KEY: restic corre aquí sin
-# compose, y el resto del .env sale del snapshot. Después se despliega con el workflow
-# (runbook, "Recuperar el servidor").
+# En un VPS nuevo basta con que /opt/vortex/.env tenga los valores reales de
+# RESTIC_REPOSITORY, RESTIC_PASSWORD, R2_ACCESS_KEY_ID y R2_SECRET_ACCESS_KEY: restic
+# corre aquí sin compose, y el resto del .env sale del snapshot. Después se despliega
+# con el workflow (runbook, "Recuperar el servidor").
 set -Eeuo pipefail
 dir=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck source=comun.sh

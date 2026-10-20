@@ -98,9 +98,11 @@ uno desde la pantalla de entrar del panel. Necesita `DATABASE_URL` (el rol dueñ
 
 ## Despliegue
 
-En Fly.io con `fly.toml` (la API, el worker y un solo beat) y el workflow
-`deploy-hr-engine.yml`, que construye la imagen con el contexto `skills`. Primer
-despliegue y secretos: `docs/runbooks/deploy.md`.
+En el VPS, con el resto de la plataforma (ADR-020): la API, el worker y un solo beat
+salen de la misma imagen en `infra/vps/compose.yml`, y el workflow `deploy-vps.yml` la
+construye con el contexto `skills`. Primer despliegue y secretos: `docs/runbooks/vps.md`.
+El alta de una empresa en producción es el mismo comando dentro del contenedor:
+`vortex exec hr-engine-api python -m app.cli.alta_empresa …`.
 
 ## Salud
 

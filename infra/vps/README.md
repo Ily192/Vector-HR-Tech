@@ -14,17 +14,21 @@ primer despliegue a la recuperación, es `docs/runbooks/vps.md`.
 | `systemd/` | El timer del respaldo nocturno |
 | `pruebas/` | La prueba local de punta a punta: `pruebas/probar_en_local.sh` |
 
-Antes de llevar un cambio al servidor se corre la prueba local (con Docker en marcha):
+Antes de llevar un cambio al servidor se corre la prueba local (con Docker en marcha, y
+pnpm y uv; en Windows, `PYTHON=python`):
 
 ```bash
-PYTHON=python infra/vps/pruebas/probar_en_local.sh
+infra/vps/pruebas/probar_en_local.sh
 ```
 
-Levanta el stack con imágenes construidas en local y lo recorre de punta a punta:
+Levanta el stack con imágenes construidas en local, con los sitios en
+`localhost:8080` (career site), `:8081` (panel) y `:8082` (API), y corre contra él:
 
-- invitación y enlace mágico (Mailpit);
-- una vacante y el career site;
-- aplicaciones con CV y el worker;
-- respaldo a un S3 local, borrado y restauración.
+- el e2e del plan gratis, en modo despliegue (`E2E_REMOTO=1 pnpm e2e:flujo`): invitación,
+  vacante, aplicaciones con CV, el worker del stack, el gancho, el .zip y eliminar;
+- `humo.py`: el borde (Studio no se publica, 401 sin apikey, sin alta sin invitación) y las
+  plantillas de correo en Mailpit;
+- un respaldo a un S3 local, el borrado de la base y los CVs, la restauración, la
+  comparación con lo de antes y el e2e otra vez.
 
-Al final lo baja todo.
+Al final lo baja todo, volúmenes incluidos.

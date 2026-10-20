@@ -11,8 +11,8 @@
 > - **No hay entorno de staging.** `staging.vortex-ops.com` y
 >   `api.vortex-ops.com` no estan provisionados.
 > - **Los comandos de Coolify de abajo** apuntan a una plataforma que ADR-012
->   descarto en favor de Fly.io; los secrets `COOLIFY_*` no existen y no se van a
->   crear. El backend se despliega en Fly.io: ver "hr-engine en Fly.io (MVP)".
+>   descarto; los secrets `COOLIFY_*` no existen y no se van a crear. La plataforma
+>   se despliega en un VPS: ver "La plataforma en el VPS (MVP)".
 > - **`release.yml` esta desactivado** (solo `workflow_dispatch`) justamente
 >   porque intentaba ejecutar esto en cada push a `main`.
 > - **El canary no existe.** Los `curl` con `canary_pct` son un JSON inventado:
@@ -26,70 +26,13 @@
 > Antes de un primer deploy real hay que cerrar esto; ver
 > `docs/runbooks/next-steps.md`.
 
-## hr-engine en Fly.io (MVP)
+## La plataforma en el VPS (MVP)
 
-> **Reemplazado por ADR-020 (2026-10-20):** el hr-engine va en el VPS con el resto de la
-> plataforma. `fly.toml` y `deploy-hr-engine.yml` se retiran cuando el stack del VPS esté
-> listo.
-
-Esto sí existe desde el 2026-10-20: `services/hr-engine/fly.toml` y el workflow
-`deploy-hr-engine.yml` (ADR-012). Una sola app con la misma imagen y tres grupos
-de procesos:
-
-| Proceso | Qué hace | Máquinas |
-|---|---|---|
-| `api` | FastAPI; responde `/ready` y se apaga sin tráfico | 0 o 1 |
-| `worker` | Celery: la coincidencia de skills del plan gratis (ADR-019) | 1 |
-| `beat` | Programa el barrido cada minuto y la purga diaria | **exactamente 1** |
-
-Dos `beat` programan cada tarea dos veces. Por eso el workflow despliega con
-`--ha=false` y el conteo se fija a mano una vez.
-
-La imagen no se construye con `fly deploy`: el Dockerfile pide el contexto con
-nombre `skills` (`.agents/skills`) y flyctl no lo pasa. El workflow la construye con
-buildx, la sube a `registry.fly.io` y despliega con `fly deploy --image`.
-
-### Primer despliegue (una vez)
-
-1. `fly auth login` y `fly apps create vortex-hr-engine` (la región, `gru`, está en
-   `fly.toml`).
-2. Redis: Upstash (`fly redis create` o su consola). La URL con TLS lleva
-   `?ssl_cert_reqs=required`: Celery no acepta una `rediss://` sin ese parámetro.
-3. Secretos, con `fly secrets set -a vortex-hr-engine NOMBRE=valor …`:
-   - `DATABASE_URL`: el pooler de Supabase en modo sesión, puerto 5432:
-     `postgresql+asyncpg://postgres.<ref>:<contraseña>@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`.
-     El modo transacción (6543) no admite los prepared statements de asyncpg.
-   - `REDIS_URL` y `RATE_LIMIT_STORAGE_URI`: la URL de Redis.
-   - `JWT_SECRET`: 32 caracteres o más (`openssl rand -hex 32`).
-   - `CORS_ALLOW_ORIGINS`: las URLs del panel y del career site, separadas por coma.
-   - `SUPABASE_URL` y `SUPABASE_SECRET_KEY`: para bajar los CVs.
-   - Opcional: `SENTRY_DSN_BACKEND`. Las claves de Gemini y OpenAI llegan con el
-     plan de pago.
-
-   `ENV=production` ya va en `fly.toml`: con él, el arranque falla si falta algo de lo
-   anterior o apunta a localhost (`app/config.py`).
-4. Token para GitHub: `fly tokens create deploy -a vortex-hr-engine`, y guardarlo
-   como el secret `FLY_API_TOKEN` del repo (Settings → Secrets and variables → Actions).
-5. Actions → "Deploy hr-engine (Fly.io)" → *Run workflow*.
-6. `fly scale count api=1 worker=1 beat=1 -a vortex-hr-engine --yes` y comprobar con
-   `fly status` que hay un solo `beat`.
-7. Verificar: `curl https://vortex-hr-engine.fly.dev/ready` responde
-   `{"status":"ready","postgres":"ok","redis":"ok"}`, y `fly logs` muestra un
-   `coincidencias.barrido` por minuto.
-
-### Despliegues siguientes y vuelta atrás
-
-- Desplegar: el mismo workflow, desde la rama `main`.
-- Volver atrás: `fly releases -a vortex-hr-engine` y
-  `fly deploy --app vortex-hr-engine --image registry.fly.io/vortex-hr-engine:<sha anterior>`.
-  Cada imagen queda etiquetada con el commit.
-
-### Costo
-
-El worker y el beat quedan encendidos; la API se apaga sin tráfico. Es la máquina
-fija que estima ADR-019 (~US$8 al mes). Celery con Redis consulta la cola todo el
-tiempo: el plan gratis de Upstash puede quedarse corto. Revisar el consumo la
-primera semana.
+Desde el 2026-10-20 todo va en un VPS de DigitalOcean con Docker Compose (ADR-020): el
+stack está en `infra/vps/`, el workflow es `deploy-vps.yml` y el runbook,
+`docs/runbooks/vps.md` (primer despliegue, día a día, respaldos y recuperación).
+Reemplaza a Fly.io, cuyos `fly.toml` y `deploy-hr-engine.yml` se retiraron, y a Vercel
+cuando el VPS esté en línea.
 
 ## Staging (automático)
 
