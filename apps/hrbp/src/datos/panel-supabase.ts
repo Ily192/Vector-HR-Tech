@@ -11,10 +11,20 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@vortex/supabase-client/types";
-import { ETAPAS_DEL_PIPELINE, type EtapaDelPipeline, LIMITES_DEL_PLAN } from "@vortex/types/reglas";
+import {
+  ETAPAS_DEL_PIPELINE,
+  type EtapaDelPipeline,
+  LIMITES_DEL_PLAN,
+  siguientePaso,
+} from "@vortex/types/reglas";
 import { iniciales } from "@vortex/ui";
 
-import { type AdaptadorDelPanel, type MotivoDeRechazo, SinAccesoAlPanel } from "./tipos";
+import {
+  type AdaptadorDelPanel,
+  type EvaluacionConIa,
+  type MotivoDeRechazo,
+  SinAccesoAlPanel,
+} from "./tipos";
 
 type Cliente = ReturnType<typeof createClient<Database>>;
 
@@ -108,6 +118,27 @@ export function nombreEnElZip(numero: number, candidato: string, ruta: string): 
   return `${String(numero).padStart(2, "0")} - ${nombreDeArchivo(candidato)}.${formatoDelCv(ruta)}`;
 }
 
+/**
+ * La evaluación con IA de una fila de `applications`, o `null` si no la hay (ADR-021).
+ * El siguiente paso lo pone la política del dominio según el score, no el modelo.
+ */
+export function evaluacionDe(fila: {
+  fit_score: number | null;
+  fit_rationale: string | null;
+  fit_gaps: string[] | null;
+  fit_strengths: string[] | null;
+}): EvaluacionConIa | null {
+  if (fila.fit_score === null) return null;
+  const score = Number(fila.fit_score);
+  return {
+    score,
+    razonamiento: fila.fit_rationale ?? "",
+    fortalezas: fila.fit_strengths ?? [],
+    brechas: fila.fit_gaps ?? [],
+    siguientePaso: siguientePaso(score),
+  };
+}
+
 export function crearAdaptadorDeSupabase(url: string, clave: string): AdaptadorDelPanel {
   return adaptadorDeSupabase(
     createClient<Database>(url, clave, {
@@ -148,7 +179,9 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
   async function aplicacionesDe(vacanteId: string, { recientesPrimero = true } = {}) {
     const { data, error } = await supabase
       .from("applications")
-      .select("id, status, applied_at, candidatos(full_name, cv_url)")
+      .select(
+        "id, status, applied_at, fit_score, fit_rationale, fit_gaps, fit_strengths, candidatos(full_name, cv_url)",
+      )
       .eq("vacante_id", vacanteId)
       .order("applied_at", { ascending: !recientesPrimero });
     if (error) throw error;
@@ -265,7 +298,7 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
 
     async obtenerPipeline(vacanteId) {
       if (!ES_UUID.test(vacanteId)) return null;
-      const [vacante, filas, cupo, gancho, plan] = await Promise.all([
+      const [vacante, filas, cupo, gancho, evaluaciones, plan] = await Promise.all([
         supabase
           .from("vacantes")
           .select("id, title, publicada_en, created_at")
@@ -278,11 +311,16 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
         supabase
           .rpc("resumen_del_gancho", { p_vacante: vacanteId })
           .maybeSingle(),
+        // Y al revés: sin filas en el plan gratis (0014).
+        supabase
+          .rpc("resumen_de_evaluaciones", { p_vacante: vacanteId })
+          .maybeSingle(),
         planDeLaEmpresa(),
       ]);
       if (vacante.error) throw vacante.error;
       if (cupo.error) throw cupo.error;
       if (gancho.error) throw gancho.error;
+      if (evaluaciones.error) throw evaluaciones.error;
       if (!vacante.data) return null;
 
       const rutas = filas.flatMap((a) => (a.candidatos?.cv_url ? [a.candidatos.cv_url] : []));
@@ -315,10 +353,22 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
             id: a.id,
             nombre: a.candidatos?.full_name ?? "Sin nombre",
             aplicoEn: a.applied_at,
+            estado: a.status,
             cvUrl: ruta ? (enlaces.get(ruta) ?? null) : null,
             cvFormato: ruta ? formatoDelCv(ruta) : null,
+            evaluacion: evaluacionDe(a),
           };
         }),
+        evaluaciones: evaluaciones.data
+          ? {
+              aplicaciones: evaluaciones.data.aplicaciones,
+              evaluadas: evaluaciones.data.evaluadas,
+              enEspera: evaluaciones.data.en_espera,
+              sinEvaluar: evaluaciones.data.sin_evaluar,
+              ilegibles: evaluaciones.data.ilegibles,
+              sinIa: evaluaciones.data.sin_ia,
+            }
+          : null,
         gancho: g
           ? {
               skills: g.skills,
@@ -330,6 +380,21 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
             }
           : null,
       };
+    },
+
+    /**
+     * La base pide el motivo si la evaluó la IA (PT422) y que mida de 10 a 500
+     * caracteres (23514, 0015): los dos son "falta un motivo que sirva".
+     */
+    async descartar(aplicacionId, motivo) {
+      const { error } = await supabase
+        .from("applications")
+        .update({ status: "rejected", motivo_de_descarte: motivo.trim() || null })
+        .eq("id", aplicacionId);
+      if (!error) return { ok: true };
+      if (error.code === "PT422" || error.code === "23514")
+        return { ok: false, motivo: "sin-motivo" };
+      throw error;
     },
 
     async solicitarDescargaDeCvs(vacanteId) {

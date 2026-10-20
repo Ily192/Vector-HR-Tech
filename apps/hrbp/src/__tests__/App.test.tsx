@@ -297,6 +297,59 @@ describe("panel de empresa · plan con servicios de IA", () => {
     expect(screen.queryByText("Servicios IA")).toBeNull();
     expect(screen.queryByRole("region", { name: "Resultado de la evaluación" })).toBeNull();
   });
+
+  it("muestra cómo va la evaluación y lo que hay que revisar a mano", async () => {
+    montarPanel("/vacantes/senior-software-engineer?plan=ia");
+    await encabezado();
+    const resumen = screen.getByRole("region", { name: "Evaluación con IA" });
+    expect(resumen).toHaveTextContent("Evaluamos 41 de 84 aplicaciones.");
+    expect(resumen).toHaveTextContent("La IA no vio nombres ni datos de contacto.");
+    expect(resumen).toHaveTextContent("40 esperan su evaluación.");
+    expect(resumen).toHaveTextContent("Una no se pudo evaluar: revísala a mano.");
+    expect(resumen).toHaveTextContent("2 CVs no se pudieron leer.");
+  });
+
+  it("lista los evaluados del mejor encaje al menor, con la sugerencia y su porqué", async () => {
+    montarPanel("/vacantes/senior-software-engineer?plan=ia");
+    await encabezado();
+    const evaluados = screen.getByRole("region", { name: "Evaluados" });
+    const filas = within(evaluados).getAllByRole("listitem");
+    expect(filas).toHaveLength(10);
+    const [primera] = filas as [HTMLElement];
+    expect(primera).toHaveTextContent("9.4");
+    expect(primera).toHaveTextContent("Sugerencia: Entrevista");
+    expect(within(primera).getByText("Por qué")).toBeInTheDocument();
+    expect(primera).toHaveTextContent("Fortalezas: Python, FastAPI, Postgres");
+
+    fireEvent.click(within(evaluados).getByRole("button", { name: "Ver los 41 evaluados" }));
+    const todas = within(evaluados).getAllByRole("listitem");
+    expect(todas).toHaveLength(41);
+    expect(todas.at(-1)).toHaveTextContent("Sugerencia: Descartar");
+  });
+
+  it("descartar pide el motivo y saca al candidato de Evaluados", async () => {
+    montarPanel("/vacantes/senior-software-engineer?plan=ia");
+    await encabezado();
+    const evaluados = screen.getByRole("region", { name: "Evaluados" });
+    const [primera] = within(evaluados).getAllByRole("listitem") as [HTMLElement];
+    const id = primera.getAttribute("data-aplicacion");
+
+    fireEvent.click(within(primera).getByRole("button", { name: "Descartar" }));
+    const formulario = within(primera).getByRole("form", { name: /^Descartar a / });
+    const motivo = within(formulario).getByLabelText("Por qué la descartas");
+    expect(motivo).toBeRequired();
+    expect(motivo).toHaveAttribute("minlength", "10");
+    fireEvent.change(motivo, { target: { value: "No tiene la experiencia que pide el puesto." } });
+    fireEvent.click(within(formulario).getByRole("button", { name: "Sí, descartar" }));
+
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("region", { name: "Evaluados" })
+          .querySelector(`[data-aplicacion="${id}"]`),
+      ).toBeNull(),
+    );
+  });
 });
 
 describe("panel de empresa · accesibilidad", () => {

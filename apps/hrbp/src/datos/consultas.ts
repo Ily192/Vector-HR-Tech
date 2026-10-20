@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import { obtenerResumenCockpit } from "../cockpit/resumen";
 import {
   alCambiarLaSesion,
+  descartar,
   eliminarVacante,
   entrar,
   listarMisVacantes,
@@ -73,6 +74,18 @@ export function useEliminarVacante() {
   return useMutation({
     mutationFn: eliminarVacante,
     onSuccess: () => cliente.invalidateQueries({ queryKey: CLAVES.misVacantes }),
+  });
+}
+
+/** Descartar con motivo; al guardarse, el pipeline de la vacante se vuelve a pedir. */
+export function useDescartar(vacanteId: string) {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: ({ aplicacionId, motivo }: { aplicacionId: string; motivo: string }) =>
+      descartar(aplicacionId, motivo),
+    onSuccess: (resultado) => {
+      if (resultado.ok) void cliente.invalidateQueries({ queryKey: CLAVES.pipeline(vacanteId) });
+    },
   });
 }
 

@@ -126,8 +126,14 @@ export const ApplicationSchema = z.object({
   fit_score: z.number().min(0).max(10).nullable(),
   fit_rationale: z.string().nullable(),
   fit_gaps: z.array(z.string()).default([]),
+  /** Las fortalezas que vio la IA del plan de pago (0014, ADR-021). */
+  fit_strengths: z.array(z.string()).default([]),
+  /** Cuándo la evaluó la IA; null si no se evaluó o si el candidato se opuso. */
+  evaluada_en: z.string().datetime({ offset: true }).nullable().default(null),
   applied_at: z.string().datetime(),
   decided_at: z.string().datetime().nullable(),
+  /** Por qué una persona la descartó. Obligatorio si la evaluó la IA (0015, ADR-021 §4). */
+  motivo_de_descarte: z.string().nullable().default(null),
   /**
    * El candidato se opuso a la evaluación automatizada, con o sin IA (0009 y 0010,
    * ADR-019). La empresa no puede retirarla.

@@ -15,13 +15,16 @@ import {
   LIMITES_DEL_PLAN,
   VENTANA_DE_PUBLICACIONES_DIAS,
   limiteDeVacantes,
+  siguientePaso,
 } from "@vortex/types/reglas";
 
 import type {
   AdaptadorDelPanel,
   Aplicado,
+  EvaluacionConIa,
   GanchoDelPipeline,
   OrigenDelInteres,
+  ResumenDeEvaluaciones,
   SesionEmpresa,
   VacanteDeLaEmpresa,
 } from "./tipos";
@@ -61,9 +64,47 @@ function aplicadosDeEjemplo(vacanteId: string, total: number): Aplicado[] {
     id: `${vacanteId}-${i + 1}`,
     nombre: `${NOMBRES[i % NOMBRES.length]} ${APELLIDOS[(i * 3 + 1) % APELLIDOS.length]}`,
     aplicoEn: haceDias(0, i * 3 + 1),
+    estado: "applied",
     cvUrl: null,
     cvFormato: "pdf",
+    evaluacion: null,
   }));
+}
+
+/** Lo que diría la IA de un backend: tres tramos, como la calibración del SKILL.md. */
+function evaluacionDeEjemplo(score: number): EvaluacionConIa {
+  const [razonamiento, fortalezas, brechas] =
+    score >= 7
+      ? [
+          "Lleva cinco años con Python y FastAPI en productos con varias empresas en la misma base, y migró un monolito a servicios.",
+          ["Python", "FastAPI", "Postgres"],
+          ["Celery en producción"],
+        ]
+      : score >= 4
+        ? [
+            "Tiene buena base de backend con Python, pero casi no ha trabajado con sistemas multiempresa ni con colas de tareas.",
+            ["Python"],
+            ["Multiempresa", "Celery"],
+          ]
+        : [
+            "Su experiencia es sobre todo de frontend con React; el puesto pide backend con Python.",
+            ["React"],
+            ["Python", "FastAPI"],
+          ];
+  return { score, razonamiento, fortalezas, brechas, siguientePaso: siguientePaso(score) };
+}
+
+/** Las primeras `evaluadas` aplicaciones ya pasaron por la IA, de más a menos encaje. */
+function conEvaluaciones(aplicados: Aplicado[], evaluadas: number): Aplicado[] {
+  return aplicados.map((a, i) =>
+    i < evaluadas
+      ? {
+          ...a,
+          estado: "evaluated",
+          evaluacion: evaluacionDeEjemplo(Math.round((9.4 - i * 0.15) * 10) / 10),
+        }
+      : a,
+  );
 }
 
 interface Registro {
@@ -72,6 +113,8 @@ interface Registro {
   gancho: GanchoDelPipeline | null;
   /** Conteos de las etapas después de "Aplicados" (plan con IA). */
   etapas?: Partial<Record<EtapaDelPipeline, number>>;
+  /** Cómo va la evaluación con IA (plan con IA). */
+  evaluaciones?: ResumenDeEvaluaciones;
 }
 
 interface Estado {
@@ -178,9 +221,17 @@ function estadoConIa(): Estado {
           ubicacion: "Remoto · LATAM",
           cupoCompleto: false,
         }),
-        aplicados: aplicadosDeEjemplo("senior-software-engineer", 84),
+        aplicados: conEvaluaciones(aplicadosDeEjemplo("senior-software-engineer", 84), 41),
         gancho: null,
         etapas: { evaluated: 41, shortlisted: 12, interviewed: 3, offered: 2 },
+        evaluaciones: {
+          aplicaciones: 84,
+          evaluadas: 41,
+          enEspera: 40,
+          sinEvaluar: 1,
+          ilegibles: 2,
+          sinIa: 0,
+        },
       },
     ],
   };
@@ -304,7 +355,33 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
       })),
       aplicados: registro.aplicados,
       gancho: registro.gancho,
+      evaluaciones: conIa
+        ? (registro.evaluaciones ?? {
+            aplicaciones: v.aplicaciones,
+            evaluadas: 0,
+            enEspera: v.aplicaciones,
+            sinEvaluar: 0,
+            ilegibles: 0,
+            sinIa: 0,
+          })
+        : null,
     };
+  },
+
+  /** Como la base (0015): lo que evaluó la IA no se descarta sin un motivo que sirva. */
+  async descartar(aplicacionId, motivo) {
+    for (const registro of estado.registros) {
+      const aplicado = registro.aplicados.find((a) => a.id === aplicacionId);
+      if (!aplicado) continue;
+      const largo = motivo.trim().length;
+      if ((aplicado.evaluacion && largo === 0) || (largo > 0 && (largo < 10 || largo > 500))) {
+        return { ok: false, motivo: "sin-motivo" };
+      }
+      registro.aplicados = registro.aplicados.map((a) =>
+        a.id === aplicacionId ? { ...a, estado: "rejected" } : a,
+      );
+    }
+    return { ok: true };
   },
 
   /** El ejemplo no tiene archivos que bajar. */

@@ -6,7 +6,13 @@
  * gancho. La UI los pinta; no los calcula (ADR-016). Las reglas tienen su dueña
  * en hr-engine (`domain/plan.py`, ADR-017).
  */
-import type { Modality, Seniority, SiguientePaso, VacanteStatus } from "@vortex/types/hr";
+import type {
+  ApplicationStatus,
+  Modality,
+  Seniority,
+  SiguientePaso,
+  VacanteStatus,
+} from "@vortex/types/hr";
 import type { EtapaDelPipeline, Modulo } from "@vortex/types/reglas";
 
 export type { Modulo };
@@ -93,15 +99,49 @@ export interface GanchoDelPipeline {
   conTodas: number;
 }
 
+/**
+ * Lo que la IA del plan de pago dijo de un CV (ADR-021), a ciegas: el modelo no vio
+ * el nombre ni el contacto.
+ */
+export interface EvaluacionConIa {
+  /** De 0 a 10. */
+  score: number;
+  razonamiento: string;
+  fortalezas: string[];
+  brechas: string[];
+  /** La sugiere la política del dominio según el score; decide una persona. */
+  siguientePaso: SiguientePaso;
+}
+
 export interface Aplicado {
   id: string;
   nombre: string;
   aplicoEn: string;
+  estado: ApplicationStatus;
   /** URL firmada del CV; `null` si no se pudo firmar o con datos de ejemplo. */
   cvUrl: string | null;
   /** `null` si la aplicación llegó sin CV. */
   cvFormato: "pdf" | "docx" | null;
+  /** `null` si no la evaluó la IA: plan gratis, en espera o el candidato se opuso. */
+  evaluacion: EvaluacionConIa | null;
 }
+
+/** Cómo va la evaluación con IA de una vacante (`resumen_de_evaluaciones()`, 0014). */
+export interface ResumenDeEvaluaciones {
+  aplicaciones: number;
+  evaluadas: number;
+  /** Las que el barrido todavía va a tomar. */
+  enEspera: number;
+  /** Fallaron sus intentos: hay que revisarlas a mano. */
+  sinEvaluar: number;
+  /** CVs escaneados, protegidos o dañados. */
+  ilegibles: number;
+  /** Candidatos que pidieron no ser evaluados con procesos automatizados. */
+  sinIa: number;
+}
+
+/** El descarte se guardó, o faltó el motivo que la base pide si evaluó la IA (0015). */
+export type ResultadoDeDescartar = { ok: true } | { ok: false; motivo: "sin-motivo" };
 
 export interface EtapaVisible {
   etapa: EtapaDelPipeline;
@@ -117,6 +157,8 @@ export interface PipelineDeVacante {
   aplicados: Aplicado[];
   /** Solo en el plan gratis y cuando ya hubo evaluación. */
   gancho: GanchoDelPipeline | null;
+  /** Solo en el plan con IA. */
+  evaluaciones: ResumenDeEvaluaciones | null;
 }
 
 /**
@@ -165,6 +207,8 @@ export interface AdaptadorDelPanel {
   publicarVacante(borrador: BorradorDeVacante): Promise<ResultadoDePublicar>;
   eliminarVacante(vacanteId: string): Promise<void>;
   obtenerPipeline(vacanteId: string): Promise<PipelineDeVacante | null>;
+  /** Una persona descarta una aplicación y deja el motivo (ADR-021 §4). */
+  descartar(aplicacionId: string, motivo: string): Promise<ResultadoDeDescartar>;
   solicitarDescargaDeCvs(vacanteId: string): Promise<DescargaDeCvs>;
   registrarInteres(origen: OrigenDelInteres): Promise<void>;
   entrar(correo: string): Promise<ResultadoDeEntrar>;
