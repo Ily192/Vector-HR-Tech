@@ -15,7 +15,7 @@
 | R-01 | Breaking change upstream Paperclip o OpenClaw rompe builds | 3 | 4 | 12 | Ilyra | Pin tag + tests CI + fork si necesario; ADR-009 define vendoring | Activo |
 | R-02 | Costo de tokens IA explota con primer cliente activo | 3 | 4 | 12 | Ilyra | Hard-stops en Paperclip por tenant + alerta Sentry > 80% budget | Activo |
 | R-03 | RLS mal configurada → leak entre tenants | 2 | 5 | 10 | Ilyra | Tests RLS por tabla + nightly paranoid job + middleware tenant_guard | Activo |
-| R-04 | No conseguimos cliente piloto pagado en mes 3 | 3 | 4 | 12 | Ilyra | Siete (consultora propia) sirve como cliente alfa permanente; case study self-served | Activo |
+| R-04 | No conseguimos cliente piloto pagado en mes 3 | 3 | 4 | 12 | Ilyra | Vector HR como tenant interno para la demo y el case study; el plan gratis (ADR-019) como canal para conseguir el piloto | Activo |
 | R-05 | WhatsApp Business API setup más complejo / caro de lo previsto | 3 | 3 | 9 | Ilyra | Empezar con Google Chat + Telegram (gratis); WA solo en Scale+ | Activo |
 | R-06 | Dependencia Supabase down → producto down | 2 | 5 | 10 | Ilyra | Status page de Supabase monitoreado; failover plan en runbook (Postgres self-host como Plan B Enterprise) | Activo |
 | R-07 | Solo 1 dev → bus factor 1 | 4 | 5 | 20 | Ilyra | Documentación obsesiva; ADRs; vibe coding como "otro dev"; hire en mes 4-6 si MRR lo justifica | **Crítico** |

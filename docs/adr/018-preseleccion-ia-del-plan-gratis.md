@@ -170,10 +170,11 @@ No hay empresas en producción. Al provisionar Supabase Cloud:
 | Empresa | Plan | Por qué |
 |---|---|---|
 | Vector HR Tech | `ia` | Interna: demos y QA |
-| Siete | `ia`, piloto a US$0 hasta cerrar la validación F3 | Es el cliente alfa y el perfil del ICP (consultora que recluta para clientes). Su piloto valida el producto de pago, no el gratis |
 | Cualquier otra | `gratis` al aceptar la invitación | `ia` solo con contrato firmado |
 
 Así lo deja el runbook (`docs/runbooks/next-steps.md`, "Provisionar Supabase Cloud").
+
+*Actualizado el 2026-10-20:* Siete dejó de ser piloto. Solo Vector HR tiene `ia`.
 
 ### 12. El plan gratis es para empleadores directos
 
@@ -223,7 +224,7 @@ Así lo deja el runbook (`docs/runbooks/next-steps.md`, "Provisionar Supabase Cl
 - **Lectura.** Con conversiones freemium de 3–5%, 100 empresas gratis darían 3–5 clientes Starter: unos US$450–750 de MRR. Su preselección cuesta como mucho US$50 al mes.
   - En el plan de pago, la IA es ~2% del precio: 1.000 CVs cuestan US$2,50 contra US$149.
 - **El costo que falta son las horas de gente:** puesta en marcha, soporte y acompañamiento.
-  - No hay dato. Se mide con el piloto de Siete antes de fijar los precios definitivos.
+  - No hay dato. Se mide con el primer piloto de pago antes de fijar los precios definitivos.
   - Es la regla de la skill: no se inventan cifras.
 
 ## Condiciones para activarlo en producción

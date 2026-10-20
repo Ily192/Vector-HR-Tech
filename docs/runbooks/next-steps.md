@@ -82,7 +82,7 @@ Scrumban desde el 2026-09-15: flujo Kanban con límites de trabajo en curso y sp
 
 **F2 · Next 16 + Supabase + 2.1** — ~~Next 14 → 16~~ hecho en el sprint 2 (Next 16.4.1 y React 19; sin codemods, porque el único punto de ruptura era el `params` síncrono de `vacantes/[slug]`). Falta: Supabase Cloud con 0001..0006, secrets, hr-engine en Fly.io, formulario de aplicación, rate limit y captcha, y el E2E del DoD del Cycle 1.
 
-**F3 · Validación con Siete** — plan de validación con criterios de negocio, mapa de onboarding, backups y staging, consentimiento y retención (LGPD), 5 a 10 entrevistas de descubrimiento y la demo en Loom.
+**F3 · Validación con un cliente piloto** (Siete dejó de serlo el 2026-10-20) — plan de validación con criterios de negocio, mapa de onboarding, backups y staging, consentimiento y retención (LGPD), 5 a 10 entrevistas de descubrimiento y la demo en Loom.
 
 **F4 · Decisiones de negocio** — ICP validado, unidad operativa de precio, regla de continuidad al agotarse el presupuesto, `force row level security` y un solo camino de escritura para `runs`.
 
@@ -345,10 +345,10 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
   ```
 - Copiar `URL`, `anon key` y `service_role key` a Doppler.
 - **Plan de las empresas** (ADR-018 §11, vigente con ADR-019). Todas entran como `gratis`.
-  - Al crearlas, pasar a `ia` solo a Vector HR Tech (interna) y a Siete (piloto a US$0 hasta
-    cerrar F3):
+  - Al crearlas, pasar a `ia` solo a Vector HR Tech (interna: demos y QA). Siete dejó de ser
+    piloto el 2026-10-20.
     ```sql
-    update empresas set plan = 'ia' where slug in ('<slug de Vector HR>', '<slug de Siete>');
+    update empresas set plan = 'ia' where slug = '<slug de Vector HR>';
     ```
   - Cualquier otra empresa pasa a `ia` solo con contrato. El cambio borra su gancho (0010):
     al activarla, configurar sus agentes en Paperclip y evaluar las aplicaciones que tenga
@@ -356,7 +356,7 @@ Como los proyectos están enlazados por Git, **a partir de ahora cada push a
 - **Antes de abrir el career site a candidatos reales,** cumplir las "Condiciones antes de
   producción" de ADR-019: aviso al candidato, términos del plan gratis y anti-spam en el
   formulario. Las de IA (evaluación de impacto, key de Gemini, revisión humana) van con el
-  piloto de pago de Siete.
+  primer cliente del plan de pago.
 
 **No correr `seed.sql` contra el proyecto real.** Ahora tiene una guarda de
 entorno que aborta fuera de bases `*dev*`/`*test*`, pero los tokens del seed
@@ -784,7 +784,7 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 
 - **Cycle 2:** Fly.io para hr-engine + vendoring de Paperclip y OpenClaw
   (ADR-009). Workers `scheduler`, `interviewer`, `onboarder`, `constancia_gen`.
-  Adapter de WhatsApp. 50 candidatos reales con Siete.
+  Adapter de WhatsApp. 50 candidatos reales con el cliente piloto.
 - **Cycle 3:** sales-engine multi-tenant.
 - **Cycle 4:** lanzamiento open-source + Stripe billing + 5 clientes Pro.
 
@@ -811,7 +811,7 @@ evidencia de la calidad del modelo. Ahora lanza excepción, y
 | Tema | Pregunta | Cuándo |
 |---|---|---|
 | WhatsApp provider | 360dialog vs Twilio vs Meta direct | Cycle 2 |
-| Cliente piloto pagado | Siete vs LinkedIn outbound frío | Cooldown Cycle 1 |
+| Cliente piloto pagado | Plan gratis (ADR-019) vs LinkedIn outbound frío; Siete ya no es opción (2026-10-20) | Cooldown Cycle 1 |
 | Plan de Supabase | Free tier sin PITR vs Pro con backups | Antes del primer cliente real |
 | Open-source | Liberar Paperclip + OpenClaw + 4 skills | Cycle 4 |
 | Dominio propio | `vortex-ops.com` o `vector-hr.tech` | Cooldown 4 (post-MRR $1.5k) |

@@ -209,7 +209,7 @@ TARJETAS: list[dict] = [
             | **S2** | 15-28 oct | `EvaluateCandidate` en capas como plantilla, y career-site fuera de una versión sin soporte |
             | **S3** | 29 oct-11 nov | El DoD del Cycle 1 de punta a punta: subir CV → score visible en menos de 2 minutos |
 
-            Después de S3 vienen la validación con Siete y las decisiones de negocio (ICP, unidad de precio), que están en el backlog.
+            Después de S3 vienen la validación con un cliente piloto y las decisiones de negocio (ICP, unidad de precio), que están en el backlog.
 
             **Cierre de sprint:** mover a ✅ lo verificado, devolver al backlog lo que no se hizo (no se arrastra en silencio) y anotar en `docs/runbooks/session-log.md` qué se aprendió.
         """),
@@ -258,7 +258,7 @@ TARJETAS: list[dict] = [
         "labels": [NEG],
         "checklists": {
             "Por decidir": [
-                "Segmento principal — hipótesis: consultoras de selección / RPO tipo Siete",
+                "Segmento principal — hipótesis: consultoras de selección y RPO",
                 "Unidad operativa de precio (vacantes activas o candidatos evaluados; nunca tokens)",
                 "Regla de continuidad cuando se agota el presupuesto",
                 "force row level security: ¿el owner tiene BYPASSRLS en Supabase?",
@@ -571,19 +571,19 @@ TARJETAS: list[dict] = [
     },
     {
         "lista": BACKLOG,
-        "nombre": "negocio: plan de validación con Siete",
+        "nombre": "negocio: plan de validación con el primer cliente piloto",
         "labels": [NEG],
         "desc": "Skill `plan-de-validacion`. Criterios de éxito escritos en términos de negocio antes de empezar (el DoD actual es técnico) y quién participa de cada lado.",
     },
     {
         "lista": BACKLOG,
-        "nombre": "negocio: mapa de onboarding de Siete y primer valor",
+        "nombre": "negocio: mapa de onboarding del primer cliente y primer valor",
         "labels": [NEG],
         "desc": "Skills `mapa-de-onboarding` y `estrategia-de-despliegue`: estado actual, fotos intermedias y en cuál ocurre el primer valor tangible. Despliegue beta, no encendido total.",
     },
     {
         "lista": BACKLOG,
-        "nombre": "negocio: 5 a 10 entrevistas de descubrimiento con consultoras tipo Siete",
+        "nombre": "negocio: 5 a 10 entrevistas de descubrimiento con consultoras de selección y RPO",
         "labels": [NEG],
         "desc": "Skills `icp-y-senales` (ruta hipótesis) y `guion-de-descubrimiento`. Con cero clientes que hayan pagado, el ICP se descubre en conversaciones antes de invertir en pauta o en más módulos.",
     },
@@ -591,7 +591,7 @@ TARJETAS: list[dict] = [
         "lista": BACKLOG,
         "nombre": "negocio: ICP validado y segmento principal",
         "labels": [NEG],
-        "desc": "Hipótesis: consultoras de selección y RPO pequeñas y medianas de LATAM que reclutan para varias empresas cliente — el perfil de Siete.",
+        "desc": "Hipótesis: consultoras de selección y RPO pequeñas y medianas de LATAM que reclutan para varias empresas cliente.",
     },
     {
         "lista": BACKLOG,

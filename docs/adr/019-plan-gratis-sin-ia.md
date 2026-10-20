@@ -123,7 +123,7 @@ El cupo que muestra el panel también lo da la base: `mi_cupo_de_vacantes()` inf
 ### 9. Lo que sigue vigente de ADR-018
 
 - **§10.** El .zip se arma en el navegador (`createSignedUrls` y `client-zip` con import dinámico).
-- **§11.** El plan de las empresas reales: Vector HR y Siete con `ia`, el resto `gratis`.
+- **§11.** El plan de las empresas reales: solo Vector HR con `ia` (interna, para demos); el resto `gratis`. Siete dejó de ser piloto el 2026-10-20.
 - **§12.** El plan gratis es solo para empleadores directos.
 - **§14.** Las señales de venta (PQL). Cambian dos:
   - "pulsar Ver quiénes son" pasa a ser "pulsar Evaluarlos con IA";
@@ -150,7 +150,7 @@ Menos que con ADR-018, porque el plan gratis ya no trata datos con IA:
   - Faltan los medios ARCO y los plazos de conservación (MX art. 15).
 - [ ] **Términos del plan gratis y contrato de encargo,** con la coincidencia de skills como parte del servicio. En el plan gratis no hay subencargado de IA.
 - [ ] **Anti-spam en el formulario** (Cloudflare Turnstile y límite por IP). Con 50 cupos por vacante, el spam es una denegación de servicio para la empresa. 0005 ya lo advertía.
-- [ ] Las condiciones de IA de ADR-018 (evaluación de impacto, key de Gemini, revisión humana) pasan al lanzamiento del plan de pago, con el piloto de Siete.
+- [ ] Las condiciones de IA de ADR-018 (evaluación de impacto, key de Gemini, revisión humana) pasan al lanzamiento del plan de pago, con su primer cliente.
 
 ## Implementación
 
