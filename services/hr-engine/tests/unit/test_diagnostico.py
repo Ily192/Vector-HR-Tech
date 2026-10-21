@@ -71,6 +71,7 @@ def diagnostico(**cambios: Any) -> Diagnostico:
         "ip": "203.0.113.7",
         "turnstile_token": "token-valido",
         "verificado": False,
+        "sin_fines_comerciales": False,
     }
     datos.update(cambios)
     return Diagnostico(**datos)
@@ -99,6 +100,27 @@ def test_el_correo_de_un_diagnostico_trae_todo_lo_que_vector_hr_necesita() -> No
         assert linea in correo.cuerpo.splitlines(), linea
     # Solo el top 3.
     assert "Onboarding" not in correo.cuerpo
+
+
+def _lineas(d: Diagnostico) -> list[str]:
+    correo = resumen(PARA, [d], 0)
+    assert correo is not None
+    return correo.cuerpo.splitlines()
+
+
+def test_si_pidio_que_no_lo_contactemos_se_dice_justo_despues_del_correo() -> None:
+    lineas = _lineas(diagnostico(sin_fines_comerciales=True))
+    i = lineas.index("Correo: mariana@andes.test")
+    assert lineas[i + 1] == (
+        "Contacto comercial: NO (pidió que no lo contactemos con fines comerciales)"
+    )
+    assert "Contacto comercial: sí" not in lineas
+
+
+def test_si_no_marco_la_casilla_el_contacto_comercial_es_si() -> None:
+    lineas = _lineas(diagnostico(sin_fines_comerciales=False))
+    i = lineas.index("Correo: mariana@andes.test")
+    assert lineas[i + 1] == "Contacto comercial: sí"
 
 
 def test_sin_utm_dice_que_llego_directo() -> None:

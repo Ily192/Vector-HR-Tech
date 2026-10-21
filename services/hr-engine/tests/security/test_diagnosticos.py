@@ -64,6 +64,7 @@ def _parametros(**cambios: Any) -> dict[str, Any]:
         "p_resultado": RESULTADO,
         "p_horas_recuperables_mes": 31.2,
         "p_turnstile_token": "token-de-turnstile",
+        "p_sin_fines_comerciales": False,
     }
     parametros.update(cambios)
     return parametros
@@ -82,7 +83,7 @@ async def _registrar(db: asyncpg.Connection, ip: str | None = None, **cambios: A
             p_nombre => $1, p_empresa => $2, p_correo => $3, p_origen => $4,
             p_utm_medium => $5, p_utm_campaign => $6, p_respuestas => $7::jsonb,
             p_resultado => $8::jsonb, p_horas_recuperables_mes => $9::numeric,
-            p_turnstile_token => $10)
+            p_turnstile_token => $10, p_sin_fines_comerciales => $11)
         """,
         p["p_nombre"],
         p["p_empresa"],
@@ -94,6 +95,7 @@ async def _registrar(db: asyncpg.Connection, ip: str | None = None, **cambios: A
         None if p["p_resultado"] is None else json.dumps(p["p_resultado"]),
         None if p["p_horas_recuperables_mes"] is None else str(p["p_horas_recuperables_mes"]),
         p["p_turnstile_token"],
+        p["p_sin_fines_comerciales"],
     )
 
 
@@ -138,6 +140,34 @@ async def test_anon_registra_un_diagnostico(db: asyncpg.Connection) -> None:
     assert fila["turnstile_token"] == "token-de-turnstile"
     assert (fila["avisado_en"], fila["descartado_en"], fila["verificado_en"]) == (None, None, None)
     assert fila["intentos_aviso"] == 0
+    assert fila["sin_fines_comerciales"] is False
+
+
+@pytest.mark.parametrize(("marcada", "guardada"), [(True, True), (False, False), (None, False)])
+async def test_la_casilla_de_no_contactar_se_guarda_y_null_es_false(
+    db: asyncpg.Connection, marcada: bool | None, guardada: bool
+) -> None:
+    correo = _correo()
+    await _registrar(db, p_correo=correo, p_sin_fines_comerciales=marcada)
+    assert (await _fila(db, correo))["sin_fines_comerciales"] is guardada
+
+
+async def test_sin_el_parametro_de_la_casilla_tambien_se_registra(db: asyncpg.Connection) -> None:
+    """El parámetro tiene default: una llamada sin él no rompe."""
+    correo = _correo()
+    await assume_anon(db)
+    await db.execute(
+        "select set_config('request.headers', $1, false)",
+        json.dumps({"cf-connecting-ip": _ip()}),
+    )
+    await db.execute(
+        "select public.registrar_diagnostico(p_nombre => 'Ana', p_empresa => 'ACME',"
+        " p_correo => $1, p_origen => null, p_utm_medium => null, p_utm_campaign => null,"
+        " p_respuestas => '{}', p_resultado => '{}', p_horas_recuperables_mes => 1,"
+        " p_turnstile_token => null)",
+        correo,
+    )
+    assert (await _fila(db, correo))["sin_fines_comerciales"] is False
 
 
 async def test_sin_utm_ni_token_tambien_se_registra(db: asyncpg.Connection) -> None:
@@ -223,7 +253,7 @@ async def test_la_tabla_no_esta_en_public(db: asyncpg.Connection) -> None:
 async def test_solo_anon_puede_ejecutar_la_rpc(db: asyncpg.Connection) -> None:
     firma = (
         "public.registrar_diagnostico(text, text, text, text, text, text, jsonb, jsonb,"
-        " numeric, text)"
+        " numeric, text, boolean)"
     )
     await _elevate(db)
     try:
@@ -239,7 +269,7 @@ async def test_solo_anon_puede_ejecutar_la_rpc(db: asyncpg.Connection) -> None:
     with pytest.raises(asyncpg.InsufficientPrivilegeError):
         await db.execute(
             f"select {firma.split('(')[0]}('a', 'b', 'c@d.test', null, null, null,"
-            " '{}', '{}', 1, null)"
+            " '{}', '{}', 1, null, false)"
         )
 
 
@@ -340,7 +370,7 @@ async def test_el_barrido_avisa_descarta_y_no_vuelve_a_tomar_lo_hecho(
 ) -> None:
     await _sin_pendientes(db)
     bueno, bot, agotado = _correo(), _correo(), _correo()
-    await _registrar(db, p_correo=bueno, p_turnstile_token="bueno")
+    await _registrar(db, p_correo=bueno, p_turnstile_token="bueno", p_sin_fines_comerciales=True)
     await _registrar(db, p_correo=bot, p_turnstile_token="bot")
     await _registrar(db, p_correo=agotado, p_turnstile_token="bueno")
     await _elevate(db)
@@ -361,6 +391,8 @@ async def test_el_barrido_avisa_descarta_y_no_vuelve_a_tomar_lo_hecho(
 
     assert (resultado.avisados, resultado.descartados) == (1, 1)
     assert bueno in correo.enviados[0].cuerpo
+    # El repositorio lee la casilla y el aviso la dice.
+    assert "Contacto comercial: NO" in correo.enviados[0].cuerpo
     fila_buena, fila_bot, fila_agotada = (
         await _fila(db, bueno),
         await _fila(db, bot),

@@ -51,6 +51,8 @@ class Diagnostico:
     turnstile_token: str | None
     #: Ya pasó Turnstile en un barrido anterior.
     verificado: bool
+    #: Marcó en el aviso de privacidad "No quiero que me contacten con fines comerciales".
+    sin_fines_comerciales: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +123,9 @@ def _detalle(diagnostico: Diagnostico) -> list[str]:
         f"Empresa: {una_linea(diagnostico.empresa)}",
         f"Nombre: {una_linea(diagnostico.nombre)}",
         f"Correo: {una_linea(diagnostico.correo, 254)}",
+        "Contacto comercial: NO (pidió que no lo contactemos con fines comerciales)"
+        if diagnostico.sin_fines_comerciales
+        else "Contacto comercial: sí",
         f"Origen: {origen or 'directo (sin utm)'}",
         f"Horas recuperables al mes: {_horas(diagnostico.horas_recuperables_mes)}",
     ]

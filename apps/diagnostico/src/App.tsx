@@ -1,7 +1,14 @@
 import { type FormEvent, useCallback, useMemo, useState } from "react";
 
 import { Constellation } from "./Constelacion";
-import { AVISO_COMPLETO, CONTACTO_PRIVACIDAD, RESPONSABLE, URL_AVISO_INTEGRAL } from "./aviso";
+import {
+  ASUNTO_NEGATIVA,
+  AVISO_COMPLETO,
+  CONTACTO_PRIVACIDAD,
+  DOMICILIO,
+  RESPONSABLE,
+  URL_AVISO_INTEGRAL,
+} from "./aviso";
 import {
   type Etapa,
   PORCENTAJE_RECUPERABLE,
@@ -260,6 +267,7 @@ function Datos({
   const [empresa, setEmpresa] = useState("");
   const [correo, setCorreo] = useState("");
   const [token, setToken] = useState<string | null>(null);
+  const [sinFinesComerciales, setSinFinesComerciales] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const onToken = useCallback((t: string | null) => setToken(t), []);
@@ -280,6 +288,7 @@ function Datos({
         respuestas,
         resultado,
         token,
+        sinFinesComerciales,
       );
       onListo();
     } catch (err) {
@@ -339,12 +348,36 @@ function Datos({
           error={correo.trim() !== "" && !correoOk ? "Revisa el correo." : undefined}
         />
         {SITE_KEY && <Turnstile siteKey={SITE_KEY} onToken={onToken} />}
+        <label className="flex items-start gap-3 text-sm text-ink-200">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-5 w-5 shrink-0 accent-aqua-500"
+            checked={sinFinesComerciales}
+            onChange={(e) => setSinFinesComerciales(e.target.checked)}
+          />
+          No quiero que me contacten con fines comerciales.
+        </label>
         <p
           className={`text-xs leading-relaxed ${AVISO_COMPLETO ? "text-ink-400" : "rounded-lg bg-flame-500/20 p-2 text-flame-300"}`}
         >
-          {RESPONSABLE} usará tu nombre, empresa y correo para enviarte este diagnóstico y
-          contactarte sobre él. No los compartimos con nadie. Para ejercer tus derechos ARCO escribe
-          a {CONTACTO_PRIVACIDAD}. Consulta el aviso de privacidad integral en {URL_AVISO_INTEGRAL}.
+          <strong>Aviso de privacidad simplificado.</strong> {RESPONSABLE}, con domicilio en{" "}
+          {DOMICILIO}, es responsable de tus datos: nombre, empresa y correo; tus respuestas; la IP
+          y datos del navegador, y el canal o campaña por el que llegaste. No recabamos datos
+          sensibles ni financieros. Los usamos para generar y mostrarte el diagnóstico y comprobar
+          que eres una persona (protección contra spam). Además, para contactarte sobre el
+          diagnóstico y ofrecerte servicios, enviarte información y contenidos, y medir por qué
+          canal llegaste. Si no quieres estos usos adicionales, marca la casilla o escribe a{" "}
+          {CONTACTO_PRIVACIDAD} con el asunto “{ASUNTO_NEGATIVA}”. Consulta el aviso de privacidad
+          integral en{" "}
+          <a
+            href={URL_AVISO_INTEGRAL}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline"
+          >
+            vectorhrtech.com/aviso-de-privacidad
+          </a>
+          .
         </p>
         {error && (
           <p role="alert" className="text-sm text-flame-300">

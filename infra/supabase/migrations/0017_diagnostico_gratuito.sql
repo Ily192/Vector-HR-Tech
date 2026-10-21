@@ -55,6 +55,9 @@ create table if not exists privado.diagnosticos (
     -- Turnstile: hasta 2048 caracteres. Vale una sola vez y 300 s; lo verifica el
     -- hr-engine antes de avisar.
     turnstile_token text check (char_length(turnstile_token) <= 2048),
+    -- La casilla del aviso de privacidad: "No quiero que me contacten con fines
+    -- comerciales". Sale en el aviso a Vector HR.
+    sin_fines_comerciales boolean not null default false,
     -- Lo pone el hr-engine al verificar el token (o al saltarse la verificación sin
     -- secreto). Hace falta guardarlo: un token verificado no se puede volver a verificar.
     verificado_en timestamptz,
@@ -91,7 +94,9 @@ create or replace function public.registrar_diagnostico(
         p_respuestas jsonb,
         p_resultado jsonb,
         p_horas_recuperables_mes numeric,
-        p_turnstile_token text
+        p_turnstile_token text,
+        -- Null cuenta como false: solo un sí explícito pide que no lo contacten.
+        p_sin_fines_comerciales boolean default false
     )
     returns void
     language plpgsql
@@ -142,18 +147,19 @@ begin
 
     insert into privado.diagnosticos
         (nombre, empresa, correo, origen, utm_medium, utm_campaign, respuestas, resultado,
-         horas_recuperables_mes, ip, turnstile_token)
+         horas_recuperables_mes, ip, turnstile_token, sin_fines_comerciales)
     values
         (v_nombre, v_empresa, v_correo, v_origen, v_utm_medium, v_utm_campaign, p_respuestas,
-         p_resultado, round(p_horas_recuperables_mes, 1), v_ip, v_token);
+         p_resultado, round(p_horas_recuperables_mes, 1), v_ip, v_token,
+         coalesce(p_sin_fines_comerciales, false));
 end;
 $$;
 
 revoke execute on function public.registrar_diagnostico(
-    text, text, text, text, text, text, jsonb, jsonb, numeric, text
+    text, text, text, text, text, text, jsonb, jsonb, numeric, text, boolean
 ) from public, anon, authenticated;
 grant execute on function public.registrar_diagnostico(
-    text, text, text, text, text, text, jsonb, jsonb, numeric, text
+    text, text, text, text, text, text, jsonb, jsonb, numeric, text, boolean
 ) to anon;
 
 commit;

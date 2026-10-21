@@ -52,6 +52,7 @@ describe("el diagnóstico", () => {
     await usuario.type(screen.getByLabelText("Tu nombre"), "Ana Pérez");
     await usuario.type(screen.getByLabelText("Empresa"), "Acme");
     await usuario.type(screen.getByLabelText("Correo de trabajo"), "Ana@Acme.mx");
+    await usuario.click(screen.getByLabelText(/no quiero que me contacten/i));
     await usuario.click(enviar);
 
     expect(await screen.findByRole("heading", { name: "Cómo lo calculamos" })).toBeInTheDocument();
@@ -69,6 +70,7 @@ describe("el diagnóstico", () => {
       p_utm_medium: "social",
       p_utm_campaign: "lanzamiento",
       p_turnstile_token: null,
+      p_sin_fines_comerciales: true,
     });
     expect(cuerpo.p_resultado.procesos[0].id).toBe("reclutamiento");
     expect(cuerpo.p_horas_recuperables_mes).toBe(cuerpo.p_resultado.horasRecuperablesMes);

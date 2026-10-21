@@ -32,6 +32,7 @@ class DiagnosticoRow:
     ip: str | None
     turnstile_token: str | None
     verificado: bool
+    sin_fines_comerciales: bool
 
 
 # `skip locked`: un barrido que corre a la vez no toma los mismos. El bloqueo dura
@@ -39,7 +40,7 @@ class DiagnosticoRow:
 _RECLAMAR = text(
     """
     select id, creado_en, nombre, empresa, correo, origen, utm_medium, utm_campaign,
-           horas_recuperables_mes, resultado, ip, turnstile_token,
+           horas_recuperables_mes, resultado, ip, turnstile_token, sin_fines_comerciales,
            verificado_en is not null as verificado
       from privado.diagnosticos
      where avisado_en is null

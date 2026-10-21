@@ -50,6 +50,7 @@ export async function enviarDiagnostico(
   respuestas: Respuestas,
   resultado: Resultado,
   turnstileToken: string | null,
+  sinFinesComerciales: boolean,
   fetcher: typeof fetch = fetch,
 ): Promise<void> {
   const respuesta = await fetcher("/api/diagnostico", {
@@ -66,6 +67,7 @@ export async function enviarDiagnostico(
       p_resultado: resultado,
       p_horas_recuperables_mes: resultado.horasRecuperablesMes,
       p_turnstile_token: turnstileToken,
+      p_sin_fines_comerciales: sinFinesComerciales,
     }),
   });
   if (!respuesta.ok) throw new ErrorDeEnvio(respuesta.status);

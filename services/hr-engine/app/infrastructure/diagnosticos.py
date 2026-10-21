@@ -51,6 +51,7 @@ class SqlRepositorioDeDiagnosticos:
                 ip=f.ip,
                 turnstile_token=f.turnstile_token,
                 verificado=f.verificado,
+                sin_fines_comerciales=f.sin_fines_comerciales,
             )
             for f in await diagnosticos_repo.reclamar(
                 self._db, limite=limite, max_intentos=MAX_INTENTOS_AVISO

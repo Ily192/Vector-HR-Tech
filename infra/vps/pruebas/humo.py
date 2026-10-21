@@ -187,6 +187,7 @@ def diagnostico() -> None:
             },
             "p_horas_recuperables_mes": 31.2,
             "p_turnstile_token": None,
+            "p_sin_fines_comerciales": True,
             **cambios,
         }
         # Una IP por petición: el freno por IP (5 en una hora) no entra en esta prueba.
@@ -232,8 +233,9 @@ def diagnostico() -> None:
                     f"aviso con asunto seguro: {mensaje['Subject']}",
                 )
                 ok(
-                    "1. Nómina (Automatizar): 31.2 h al mes" in cuerpo["Text"],
-                    f"el aviso llega a {para} con el top de procesos",
+                    "1. Nómina (Automatizar): 31.2 h al mes" in cuerpo["Text"]
+                    and "Contacto comercial: NO" in cuerpo["Text"],
+                    f"el aviso llega a {para} con el top de procesos y la casilla de contacto",
                 )
                 return
         time.sleep(2)
