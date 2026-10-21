@@ -63,6 +63,7 @@ OBLIGATORIOS = (
     "DOMINIO_EMPLEOS",
     "DOMINIO_PANEL",
     "DOMINIO_API",
+    "DOMINIO_DIAGNOSTICO",
     "SMTP_ADMIN_EMAIL",
     "SMTP_SENDER_NAME",
     "ASUNTO_INVITACION",
@@ -164,7 +165,7 @@ def problemas(valores: dict[str, str], produccion: bool) -> list[str]:
     for nombre, rol in CLAVES.items():
         if valores.get(nombre) and secreto and rol_si_es_valida(valores[nombre], secreto) != rol:
             lista.append(f"{nombre} no está firmada con JWT_SECRET para el rol {rol}")
-    for nombre in ("DOMINIO_EMPLEOS", "DOMINIO_PANEL", "DOMINIO_API"):
+    for nombre in ("DOMINIO_EMPLEOS", "DOMINIO_PANEL", "DOMINIO_API", "DOMINIO_DIAGNOSTICO"):
         # Con puerto solo en la prueba local (localhost:8080).
         if valores.get(nombre) and not re.fullmatch(r"[a-z0-9.-]+(:[0-9]{2,5})?", valores[nombre]):
             lista.append(f"{nombre} tiene que ser solo el dominio, sin https:// ni barras")

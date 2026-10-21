@@ -1,5 +1,5 @@
-"""Puertos de la evaluación, de la coincidencia de skills y del alta de empresas: lo que el
-dominio necesita del mundo exterior.
+"""Puertos de la evaluación, de la coincidencia de skills, del alta de empresas y del aviso
+de los diagnósticos gratuitos: lo que el dominio necesita del mundo exterior.
 
 Los implementan los adaptadores de infraestructura (SQL, OpenAI, Gemini) y, en
 los tests, adaptadores falsos. El dominio solo conoce estas firmas.
@@ -12,6 +12,7 @@ from uuid import UUID
 
 from app.domain.alta import SolicitudDeAlta
 from app.domain.anonimizacion import CvAnonimo
+from app.domain.diagnostico import CorreoSaliente, Diagnostico
 from app.domain.entidades import (
     AplicacionPorEvaluar,
     Candidato,
@@ -216,4 +217,56 @@ class ServicioDeInvitaciones(Protocol):
 
     async def reenviar(self, correo: str) -> None:
         """Vuelve a mandar el correo a una cuenta que todavía no entra."""
+        ...
+
+
+# ─── Aviso de los diagnósticos gratuitos (migración 0017) ────────────────────
+
+
+class VerificadorNoDisponibleError(RuntimeError):
+    """Turnstile no responde. El diagnóstico espera al siguiente barrido."""
+
+
+class CorreoNoEnviadoError(RuntimeError):
+    """El SMTP no aceptó el correo: caído, sin credenciales válidas o lo rechazó."""
+
+
+class VerificadorHumano(Protocol):
+    """Cloudflare Turnstile. Solo del lado del servidor: lleva la clave secreta."""
+
+    async def verificar(self, token: str | None, ip: str | None) -> bool:
+        """Si el token es válido. Lanza `VerificadorNoDisponibleError` si no se pudo saber."""
+        ...
+
+
+class ServicioDeCorreo(Protocol):
+    async def enviar(self, correo: CorreoSaliente) -> None:
+        """Lanza `CorreoNoEnviadoError` si no salió."""
+        ...
+
+
+class RepositorioDeDiagnosticos(Protocol):
+    """Los diagnósticos de `privado.diagnosticos`, con el rol dueño de la base."""
+
+    async def reclamar(self, limite: int) -> list[Diagnostico]:
+        """Hasta `limite` sin avisar ni descartar, con intentos libres y del más viejo al
+        más nuevo. Ningún otro barrido los toma mientras."""
+        ...
+
+    async def avisados_hoy(self) -> int:
+        """Los avisados desde la medianoche (UTC), con detalle o sin él."""
+        ...
+
+    async def marcar_verificado(self, diagnostico: Diagnostico) -> None: ...
+
+    async def descartar(self, diagnostico: Diagnostico) -> None:
+        """No pasó Turnstile: no se avisa nunca."""
+        ...
+
+    async def marcar_avisados(self, diagnosticos: list[Diagnostico]) -> None: ...
+
+    async def sumar_intento(self, diagnosticos: list[Diagnostico]) -> None: ...
+
+    async def confirmar(self) -> None:
+        """Confirma lo escrito en el barrido y suelta los diagnósticos reclamados."""
         ...

@@ -1,5 +1,5 @@
-# Contexto de infra/vps/caddy/Dockerfile (la raíz del monorepo): lo que pide el build
-# del panel y las plantillas de correo, nada más.
+# Contexto de infra/vps/caddy/Dockerfile (la raíz del monorepo): lo que piden los builds
+# del panel y del diagnóstico y las plantillas de correo, nada más.
 *
 !package.json
 !pnpm-lock.yaml
@@ -8,6 +8,7 @@
 !apps/*/package.json
 !packages/*/package.json
 !apps/hrbp
+!apps/diagnostico
 !packages/design-tokens
 !packages/supabase-client
 !packages/types

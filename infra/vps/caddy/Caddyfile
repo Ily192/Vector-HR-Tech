@@ -1,4 +1,5 @@
-# Caddy en el VPS (ADR-020): sirve el panel y reparte lo demás por dominio.
+# Caddy en el VPS (ADR-020): sirve el panel y el diagnóstico, y reparte lo demás por
+# dominio.
 #
 # Todo llega por Cloudflare Tunnel (cloudflared → http://caddy:80). Cloudflare termina
 # el TLS, así que aquí todo es HTTP y no hay certificados que renovar. Los dominios
@@ -48,6 +49,55 @@ http://{$DOMINIO_PANEL} {
 	try_files {path} /index.html
 	header /index.html Cache-Control "no-cache"
 	file_server
+}
+
+# Diagnóstico gratuito de vectorhrtech.com: la SPA de Vite, estática, y su único
+# endpoint en el mismo dominio. Así el navegador no necesita la URL de la API ni la
+# clave pública, y la CSP no conecta con nada más que Turnstile.
+http://{$DOMINIO_DIAGNOSTICO} {
+	import comunes
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Frame-Options DENY
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Turnstile carga su script y su iframe de challenges.cloudflare.com. Figtree
+		# viene de Google Fonts, y 'unsafe-inline' en estilos es por los `style` de React.
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	}
+
+	# POST con los parámetros de registrar_diagnostico (migración 0017) como JSON. Caddy
+	# pone la clave pública; los frenos están en la base y en el WAF de Cloudflare
+	# (runbook). CF-Connecting-IP pasa tal cual: la RPC la lee para su freno por IP.
+	handle /api/diagnostico {
+		@no_post not method POST
+		handle @no_post {
+			header Allow POST
+			respond 405
+		}
+		request_body {
+			max_size 32KB
+		}
+		# Sin query string: el único endpoint es la RPC, sin `select` ni filtros.
+		rewrite * /rest/v1/rpc/registrar_diagnostico?
+		reverse_proxy api-gw:8000 {
+			header_up apikey {$ANON_KEY}
+			header_up Authorization "Bearer {$ANON_KEY}"
+			# Lo que podría cambiar cómo responde PostgREST: el esquema o la respuesta.
+			header_up -Prefer
+			header_up -Accept-Profile
+			header_up -Content-Profile
+			header_up -Cookie
+		}
+	}
+
+	handle {
+		root * /srv/diagnostico
+		@hasheados path /assets/*
+		header @hasheados Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		header /index.html Cache-Control "no-cache"
+		file_server
+	}
 }
 
 # API de Supabase. Solo las rutas que usan el panel, el career site y el hr-engine: el

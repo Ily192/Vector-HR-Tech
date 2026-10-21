@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from uuid import UUID, uuid4
 
 from app.domain.anonimizacion import CvAnonimo
+from app.domain.diagnostico import CorreoSaliente, Diagnostico
 from app.domain.entidades import (
     AplicacionPorEvaluar,
     Candidato,
@@ -22,8 +23,10 @@ from app.domain.entidades import (
 )
 from app.domain.puertos import (
     AlmacenNoDisponibleError,
+    CorreoNoEnviadoError,
     CvInaccesibleError,
     ProveedorNoDisponibleError,
+    VerificadorNoDisponibleError,
 )
 
 
@@ -241,3 +244,70 @@ class EvaluadorFalso:
             return ResultadoScoring(fit=self.fit, cost_usd=self.costo_usd, model=self.model)
         finally:
             self.en_curso -= 1
+
+
+# ─── Aviso de los diagnósticos gratuitos ──────────────────────────────────────
+
+
+@dataclass
+class RepositorioDeDiagnosticosEnMemoria:
+    """`RepositorioDeDiagnosticos` sobre una lista; `reclamar` devuelve los pendientes."""
+
+    diagnosticos: list[Diagnostico] = field(default_factory=list)
+    avisados_antes_hoy: int = 0
+    verificados: list[UUID] = field(default_factory=list)
+    descartados: list[UUID] = field(default_factory=list)
+    avisados: list[UUID] = field(default_factory=list)
+    intentos: dict[UUID, int] = field(default_factory=dict)
+    confirmaciones: int = 0
+
+    async def reclamar(self, limite: int) -> list[Diagnostico]:
+        hechos = set(self.descartados) | set(self.avisados)
+        return [d for d in self.diagnosticos if d.id not in hechos][:limite]
+
+    async def avisados_hoy(self) -> int:
+        return self.avisados_antes_hoy + len(self.avisados)
+
+    async def marcar_verificado(self, diagnostico: Diagnostico) -> None:
+        self.verificados.append(diagnostico.id)
+
+    async def descartar(self, diagnostico: Diagnostico) -> None:
+        self.descartados.append(diagnostico.id)
+
+    async def marcar_avisados(self, diagnosticos: list[Diagnostico]) -> None:
+        self.avisados += [d.id for d in diagnosticos]
+
+    async def sumar_intento(self, diagnosticos: list[Diagnostico]) -> None:
+        for d in diagnosticos:
+            self.intentos[d.id] = self.intentos.get(d.id, 0) + 1
+
+    async def confirmar(self) -> None:
+        self.confirmaciones += 1
+
+
+@dataclass
+class VerificadorFalso:
+    """`VerificadorHumano`: valen los tokens de `validos`. Con `disponible=False`, caído."""
+
+    validos: set[str] = field(default_factory=set)
+    disponible: bool = True
+    tokens: list[str | None] = field(default_factory=list)
+
+    async def verificar(self, token: str | None, ip: str | None) -> bool:
+        self.tokens.append(token)
+        if not self.disponible:
+            raise VerificadorNoDisponibleError("Turnstile caído (falso)")
+        return token in self.validos
+
+
+@dataclass
+class CorreoFalso:
+    """`ServicioDeCorreo` que guarda lo enviado. Con `disponible=False`, el SMTP falla."""
+
+    disponible: bool = True
+    enviados: list[CorreoSaliente] = field(default_factory=list)
+
+    async def enviar(self, correo: CorreoSaliente) -> None:
+        if not self.disponible:
+            raise CorreoNoEnviadoError("SMTP caído (falso)")
+        self.enviados.append(correo)

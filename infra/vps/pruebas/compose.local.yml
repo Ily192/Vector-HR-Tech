@@ -3,15 +3,25 @@
 #
 # Construye las imágenes en local en vez de bajarlas de GHCR, cambia Resend por Mailpit
 # y R2 por un S3 local (RustFS, el que usa el Supabase autoalojado en sus pruebas), no
-# levanta el túnel, y publica en 127.0.0.1 los tres sitios de Caddy con los dominios de
-# la prueba: localhost:8080 (career site), :8081 (panel) y :8082 (API), más Mailpit en
-# :8025. Con `localhost` y puerto, y no `*.localhost`, porque Node y Python no resuelven
-# subdominios de localhost en Windows y el e2e llama a la API desde Node.
+# levanta el túnel, y publica en 127.0.0.1 los cuatro sitios de Caddy con los dominios
+# de la prueba: localhost:8080 (career site), :8081 (panel), :8082 (API) y :8083
+# (diagnóstico), más Mailpit en :8025. Con `localhost` y puerto, y no `*.localhost`,
+# porque Node y Python no resuelven subdominios de localhost en Windows y el e2e llama a
+# la API desde Node. El hr-engine también avisa de los diagnósticos a Mailpit.
 
-x-cors-de-prueba: &cors-de-prueba
+x-hr-engine-de-prueba: &hr-engine-de-prueba
   # El hr-engine en producción rechaza CORS con localhost (app/config.py). Nadie lo llama
   # desde el navegador, así que en la prueba basta un origen cualquiera.
   CORS_ALLOW_ORIGINS: https://panel.prueba-local.invalid
+  # El aviso de los diagnósticos, a Mailpit: sin TLS ni usuario. La clave no se usa, pero
+  # sin ella el worker no avisa (como en producción sin SMTP_PASS).
+  SMTP_HOST: mailpit
+  SMTP_PORT: 1025
+  SMTP_USER: ""
+  SMTP_PASS: mailpit-sin-clave
+  SMTP_STARTTLS: "false"
+  # Sin Turnstile en la prueba: el worker avisa sin verificar.
+  TURNSTILE_SECRET_KEY: ""
 
 services:
   hr-engine-api:
@@ -20,13 +30,16 @@ services:
       context: ../../services/hr-engine
       additional_contexts:
         skills: ../../.agents/skills
-    environment: *cors-de-prueba
+    environment: *hr-engine-de-prueba
   hr-engine-worker:
     image: vortex-local/hr-engine:prueba
-    environment: *cors-de-prueba
+    environment: *hr-engine-de-prueba
+    depends_on:
+      mailpit:
+        condition: service_started
   hr-engine-beat:
     image: vortex-local/hr-engine:prueba
-    environment: *cors-de-prueba
+    environment: *hr-engine-de-prueba
 
   career-site:
     image: vortex-local/career-site:prueba
@@ -45,11 +58,14 @@ services:
       args:
         VITE_SUPABASE_URL: http://${DOMINIO_API}
         VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
+        # Sin widget de Turnstile en la prueba.
+        VITE_TURNSTILE_SITE_KEY: ""
     networks: [borde, datos, local]
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8081:8081
       - 127.0.0.1:8082:8082
+      - 127.0.0.1:8083:8083
 
   cloudflared:
     profiles: [nunca]

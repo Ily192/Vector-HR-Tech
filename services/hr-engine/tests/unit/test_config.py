@@ -101,3 +101,40 @@ def test_log_level_acepta_mayusculas(valor: str) -> None:
 def test_log_level_desconocido_sigue_fallando() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, log_level="verbose")  # type: ignore[arg-type]
+
+
+def test_el_smtp_del_aviso_lee_las_variables_del_stack(monkeypatch: pytest.MonkeyPatch) -> None:
+    """El hr-engine usa las mismas variables que Auth en compose.yml: el remitente es
+    SMTP_ADMIN_EMAIL, no una variable nueva."""
+    for nombre, valor in {
+        "SMTP_HOST": "smtp.resend.com",
+        "SMTP_PORT": "2587",
+        "SMTP_USER": "resend",
+        "SMTP_PASS": "re_clave",
+        "SMTP_ADMIN_EMAIL": "no-responder@vectorhrtech.com",
+        "AVISO_DIAGNOSTICOS_PARA": "ventas@vectorhrtech.com",
+        "AVISO_DIAGNOSTICOS_MAX_DIA": "5",
+        "TURNSTILE_SECRET_KEY": "0x-secreto",
+    }.items():
+        monkeypatch.setenv(nombre, valor)
+    monkeypatch.delenv("SMTP_REMITENTE", raising=False)
+    s = Settings(_env_file=None)
+    assert (s.smtp_host, s.smtp_port, s.smtp_user, s.smtp_pass) == (
+        "smtp.resend.com",
+        2587,
+        "resend",
+        "re_clave",
+    )
+    assert s.smtp_remitente == "no-responder@vectorhrtech.com"
+    assert s.smtp_starttls is True
+    assert (s.aviso_diagnosticos_para, s.aviso_diagnosticos_max_dia) == (
+        "ventas@vectorhrtech.com",
+        5,
+    )
+    assert s.turnstile_secret_key == "0x-secreto"
+
+
+def test_el_aviso_va_a_hola_por_omision() -> None:
+    s = Settings(_env_file=None)
+    assert s.aviso_diagnosticos_para == "hola@vectorhrtech.com"
+    assert (s.smtp_host, s.smtp_port, s.smtp_user) == ("smtp.resend.com", 2587, "resend")

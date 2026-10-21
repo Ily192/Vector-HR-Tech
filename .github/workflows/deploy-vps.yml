@@ -45,15 +45,17 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      # El panel y el career site llevan sus URLs y la clave pública dentro del build.
+      # El panel y el career site llevan sus URLs y la clave pública dentro del build. El
+      # diagnóstico no lleva su dominio, pero se comprueba desde internet al final.
       - name: Comprobar las variables
         env:
           DOMINIO_EMPLEOS: ${{ vars.DOMINIO_EMPLEOS }}
           DOMINIO_PANEL: ${{ vars.DOMINIO_PANEL }}
           DOMINIO_API: ${{ vars.DOMINIO_API }}
+          DOMINIO_DIAGNOSTICO: ${{ vars.DOMINIO_DIAGNOSTICO }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
         run: |
-          for nombre in DOMINIO_EMPLEOS DOMINIO_PANEL DOMINIO_API SUPABASE_ANON_KEY; do
+          for nombre in DOMINIO_EMPLEOS DOMINIO_PANEL DOMINIO_API DOMINIO_DIAGNOSTICO SUPABASE_ANON_KEY; do
             if [ -z "${!nombre}" ]; then
               echo "::error::Falta la variable $nombre (Settings → Secrets and variables → Actions → Variables)."
               exit 1
@@ -81,6 +83,7 @@ jobs:
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TURNSTILE_SITE_KEY }}
             VITE_SUPABASE_URL=https://${{ vars.DOMINIO_API }}
             VITE_SUPABASE_ANON_KEY=${{ vars.SUPABASE_ANON_KEY }}
+            VITE_TURNSTILE_SITE_KEY=${{ vars.TURNSTILE_SITE_KEY }}
           # Liga el paquete de GHCR al repo, para que el GITHUB_TOKEN pueda bajarlo.
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           push: true
@@ -133,8 +136,9 @@ jobs:
           DOMINIO_EMPLEOS: ${{ vars.DOMINIO_EMPLEOS }}
           DOMINIO_PANEL: ${{ vars.DOMINIO_PANEL }}
           DOMINIO_API: ${{ vars.DOMINIO_API }}
+          DOMINIO_DIAGNOSTICO: ${{ vars.DOMINIO_DIAGNOSTICO }}
         run: |
-          for url in "https://$DOMINIO_PANEL/" "https://$DOMINIO_EMPLEOS/" "https://$DOMINIO_API/salud/hr-engine"; do
+          for url in "https://$DOMINIO_PANEL/" "https://$DOMINIO_EMPLEOS/" "https://$DOMINIO_DIAGNOSTICO/" "https://$DOMINIO_API/salud/hr-engine"; do
             curl -fsS -o /dev/null --retry 5 --retry-delay 5 --retry-all-errors "$url"
             echo "ok $url"
           done

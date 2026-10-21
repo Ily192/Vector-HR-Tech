@@ -4,7 +4,8 @@
 #
 #   1. genera un .env de prueba con scripts/generar_secretos.py --local;
 #   2. construye las imágenes y levanta todo con scripts/levantar.sh;
-#   3. da de alta una empresa con el comando del hr-engine, y humo.py revisa el borde;
+#   3. da de alta una empresa con el comando del hr-engine, y humo.py revisa el borde y
+#      el diagnóstico gratuito (registrar uno y que su aviso llegue a Mailpit);
 #   4. corre contra el stack el e2e del plan gratis (`E2E_REMOTO=1 pnpm e2e:flujo`,
 #      packages/e2e): invitación, vacante, 7 aplicaciones con CV, el worker del stack,
 #      el gancho, el .zip y eliminar;
@@ -14,7 +15,7 @@
 #
 #   infra/vps/pruebas/probar_en_local.sh       (con Docker en marcha, y pnpm y uv)
 #
-# Usa el proyecto de compose `vortex-prueba` y 127.0.0.1:8080-8082 y :8025; no toca el
+# Usa el proyecto de compose `vortex-prueba` y 127.0.0.1:8080-8083 y :8025; no toca el
 # Supabase del CLI (54321-54324). VORTEX_CONSERVAR=1 deja el stack arriba al terminar.
 set -Eeuo pipefail
 export MSYS_NO_PATHCONV=1
@@ -55,6 +56,7 @@ cat >"$VORTEX_ENV" <<EOF
 DOMINIO_EMPLEOS=localhost:8080
 DOMINIO_PANEL=localhost:8081
 DOMINIO_API=localhost:8082
+DOMINIO_DIAGNOSTICO=localhost:8083
 ESQUEMA_PUBLICO=http
 SMTP_ADMIN_EMAIL=no-responder@vortex.test
 RESTIC_REPOSITORY=s3:http://s3:9000/respaldos
@@ -92,6 +94,7 @@ correo="rh-$(date +%s)@andes.test"
 compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 	--empresa "Andes Logística" --correo "$correo" --nombre "Mariana Ruiz" --tamano 35
 humo borde "$correo"
+humo diagnostico
 log "e2e del plan gratis contra el stack"
 e2e
 

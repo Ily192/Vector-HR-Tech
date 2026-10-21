@@ -1,7 +1,7 @@
 # Runbook · VPS en DigitalOcean
 
 Toda la plataforma en un solo servidor (ADR-020): Supabase autoalojado, el hr-engine, el
-career site y el panel, con Docker Compose. El stack vive en `infra/vps/` y se prueba
+career site, el panel y el diagnóstico gratuito de vectorhrtech.com, con Docker Compose. El stack vive en `infra/vps/` y se prueba
 entero en local antes de llevar un cambio al servidor (`infra/vps/pruebas/probar_en_local.sh`).
 
 Costo con precios del 2026-10-20: el droplet de 4 GB cuesta US$24 al mes, el respaldo
@@ -19,9 +19,9 @@ mientras el volumen sea el del MVP. Total: unos US$31 al mes.
 | `storage` | Storage de Supabase; los CVs en el volumen `storage` | no |
 | `api-gw` | Envoy, el gateway del Supabase autoalojado: valida la apikey | no |
 | `redis` | Cola de Celery, con contraseña | no |
-| `hr-engine-api`, `hr-engine-worker`, `hr-engine-beat` | FastAPI, el worker y **un solo** beat | sí (proveedores de IA, Sentry) |
+| `hr-engine-api`, `hr-engine-worker`, `hr-engine-beat` | FastAPI, el worker y **un solo** beat | sí (proveedores de IA, Sentry, Turnstile y el SMTP de Resend para el aviso de los diagnósticos) |
 | `career-site` | Next.js en modo `standalone` | sí (Turnstile) |
-| `caddy` | Sirve el panel (estático) y reparte por dominio | no |
+| `caddy` | Sirve el panel y el diagnóstico (estáticos) y reparte por dominio | no |
 | `cloudflared` | Cloudflare Tunnel: la única entrada desde internet | sí |
 
 - **No se publica ningún puerto en el host.** El túnel sale hacia Cloudflare. El Cloud
@@ -37,13 +37,32 @@ mientras el volumen sea el del MVP. Total: unos US$31 al mes.
 - **Studio no pasa por el gateway ni por Caddy:** desde internet, `/`, `/pg/` y lo demás
   dan 404.
 
-Por dominio (los tres en el `.env` y en las variables de GitHub):
+Por dominio (los cuatro en el `.env` y en las variables de GitHub):
 
 | Dominio | Qué sirve Caddy |
 |---|---|
 | `DOMINIO_EMPLEOS` | El career site |
 | `DOMINIO_PANEL` | El panel de la empresa |
 | `DOMINIO_API` | Solo `/auth/v1`, `/rest/v1`, `/storage/v1` y `/salud/hr-engine` (para el monitoreo) |
+| `DOMINIO_DIAGNOSTICO` | El diagnóstico gratuito (estático) y su único endpoint, `POST /api/diagnostico`, que Caddy reenvía a la RPC `registrar_diagnostico` (migración 0017) con la clave pública |
+
+**El diagnóstico gratuito** (p. ej. `diagnostico.vectorhrtech.com`):
+
+- El navegador solo habla con su propio dominio y con Turnstile: no conoce la URL de la
+  API ni la clave pública, y su CSP no le deja conectar con nada más.
+- Cada diagnóstico queda en `privado.diagnosticos`, que nadie puede leer por la API. Se
+  ven en Studio (perfil `admin`).
+- La base frena 3 por correo y 5 por IP en una hora, y 300 en 24 horas (responde 429).
+  Encima va la regla del WAF de Cloudflare (paso 5, Cloudflare).
+- El hr-engine (`diagnosticos.avisar`, cada minuto) verifica el token de Turnstile, que
+  dura 300 s, descarta los que no pasan y manda **un** correo de resumen a
+  `AVISO_DIAGNOSTICOS_PARA` (por omisión `hola@vectorhrtech.com`) por el mismo Resend que
+  Auth. Resend gratis da 100 correos al día para los dos, así que el detalle llega hasta
+  `AVISO_DIAGNOSTICOS_MAX_DIA` diagnósticos al día (20 por omisión) y los demás van en
+  una línea: "y N diagnósticos más (revísalos en la base)".
+- Sin `SMTP_PASS` no se avisa, y sin `TURNSTILE_SECRET_KEY` no se verifica; los dos
+  quedan en `vortex logs hr-engine-worker` en cada barrido. Si un correo falla, se
+  reintenta cada minuto hasta 5 veces; después el diagnóstico sigue en la base sin avisar.
 
 ## Antes de empezar
 
@@ -142,15 +161,28 @@ Para la consola de emergencia de DigitalOcean (Recovery Console), que sí pide c
      `vortex`.
    - Elegir **Docker** y copiar solo el token del comando: va en
      `CLOUDFLARE_TUNNEL_TOKEN`. No hay que correr el comando; lo hace compose.
-   - En **Routes → Add route → Published application**, tres rutas, todas con Service
-     URL `http://caddy:80`: el subdominio del career site, el del panel y el de la API.
+   - En **Routes → Add route → Published application**, cuatro rutas, todas con Service
+     URL `http://caddy:80`: el subdominio del career site, el del panel, el de la API y el
+     del diagnóstico (`diagnostico.vectorhrtech.com → http://caddy:80`).
    - En DNS, cada uno tiene que quedar como CNAME a `<id>.cfargotunnel.com`, con la nube
      naranja (Proxied). Si no apareció solo, se crea a mano.
    ([docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/))
 3. **SSL/TLS:** activar *Always Use HTTPS*.
-4. **Turnstile:** un widget para el dominio del career site. La *site key* (pública) va
-   en la variable de GitHub `TURNSTILE_SITE_KEY` y la *secret key* en `TURNSTILE_SECRET_KEY`.
-5. **R2:**
+4. **Turnstile:** un widget con los hostnames del career site y del diagnóstico. La
+   *site key* (pública) va en la variable de GitHub `TURNSTILE_SITE_KEY` y la *secret key*
+   en `TURNSTILE_SECRET_KEY`; las dos sirven a los dos sitios.
+5. **WAF, rate limiting del diagnóstico:** Security → WAF → **Rate limiting rules** →
+   *Create rule*, nombre `diagnostico`:
+   - *If incoming requests match:* `(http.host eq "diagnostico.vectorhrtech.com" and
+     http.request.uri.path eq "/api/diagnostico")`;
+   - *With the same characteristics:* IP;
+   - *When rate exceeds:* 3 peticiones en 10 segundos;
+   - *Then take action:* Block, por 10 segundos.
+
+   El plan Free solo deja una regla, con ventana y bloqueo de 10 s
+   ([docs](https://developers.cloudflare.com/waf/rate-limiting-rules/)). Corta las ráfagas
+   antes de que lleguen al servidor; los frenos por hora y por día están en la base.
+6. **R2:**
    - Un bucket `vortex-respaldos`, sin acceso público.
    - *Manage API tokens* → un token con **Object Read & Write solo sobre ese bucket**. Da
      un *Access Key ID* y un *Secret Access Key* (`R2_ACCESS_KEY_ID` y
@@ -169,9 +201,12 @@ Para la consola de emergencia de DigitalOcean (Recovery Console), que sí pide c
 ### 7. El `.env` del servidor y GitHub
 
 1. **Llenar lo que falta:** `sudo nano /opt/vortex/.env`. Lo que va a mano:
-   - los tres `DOMINIO_*`;
-   - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado);
+   - los cuatro `DOMINIO_*`;
+   - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado). El hr-engine
+     los usa también para el aviso de los diagnósticos;
    - `CLOUDFLARE_TUNNEL_TOKEN` y `TURNSTILE_SECRET_KEY`;
+   - si hace falta cambiarlos: `AVISO_DIAGNOSTICOS_PARA` (a quién llega el aviso, por
+     omisión `hola@vectorhrtech.com`) y `AVISO_DIAGNOSTICOS_MAX_DIA` (20);
    - `RESTIC_REPOSITORY`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`;
    - `GOOGLE_API_KEY`, la key de Gemini del **nivel de pago**, para la evaluación con IA
      (ADR-021). Sin ella, las aplicaciones de las empresas con IA esperan;
@@ -182,7 +217,8 @@ Para la consola de emergencia de DigitalOcean (Recovery Console), que sí pide c
 3. **Guardar `RESTIC_PASSWORD` en el gestor de contraseñas**, junto con la llave de R2:
    `sudo grep ^RESTIC_PASSWORD= /opt/vortex/.env`. Sin eso no se restaura nada.
 4. **GitHub → Settings → Secrets and variables → Actions → Variables:**
-   - `DOMINIO_EMPLEOS`, `DOMINIO_PANEL` y `DOMINIO_API`: los mismos del `.env`.
+   - `DOMINIO_EMPLEOS`, `DOMINIO_PANEL`, `DOMINIO_API` y `DOMINIO_DIAGNOSTICO`: los
+     mismos del `.env`.
    - `SUPABASE_ANON_KEY`: la salida de
      `sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-publica /opt/vortex/.env`.
      Es pública: va en el navegador.
@@ -203,7 +239,7 @@ Actions → **Deploy VPS (DigitalOcean)** → *Run workflow* desde `main`.
     `vortex-caddy`, etiquetadas con el commit);
   - entra por SSH y corre `scripts/levantar.sh`: la base, Auth y Storage, las migraciones
     que falten (`scripts/migrar.sh`) y el resto;
-  - comprueba los tres dominios desde internet.
+  - comprueba los cuatro dominios desde internet.
 - **Seguridad:**
   - el servidor baja las imágenes con el `GITHUB_TOKEN` del job, que caduca al terminar;
   - en el servidor no queda ningún token de GitHub;

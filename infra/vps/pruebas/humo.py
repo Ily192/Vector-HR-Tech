@@ -1,6 +1,7 @@
 """Lo que el e2e del plan gratis no ve del stack del VPS (pruebas/probar_en_local.sh).
 
     python humo.py <.env de prueba> borde
+    python humo.py <.env de prueba> diagnostico
     python humo.py <.env de prueba> foto <estado.json>
     python humo.py <.env de prueba> comparar <estado.json>
 
@@ -12,6 +13,12 @@
   - el panel es una SPA con caché larga en sus assets;
   - Auth usa las plantillas en español, que sirve Caddy (la del enlace mágico, en
     Mailpit).
+- `diagnostico`: el diagnóstico gratuito (migración 0017):
+  - la SPA con su CSP, y /api/diagnostico solo con POST;
+  - registra por /api/diagnostico, que Caddy reenvía a la RPC con la clave pública;
+  - anon no lee la tabla, ni por la API ni pidiendo el esquema `privado`;
+  - lo inválido es 400 y el cuarto del mismo correo en una hora, 429;
+  - el aviso llega a Mailpit (el beat del stack, cada minuto).
 - `foto` y `comparar`: lo que tiene que volver igual después de restaurar el respaldo.
   Son los conteos de empresas, cuentas, vacantes, aplicaciones y CVs, y un CV byte a
   byte.
@@ -49,6 +56,7 @@ for linea in pathlib.Path(sys.argv[1]).read_text("utf-8").splitlines():
 ANON, SERVICIO = env["ANON_KEY"], env["SERVICE_ROLE_KEY"]
 API = f"http://{env['DOMINIO_API']}"
 PANEL = f"http://{env['DOMINIO_PANEL']}"
+DIAGNOSTICO = f"http://{env['DOMINIO_DIAGNOSTICO']}"
 http = httpx.Client(timeout=30, headers={"CF-Connecting-IP": IP_DE_PRUEBA})
 servicio = {"apikey": SERVICIO, "Authorization": f"Bearer {SERVICIO}"}
 
@@ -137,6 +145,101 @@ def plantilla(correo: str) -> None:
     ok(False, f"llega el enlace mágico a {correo}")
 
 
+def diagnostico() -> None:
+    r = http.get(f"{DIAGNOSTICO}/")
+    ok(r.status_code == 200 and 'id="root"' in r.text, "diagnóstico servido por Caddy")
+    csp = r.headers.get("content-security-policy", "")
+    ok(
+        "connect-src 'self' https://challenges.cloudflare.com" in csp,
+        "con CSP: solo conecta con su dominio y Turnstile",
+        csp,
+    )
+    r = http.get(f"{DIAGNOSTICO}/una-ruta-de-la-spa")
+    ok(r.status_code == 200 and 'id="root"' in r.text, "las rutas de la SPA caen en index.html")
+    r = http.get(f"{DIAGNOSTICO}/api/diagnostico")
+    ok(r.status_code == 405, "/api/diagnostico solo acepta POST", r.status_code)
+
+    marca = f"Humo {uuid.uuid4().hex[:8]}"
+    correo = f"prospecto-{uuid.uuid4().hex[:8]}@humo.test"
+
+    def registrar(**cambios: object) -> httpx.Response:
+        cuerpo = {
+            "p_nombre": "Mariana Ruiz",
+            "p_empresa": marca,
+            "p_correo": correo,
+            "p_origen": "linkedin",
+            "p_utm_medium": "cpc",
+            "p_utm_campaign": "humo",
+            "p_respuestas": {"p1": "a"},
+            "p_resultado": {
+                "version": 1,
+                "procesos": [
+                    {
+                        "id": "nomina",
+                        "nombre": "Nómina",
+                        "horasSemana": 12,
+                        "etapa": "Automatizar",
+                        "horasRecuperablesMes": 31.2,
+                    }
+                ],
+                "horasRecuperablesMes": 31.2,
+                "horasRecuperablesAnio": 374.4,
+            },
+            "p_horas_recuperables_mes": 31.2,
+            "p_turnstile_token": None,
+            **cambios,
+        }
+        # Una IP por petición: el freno por IP (5 en una hora) no entra en esta prueba.
+        ip = f"198.51.100.{uuid.uuid4().int % 250 + 1}"
+        return http.post(
+            f"{DIAGNOSTICO}/api/diagnostico", json=cuerpo, headers={"CF-Connecting-IP": ip}
+        )
+
+    enviado = time.time()
+    r = registrar()
+    ok(r.status_code in (200, 204), "anon registra un diagnóstico por /api/diagnostico", r.text)
+    r = registrar(p_correo="no-es-un-correo")
+    ok(r.status_code == 400, "un diagnóstico inválido es 400", (r.status_code, r.text[:120]))
+    for _ in range(2):
+        registrar()
+    r = registrar()
+    ok(r.status_code == 429, "el cuarto del mismo correo en una hora es 429", r.status_code)
+
+    anon = {"apikey": ANON, "Authorization": f"Bearer {ANON}"}
+    r = http.get(f"{API}/rest/v1/diagnosticos", headers=anon)
+    ok(r.status_code >= 400 and marca not in r.text, "anon no lee los diagnósticos", r.status_code)
+    r = http.get(f"{API}/rest/v1/diagnosticos", headers={**anon, "Accept-Profile": "privado"})
+    ok(
+        r.status_code >= 400 and marca not in r.text,
+        "ni pidiendo el esquema privado",
+        r.status_code,
+    )
+
+    para = env.get("AVISO_DIAGNOSTICOS_PARA") or "hola@vectorhrtech.com"
+    limite = time.time() + 150
+    while time.time() < limite:
+        lista = httpx.get(
+            f"{MAILPIT}/api/v1/search", params={"query": f'to:"{para}"'}, timeout=10
+        ).json()
+        for mensaje in lista.get("messages", []):
+            llegado = datetime.fromisoformat(mensaje["Created"].replace("Z", "+00:00")).timestamp()
+            if llegado < enviado - 2:
+                continue
+            cuerpo = httpx.get(f"{MAILPIT}/api/v1/message/{mensaje['ID']}", timeout=10).json()
+            if marca in cuerpo["Text"]:
+                ok(
+                    marca in mensaje["Subject"] or "diagnósticos" in mensaje["Subject"],
+                    f"aviso con asunto seguro: {mensaje['Subject']}",
+                )
+                ok(
+                    "1. Nómina (Automatizar): 31.2 h al mes" in cuerpo["Text"],
+                    f"el aviso llega a {para} con el top de procesos",
+                )
+                return
+        time.sleep(2)
+    ok(False, f"llega el aviso del diagnóstico a {para}")
+
+
 def contar(tabla: str) -> int:
     r = http.get(
         f"{API}/rest/v1/{tabla}",
@@ -189,6 +292,8 @@ if __name__ == "__main__":
     if modo == "borde":
         borde()
         plantilla(sys.argv[3])
+    elif modo == "diagnostico":
+        diagnostico()
     elif modo == "foto":
         estado = foto()
         pathlib.Path(sys.argv[3]).write_text(json.dumps(estado))

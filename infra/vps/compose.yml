@@ -1,9 +1,10 @@
 # Vortex Ops · producción en un solo VPS (ADR-020). Runbook: docs/runbooks/vps.md.
 #
 # Supabase autoalojado (solo lo que se usa), el hr-engine (API, worker y un solo beat),
-# Redis, el career site, el panel y Caddy. La única entrada desde internet es Cloudflare
-# Tunnel: no se publica ningún puerto en el host. Solo el perfil `admin` (Studio y el
-# túnel a Postgres) abre puertos, y en 127.0.0.1, para entrar por SSH.
+# Redis, el career site, el panel, el diagnóstico gratuito y Caddy. La única entrada
+# desde internet es Cloudflare Tunnel: no se publica ningún puerto en el host. Solo el
+# perfil `admin` (Studio y el túnel a Postgres) abre puertos, y en 127.0.0.1, para
+# entrar por SSH.
 #
 # En el servidor se usa con el wrapper que instala scripts/provisionar.sh:
 #   vortex ps            vortex logs -f auth            vortex --profile admin up -d
@@ -58,6 +59,17 @@ x-hr-engine: &hr-engine
     GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     IA_PRESUPUESTO_MENSUAL_USD: ${IA_PRESUPUESTO_MENSUAL_USD:-25}
+    # El aviso de los diagnósticos gratuitos (migración 0017): un resumen por minuto a
+    # AVISO_DIAGNOSTICOS_PARA, por el mismo Resend que Auth (2587 con STARTTLS). Sin
+    # SMTP_PASS no se avisa; sin TURNSTILE_SECRET_KEY no se verifica.
+    SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+    SMTP_PORT: ${SMTP_PORT:-2587}
+    SMTP_USER: ${SMTP_USER:-resend}
+    SMTP_PASS: ${SMTP_PASS:-}
+    SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:?}
+    AVISO_DIAGNOSTICOS_PARA: ${AVISO_DIAGNOSTICOS_PARA:-hola@vectorhrtech.com}
+    AVISO_DIAGNOSTICOS_MAX_DIA: ${AVISO_DIAGNOSTICOS_MAX_DIA:-20}
+    TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     SENTRY_DSN_BACKEND: ${SENTRY_DSN_BACKEND:-}
 
 services:
@@ -361,8 +373,8 @@ services:
       start_period: 20s
       retries: 3
 
-  # Panel (estático, dentro de la imagen) y proxy de todo lo demás. HTTP: el TLS lo
-  # termina Cloudflare.
+  # Panel y diagnóstico (estáticos, dentro de la imagen) y proxy de todo lo demás. HTTP:
+  # el TLS lo termina Cloudflare.
   caddy:
     image: ${REGISTRO:-ghcr.io/ily192}/vortex-caddy:${VERSION:?falta VERSION en version.env}
     restart: unless-stopped
@@ -382,13 +394,17 @@ services:
       DOMINIO_EMPLEOS: ${DOMINIO_EMPLEOS:?}
       DOMINIO_PANEL: ${DOMINIO_PANEL:?}
       DOMINIO_API: ${DOMINIO_API:?}
+      DOMINIO_DIAGNOSTICO: ${DOMINIO_DIAGNOSTICO:?}
+      # La clave pública: el diagnóstico la manda por su propio dominio
+      # (/api/diagnostico → registrar_diagnostico), sin que el navegador la vea.
+      ANON_KEY: ${ANON_KEY:?}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8090/salud"]
       interval: 10s
       timeout: 5s
       retries: 3
 
-  # La única entrada: un túnel saliente hacia Cloudflare. Las rutas públicas (los tres
+  # La única entrada: un túnel saliente hacia Cloudflare. Las rutas públicas (los cuatro
   # dominios → http://caddy:80) se configuran en el panel de Cloudflare.
   cloudflared:
     image: cloudflare/cloudflared:2026.10.1

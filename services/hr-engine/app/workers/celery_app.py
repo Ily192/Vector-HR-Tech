@@ -20,6 +20,8 @@ celery_app = Celery(
         "app.workers.coincidencias",
         # Evaluación con IA del plan de pago (ADR-021).
         "app.workers.evaluaciones",
+        # El aviso de los diagnósticos gratuitos de vectorhrtech.com (migración 0017).
+        "app.workers.diagnosticos",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -82,6 +84,12 @@ celery_app.conf.update(
         # El score visible en menos de 2 minutos desde que el candidato aplica (ADR-021).
         "evaluaciones-barrer": {
             "task": "evaluaciones.barrer",
+            "schedule": 60.0,
+            "options": {"expires": 55},
+        },
+        # El token de Turnstile del diagnóstico dura 300 s: se verifica antes de que venza.
+        "diagnosticos-avisar": {
+            "task": "diagnosticos.avisar",
             "schedule": 60.0,
             "options": {"expires": 55},
         },

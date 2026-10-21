@@ -136,6 +136,30 @@ class Settings(BaseSettings):
     # hasta el mes siguiente. US$25 son unos 10.000 CVs con gemini-2.5-flash.
     ia_presupuesto_mensual_usd: float = Field(default=25.0, ge=0)
 
+    # ─── Correo (Resend por SMTP, el mismo de Auth) ──────
+    # DigitalOcean bloquea 25, 465 y 587: Resend acepta 2587 con STARTTLS.
+    smtp_host: str = "smtp.resend.com"
+    smtp_port: int = Field(default=2587, ge=1, le=65535)
+    smtp_user: str = "resend"
+    # La API key de Resend. Vacía = no se manda ningún correo.
+    smtp_pass: str = ""
+    # El remitente de Auth, de un dominio verificado en Resend.
+    smtp_remitente: str = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_REMITENTE", "SMTP_ADMIN_EMAIL"),
+    )
+    # Apagado solo para Mailpit en la prueba local: sin TLS la clave viaja en claro.
+    smtp_starttls: bool = True
+
+    # ─── Diagnóstico gratuito (migración 0017) ───────────
+    # A quién avisa el resumen de los diagnósticos nuevos.
+    aviso_diagnosticos_para: str = "hola@vectorhrtech.com"
+    # Diagnósticos con detalle al día; los demás van en una línea. Resend gratis da 100
+    # correos al día y los comparte con Auth.
+    aviso_diagnosticos_max_dia: int = Field(default=20, ge=0, le=1000)
+    # La clave secreta de Turnstile, la misma del career site. Vacía = no se verifica.
+    turnstile_secret_key: str = ""
+
     # ─── Panel de la empresa ─────────────────────────────
     # A dónde vuelve el enlace de la invitación. Solo lo usa el comando de alta de
     # empresas, no la API ni el worker. Tiene que estar en las Redirect URLs de Auth.
