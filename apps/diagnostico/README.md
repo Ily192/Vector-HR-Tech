@@ -5,7 +5,7 @@ El diagnóstico gratuito de vectorhrtech.com: el prospecto responde 11 preguntas
 - **Preguntas y cálculo:** `src/diagnostico.ts`, sin React ni red. El cálculo se le explica entero al prospecto; lo único nuestro son los porcentajes por etapa (`PORCENTAJE_RECUPERABLE`), declarados como supuestos.
 - **Guardado:** POST a `/api/diagnostico` en el mismo dominio. En el VPS, Caddy lo reenvía a la RPC `registrar_diagnostico` (migración 0017) con la clave anon; la página no lleva claves. El aviso a hola@vectorhrtech.com lo manda el hr-engine (`diagnosticos.avisar`).
 - **Captcha:** Cloudflare Turnstile con `VITE_TURNSTILE_SITE_KEY`; sin ella (local y tests) no se pinta.
-- **Aviso de privacidad:** el simplificado de `src/aviso.ts`, que cuadra con el integral de vectorhrtech.com/aviso-de-privacidad, y la casilla "No quiero que me contacten con fines comerciales", que se guarda con el diagnóstico. Faltan el nombre legal y el domicilio del responsable; mientras falten, la página muestra los marcadores resaltados.
+- **Aviso de privacidad:** el simplificado de `src/aviso.ts`, que cuadra con el integral de vectorhrtech.com/aviso-de-privacidad, y la casilla "No quiero que me contacten con fines comerciales", que se guarda con el diagnóstico. El responsable es Ilyra Rivas, persona física, con los mismos datos que el integral.
 
 ## Cómo se corre
 

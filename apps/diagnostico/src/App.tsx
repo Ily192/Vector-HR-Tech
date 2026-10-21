@@ -360,15 +360,15 @@ function Datos({
         <p
           className={`text-xs leading-relaxed ${AVISO_COMPLETO ? "text-ink-400" : "rounded-lg bg-flame-500/20 p-2 text-flame-300"}`}
         >
-          <strong>Aviso de privacidad simplificado.</strong> {RESPONSABLE}, con domicilio en{" "}
-          {DOMICILIO}, es responsable de tus datos: nombre, empresa y correo; tus respuestas; la IP
-          y datos del navegador, y el canal o campaña por el que llegaste. No recabamos datos
-          sensibles ni financieros. Los usamos para generar y mostrarte el diagnóstico y comprobar
-          que eres una persona (protección contra spam). Además, para contactarte sobre el
-          diagnóstico y ofrecerte servicios, enviarte información y contenidos, y medir por qué
-          canal llegaste. Si no quieres estos usos adicionales, marca la casilla o escribe a{" "}
-          {CONTACTO_PRIVACIDAD} con el asunto “{ASUNTO_NEGATIVA}”. Consulta el aviso de privacidad
-          integral en{" "}
+          <strong>Aviso de privacidad simplificado.</strong> {RESPONSABLE}, persona física que opera
+          con el nombre comercial Vector HR Tech, con domicilio en {DOMICILIO}, es responsable de
+          tus datos: nombre, empresa y correo; tus respuestas; la IP y datos del navegador, y el
+          canal o campaña por el que llegaste. No recabamos datos sensibles ni financieros. Los
+          usamos para generar y mostrarte el diagnóstico y comprobar que eres una persona
+          (protección contra spam). Además, para contactarte sobre el diagnóstico y ofrecerte
+          servicios, enviarte información y contenidos, y medir por qué canal llegaste. Si no
+          quieres estos usos adicionales, marca la casilla o escribe a {CONTACTO_PRIVACIDAD} con el
+          asunto “{ASUNTO_NEGATIVA}”. Consulta el aviso de privacidad integral en{" "}
           <a
             href={URL_AVISO_INTEGRAL}
             target="_blank"
