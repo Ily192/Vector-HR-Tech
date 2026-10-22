@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Prepara un droplet nuevo de Ubuntu LTS para Vortex (ADR-020). Una vez, como root, desde
-# la raíz del repo en la máquina de Ilyra (runbook docs/runbooks/vps.md, paso 3):
+# Prepara un VPS nuevo de Contabo con Ubuntu LTS para Vortex (ADR-020). Una vez, como
+# root, desde la raíz del repo en la máquina de Ilyra (runbook docs/runbooks/vps.md, paso 3):
 #
 #   scp infra/vps/scripts/provisionar.sh root@<ip>:/root/
 #   ssh root@<ip> bash /root/provisionar.sh <usuario> "<llave pública de despliegue>"
@@ -8,8 +8,8 @@
 # Deja: el usuario <usuario> con sudo y la misma llave que root; el usuario
 # `despliegue`, cuya llave solo puede correr vortex-desplegar; SSH solo con llave y sin
 # root; parches automáticos; fail2ban; ufw con solo SSH; 2 GB de swap; Docker del
-# repositorio oficial con rotación de logs; el agente de monitoreo de DigitalOcean; el
-# repo en /opt/vortex/repo; el .env con sus secretos generados, y el respaldo nocturno.
+# repositorio oficial con rotación de logs; el repo en /opt/vortex/repo; el .env con sus
+# secretos generados, y el respaldo nocturno.
 # Se puede volver a correr: deja el servidor en el mismo estado y no pisa el .env.
 set -Eeuo pipefail
 
@@ -30,7 +30,7 @@ paso() {
 	falla "uso: provisionar.sh <usuario> \"<llave pública de despliegue>\""
 [[ $LLAVE_DESPLIEGUE =~ ^ssh-ed25519\ [A-Za-z0-9+/=]+(\ [^\"]*)?$ ]] ||
 	falla "la llave de despliegue tiene que ser una ssh-ed25519 en una línea"
-[[ -s /root/.ssh/authorized_keys ]] || falla "root no tiene llave SSH: crea el droplet con la tuya"
+[[ -s /root/.ssh/authorized_keys ]] || falla "root no tiene llave SSH: instálale la tuya (runbook, paso 2)"
 # shellcheck source=/dev/null
 source /etc/os-release
 [[ $ID == ubuntu ]] || falla "pensado para Ubuntu LTS (este es $PRETTY_NAME)"
@@ -62,7 +62,7 @@ paso "usuarios: $ADMIN y despliegue"
 id "$ADMIN" >/dev/null 2>&1 || adduser --disabled-password --gecos "" "$ADMIN"
 usermod -aG sudo "$ADMIN"
 # Sin contraseña: no hay ninguna que adivinar, y quien tiene la llave ya es admin (y
-# Docker equivale a root). Para la consola de emergencia de DigitalOcean, ver el runbook.
+# Docker equivale a root). Para la consola VNC de Contabo, ver el runbook.
 echo "$ADMIN ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/90-vortex-admin
 chmod 440 /etc/sudoers.d/90-vortex-admin
 visudo -cqf /etc/sudoers.d/90-vortex-admin
@@ -155,19 +155,11 @@ systemctl restart fail2ban
 
 paso "ufw: solo SSH"
 # Docker no publica ningún puerto hacia afuera (compose.yml), así que ufw y Docker no
-# se pisan. La barrera principal es el Cloud Firewall de DigitalOcean.
+# se pisan. Contabo no tiene firewall de red delante: ufw es la barrera del host.
 ufw default deny incoming >/dev/null
 ufw default allow outgoing >/dev/null
 ufw allow OpenSSH >/dev/null
 ufw --force enable >/dev/null
-
-paso "agente de monitoreo de DigitalOcean"
-if ! systemctl is-active --quiet do-agent; then
-	# El instalador que indica DigitalOcean (docs: Monitoring, "Install the agent").
-	curl -fsSL https://repos.insights.digitalocean.com/install.sh -o /tmp/do-agent-install.sh
-	bash /tmp/do-agent-install.sh
-	rm -f /tmp/do-agent-install.sh
-fi
 
 paso "Vortex en /opt/vortex"
 install -d -m 750 -o despliegue -g despliegue /opt/vortex /var/lib/vortex
@@ -214,5 +206,5 @@ Después, siguiendo el runbook:
      y comprobar:          sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar /opt/vortex/.env
   2. Guardar RESTIC_PASSWORD en el gestor de contraseñas.
   3. ANON_KEY para GitHub: sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-publica /opt/vortex/.env
-  4. Correr el workflow "Deploy VPS (DigitalOcean)".
+  4. Correr el workflow "Deploy VPS (Contabo)".
 EOF

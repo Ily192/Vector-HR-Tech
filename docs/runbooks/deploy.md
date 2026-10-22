@@ -28,7 +28,8 @@
 
 ## La plataforma en el VPS (MVP)
 
-Desde el 2026-10-20 todo va en un VPS de DigitalOcean con Docker Compose (ADR-020): el
+Desde el 2026-10-20 todo va en un VPS con Docker Compose (ADR-020; en Contabo desde el
+2026-10-22): el
 stack está en `infra/vps/`, el workflow es `deploy-vps.yml` y el runbook,
 `docs/runbooks/vps.md` (primer despliegue, día a día, respaldos y recuperación).
 Reemplaza a Fly.io, cuyos `fly.toml` y `deploy-hr-engine.yml` se retiraron, y a Vercel

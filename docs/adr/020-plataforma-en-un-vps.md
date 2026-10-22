@@ -17,6 +17,22 @@
 - **Un error corregido:** la versión anterior confiaba en `ufw` para filtrar el 80 y el
   443, y eso no funciona con Docker (ver "Línea base de seguridad").
 
+*Enmienda del 2026-10-22: el proveedor es Contabo.* Ilyra: "iba a ser digital ocean pero
+compré contabo por más capacidad". Lo demás de este ADR sigue igual. Lo que cambia:
+
+- **Firewall:** Contabo no pone un firewall de red delante del VPS, así que la barrera es
+  `ufw` con solo SSH. Sirve porque ningún servicio publica puertos hacia afuera (Docker se
+  salta `ufw` solo para los publicados); los del perfil `admin` van en 127.0.0.1.
+- **Correo:** sigue en 2587. Contabo bloquea el 25 de salida.
+- **Monitoreo:** sin el agente ni las alertas de DigitalOcean. Uptime con UptimeRobot
+  (gratis) y revisión mensual de memoria y disco.
+- **Respaldo del proveedor:** el Auto Backup de Contabo, opcional, en lugar del semanal de
+  DigitalOcean. El respaldo propio a R2 no cambia.
+- **Prueba de restauración:** en un servidor temporal por horas, porque Contabo cobra por
+  mes.
+
+Donde abajo dice DigitalOcean o droplet, léase el VPS de Contabo. El runbook ya está al día.
+
 ## Context
 
 **El despliegue gestionado necesitaba seis proveedores** para un solo producto: Supabase Cloud, Vercel, Fly.io, Upstash, Resend y Cloudflare. Cada uno trae su cuenta, sus secretos, su factura y su panel. Para un equipo de una persona, esa dispersión es un costo de mantenimiento en sí misma.

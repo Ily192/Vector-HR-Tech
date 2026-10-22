@@ -1,4 +1,4 @@
-name: Deploy VPS (DigitalOcean)
+name: Deploy VPS (Contabo)
 
 # Toda la plataforma en un VPS (ADR-020): construye las tres imágenes de la app, las
 # sube a GHCR con el commit como etiqueta y despliega por SSH con la llave de despliegue,
