@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.46.0",
+    "@supabase/supabase-js": "^2.117.3",
     "@vortex/types": "workspace:*"
   },
   "devDependencies": {
