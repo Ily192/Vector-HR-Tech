@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Comando forzado de la llave de despliegue (ADR-020). scripts/provisionar.sh lo copia a
-# /usr/local/sbin/vortex-desplegar, de root, y lo ata a esa llave en el authorized_keys
-# del usuario `despliegue`: con ella, GitHub Actions solo puede correr esto.
+# Comando forzado de la llave de despliegue (ADR-020): con ella, GitHub Actions solo puede
+# correr esto. En un servidor propio, scripts/provisionar.sh lo copia a
+# /usr/local/sbin/vortex-desplegar, de root, y lo ata a la llave del usuario `despliegue`.
+# En una cuenta sin root, scripts/preparar_cuenta.sh lo copia a ~/vortex/bin.
 #
-#   ssh despliegue@<vps> "desplegar <commit> <usuario de GitHub>" < token
+#   ssh <usuario>@<vps> "desplegar <commit> <usuario de GitHub>" < token
 #
 # El token es el GITHUB_TOKEN del job (deploy-vps.yml): llega por la entrada estándar,
 # sirve para bajar las imágenes de GHCR y caduca al terminar el job. Solo se despliega
@@ -11,7 +12,10 @@
 # resto. Para volver atrás se corre el workflow con un commit anterior.
 set -Eeuo pipefail
 
-VORTEX_DIR=${VORTEX_DIR:-/opt/vortex}
+if [[ -z ${VORTEX_DIR:-} ]]; then
+	# Servidor propio (provisionar.sh) o cuenta sin root de uno compartido (preparar_cuenta.sh).
+	if [[ -d /opt/vortex ]]; then VORTEX_DIR=/opt/vortex; else VORTEX_DIR=$HOME/vortex; fi
+fi
 REPO=$VORTEX_DIR/repo
 
 read -r accion version usuario resto <<<"${SSH_ORIGINAL_COMMAND:-}"

@@ -106,7 +106,7 @@ jobs:
         run: |
           for nombre in VPS_HOST VPS_SSH_KEY VPS_KNOWN_HOSTS; do
             if [ -z "${!nombre}" ]; then
-              echo "::error::Falta el secret $nombre (docs/runbooks/vps.md, paso 7)."
+              echo "::error::Falta el secret $nombre (docs/runbooks/vps.md, paso 6)."
               exit 1
             fi
           done
@@ -119,6 +119,8 @@ jobs:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # `despliegue` en un servidor propio; en el de Contabo, la cuenta sin root.
+          VPS_USUARIO: ${{ vars.VPS_USUARIO || 'despliegue' }}
         run: |
           install -d -m 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/despliegue
@@ -126,7 +128,7 @@ jobs:
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/despliegue -o IdentitiesOnly=yes \
             -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts \
-            "despliegue@$VPS_HOST" "desplegar $GITHUB_SHA $GITHUB_ACTOR"
+            "$VPS_USUARIO@$VPS_HOST" "desplegar $GITHUB_SHA $GITHUB_ACTOR"
 
       - name: Comprobar desde internet
         env:
