@@ -7,13 +7,13 @@ export type Role = z.infer<typeof RoleSchema>;
 export const PlanSchema = z.enum(["gratis", "ia"]);
 
 export const EmpresaSchema = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   name: z.string().min(1),
   slug: z
     .string()
     .min(1)
     .regex(/^[a-z0-9-]+$/, "slug debe ser kebab-case"),
-  paperclip_company_id: z.string().uuid().nullable(),
+  paperclip_company_id: z.guid().nullable(),
   openclaw_workspace_id: z.string().nullable(),
   hr_engine_quota_monthly: z.number().int().positive().default(1000),
   sales_engine_quota_monthly: z.number().int().positive().default(500),
@@ -34,8 +34,8 @@ export const EmpresaSchema = z.object({
 export type Empresa = z.infer<typeof EmpresaSchema>;
 
 export const ProfileSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
   email: z.string().email(),
   full_name: z.string().min(1),
   role: RoleSchema,
@@ -57,14 +57,14 @@ export type Profile = z.infer<typeof ProfileSchema>;
  * Los pobla `custom_access_token_hook` (`infra/supabase/migrations/0003`).
  */
 export const AppMetadataSchema = z.object({
-  empresa_id: z.string().uuid(),
+  empresa_id: z.guid(),
   app_role: RoleSchema,
   permissions: z.array(z.string()).optional(),
 });
 export type AppMetadata = z.infer<typeof AppMetadataSchema>;
 
 export const JwtClaimsSchema = z.object({
-  sub: z.string().uuid(),
+  sub: z.guid(),
   app_metadata: AppMetadataSchema,
   exp: z.number(),
 });
@@ -72,9 +72,9 @@ export type JwtClaims = z.infer<typeof JwtClaimsSchema>;
 
 /** Run token issued by Paperclip control plane (5 min TTL) */
 export const RunTokenClaimsSchema = z.object({
-  empresa_id: z.string().uuid(),
+  empresa_id: z.guid(),
   agent_skill: z.string(),
-  run_id: z.string().uuid(),
+  run_id: z.guid(),
   cost_cap_usd: z.number().positive(),
   exp: z.number(),
 });

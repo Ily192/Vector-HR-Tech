@@ -19,8 +19,8 @@ export const ModalitySchema = z.enum(["onsite", "hybrid", "remote"]);
 export type Modality = z.infer<typeof ModalitySchema>;
 
 export const VacanteSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
   slug: z.string().min(1),
   title: z.string().min(1),
   jd: z.string().min(1),
@@ -91,8 +91,8 @@ export const VacantePublicaSchema = VacanteSchema.pick({
 export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 
 export const CandidatoSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
   full_name: z.string().min(1),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
@@ -118,10 +118,10 @@ export const ApplicationStatusSchema = z.enum([
 export type ApplicationStatus = z.infer<typeof ApplicationStatusSchema>;
 
 export const ApplicationSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
-  vacante_id: z.string().uuid(),
-  candidato_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
+  vacante_id: z.guid(),
+  candidato_id: z.guid(),
   status: ApplicationStatusSchema,
   fit_score: z.number().min(0).max(10).nullable(),
   fit_rationale: z.string().nullable(),
@@ -148,8 +148,8 @@ export type Application = z.infer<typeof ApplicationSchema>;
  * contra `contracts/cv-evaluation.json`.
  */
 export const CvEvaluationSchema = z.object({
-  candidato_id: z.string().uuid(),
-  vacante_id: z.string().uuid(),
+  candidato_id: z.guid(),
+  vacante_id: z.guid(),
   score: z.number().min(0).max(10),
   rationale: z.string().min(10),
   gaps: z.array(z.string()),

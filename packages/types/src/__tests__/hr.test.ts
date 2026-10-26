@@ -95,7 +95,8 @@ describe("VacanteSchema", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.path).toEqual(["id"]);
-      expect(result.error.issues[0]?.message).toMatch(/uuid/i);
+      // zod 4: z.guid() (el formato 8-4-4-4-12 de antes) dice "Invalid GUID".
+      expect(result.error.issues[0]?.message).toMatch(/guid/i);
     }
   });
 
