@@ -1,6 +1,6 @@
 # infra/vps
 
-Producción en un solo VPS de DigitalOcean, con Docker Compose (ADR-020). El runbook, del
+Producción en un solo VPS de Contabo, con Docker Compose (ADR-020). El runbook, del
 primer despliegue a la recuperación, es `docs/runbooks/vps.md`.
 
 | Ruta | Qué es |

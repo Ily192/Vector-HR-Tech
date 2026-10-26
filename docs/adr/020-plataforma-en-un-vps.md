@@ -17,6 +17,38 @@
 - **Un error corregido:** la versión anterior confiaba en `ufw` para filtrar el 80 y el
   443, y eso no funciona con Docker (ver "Línea base de seguridad").
 
+*Enmienda del 2026-10-22: el proveedor es Contabo.* Ilyra: "iba a ser digital ocean pero
+compré contabo por más capacidad". Lo demás de este ADR sigue igual. Lo que cambia:
+
+- **Firewall:** Contabo no pone un firewall de red delante del VPS, así que la barrera es
+  `ufw` con solo SSH. Sirve porque ningún servicio publica puertos hacia afuera (Docker se
+  salta `ufw` solo para los publicados); los del perfil `admin` van en 127.0.0.1.
+- **Correo:** sigue en 2587. Contabo bloquea el 25 de salida.
+- **Monitoreo:** sin el agente ni las alertas de DigitalOcean. Uptime con UptimeRobot
+  (gratis) y revisión mensual de memoria y disco.
+- **Respaldo del proveedor:** el Auto Backup de Contabo, opcional, en lugar del semanal de
+  DigitalOcean. El respaldo propio a R2 no cambia.
+- **Prueba de restauración:** en un servidor temporal por horas, porque Contabo cobra por
+  mes.
+
+Donde abajo dice DigitalOcean o droplet, léase el VPS de Contabo. El runbook ya está al día.
+
+*Segunda enmienda, del 2026-10-26: el servidor es compartido.* El VPS lo administra Andres,
+el otro programador del equipo, y también corre Coolify. Ilyra decidió que Vortex conviva con Coolify, aunque el punto 8
+de este ADR pedía un servidor solo para Vortex. A Vortex le toca una cuenta sin root
+(`ilyra`): Docker sin root, sin sudo, topes de 6 GB de RAM, 4 CPU y 30 GB de disco, y
+puertos desde el 20000.
+
+- **Aislamiento:** el que da Docker sin root. Los contenedores de Vortex corren dentro
+  del espacio de usuario de la cuenta, y Coolify no los ve ni los administra.
+- **Lo de sistema** (parches, firewall, fail2ban, swap) es de Andres, no de
+  `provisionar.sh`. La cuenta se prepara con `preparar_cuenta.sh`.
+- **Entrada:** sigue siendo Cloudflare Tunnel, que sale hacia Cloudflare y no necesita
+  puertos ni rutas de Coolify.
+- **Acceso a los datos:** Andres, como administrador, puede ver los datos de Vortex,
+  incluidos los CVs. Es del equipo, así que se acepta. Si un contrato pide que solo
+  ciertas personas tengan acceso, Vortex vuelve a un VPS propio con `provisionar.sh`.
+
 ## Context
 
 **El despliegue gestionado necesitaba seis proveedores** para un solo producto: Supabase Cloud, Vercel, Fly.io, Upstash, Resend y Cloudflare. Cada uno trae su cuenta, sus secretos, su factura y su panel. Para un equipo de una persona, esa dispersión es un costo de mantenimiento en sí misma.

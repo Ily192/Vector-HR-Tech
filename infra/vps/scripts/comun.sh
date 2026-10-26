@@ -1,15 +1,22 @@
 # shellcheck shell=bash
 # Lo que comparten los scripts del VPS (ADR-020). Se carga con `source`, no se corre.
 #
-# Las rutas son las del servidor (scripts/provisionar.sh); la prueba local
+# Las rutas son las del servidor (scripts/provisionar.sh o scripts/preparar_cuenta.sh); la prueba local
 # (pruebas/probar_en_local.sh) las cambia con las mismas variables.
 
-VORTEX_DIR=${VORTEX_DIR:-/opt/vortex}
+if [[ -z ${VORTEX_DIR:-} ]]; then
+	# Servidor propio (provisionar.sh) o cuenta sin root de uno compartido (preparar_cuenta.sh).
+	if [[ -d /opt/vortex ]]; then VORTEX_DIR=/opt/vortex; else VORTEX_DIR=$HOME/vortex; fi
+fi
 VORTEX_REPO=${VORTEX_REPO:-$VORTEX_DIR/repo}
 VORTEX_ENV=${VORTEX_ENV:-$VORTEX_DIR/.env}
 VORTEX_VERSION_ENV=${VORTEX_VERSION_ENV:-$VORTEX_DIR/version.env}
 VORTEX_PROYECTO=${VORTEX_PROYECTO:-vortex}
-VORTEX_RESPALDO_TMP=${VORTEX_RESPALDO_TMP:-/var/lib/vortex/respaldo}
+if [[ $VORTEX_DIR == /opt/vortex ]]; then
+	VORTEX_RESPALDO_TMP=${VORTEX_RESPALDO_TMP:-/var/lib/vortex/respaldo}
+else
+	VORTEX_RESPALDO_TMP=${VORTEX_RESPALDO_TMP:-$VORTEX_DIR/respaldo-tmp}
+fi
 # Archivos de compose extra, separados por espacios (la prueba local añade el suyo).
 VORTEX_COMPOSE_EXTRA=${VORTEX_COMPOSE_EXTRA:-}
 VORTEX_COMPOSE=$VORTEX_REPO/infra/vps/compose.yml

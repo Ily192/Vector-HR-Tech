@@ -164,7 +164,7 @@ services:
       GOTRUE_MAILER_SUBJECTS_INVITE: ${ASUNTO_INVITACION:?}
       GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: ${ASUNTO_ENLACE_MAGICO:?}
 
-      # Resend por SMTP. DigitalOcean bloquea 25, 465 y 587: va por 2587 con STARTTLS.
+      # Resend por SMTP, por 2587 con STARTTLS: Contabo bloquea el 25 de salida.
       GOTRUE_SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
       GOTRUE_SMTP_PORT: ${SMTP_PORT:-2587}
       GOTRUE_SMTP_USER: ${SMTP_USER:-resend}
