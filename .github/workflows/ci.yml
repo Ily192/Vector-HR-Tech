@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "22.23.4"
   PYTHON_VERSION: "3.12"
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
   # TURBO_TOKEN es un secreto: va solo en los pasos que corren turbo, no aquí,
