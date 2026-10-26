@@ -6,7 +6,7 @@
 #     --build-arg NEXT_PUBLIC_PANEL_EMPRESAS_URL=https://panel.<dominio> .
 # Supabase y Turnstile se leen en el servidor al arrancar (compose.yml), no aquí.
 
-FROM node:22.23.3-alpine AS build
+FROM node:22.23.4-alpine AS build
 ENV PNPM_HOME=/pnpm \
     HUSKY=0 \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -27,7 +27,7 @@ RUN pnpm --filter @vortex/career-site build
 # El servidor mínimo de Next con los archivos que trazó el build, y `.next/static`, que
 # `standalone` no copia solo (docs de Next 16: output, "Automatically Copying Traced
 # Files"). El sitio no tiene carpeta `public`.
-FROM node:22.23.3-alpine
+FROM node:22.23.4-alpine
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \

@@ -6,7 +6,7 @@
 #     --build-arg VITE_SUPABASE_ANON_KEY=<ANON_KEY> .
 # La configuración (Caddyfile) no va en la imagen: la monta compose.yml desde el repo.
 
-FROM node:22.23.3-alpine AS panel
+FROM node:22.23.4-alpine AS panel
 ENV PNPM_HOME=/pnpm \
     HUSKY=0
 RUN corepack enable
