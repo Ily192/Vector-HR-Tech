@@ -9,6 +9,12 @@ de DigitalOcean (ver la enmienda de ADR-020); Ilyra eligió Contabo por tener m�
 Cloudflare (DNS, túnel, Turnstile y R2), Resend y UptimeRobot quedan en sus planes gratis
 mientras el volumen sea el del MVP.
 
+**El servidor es compartido.** Lo administra Andres y también corre Coolify. A Vortex le
+toca una cuenta sin root (`ilyra`): Docker sin root, sin sudo, topes de 6 GB de RAM, 4
+CPU y 30 GB de disco, y solo puertos desde el 20000. Lo de sistema (parches, fail2ban,
+ufw, swap, el demonio de Docker) es de Andres. Este runbook describe esa cuenta; en un
+servidor propio se usa `provisionar.sh` (ver "Servidor propio", al final).
+
 ## Qué corre en el servidor
 
 | Servicio | Qué es | Sale a internet |
@@ -86,55 +92,45 @@ Anotar la IP pública. La de Vortex es `13.140.229.115`.
 Este servidor es solo de Vortex (ADR-020): guarda CVs y no comparte máquina con los
 demás proyectos de Ilyra.
 
-### 2. La llave de root y la huella del servidor
+### 2. Acceso
 
-`provisionar.sh` entra como root con la llave. Si al crear el VPS no se pudo elegir, se
-instala una vez con la contraseña de root del correo de bienvenida, que escribe Ilyra en
-su terminal (PowerShell):
+Andres crea la cuenta y le pone la llave pública de Ilyra (`contabo_vortex_ed25519.pub`).
+Para entrar:
 
-```powershell
-type $env:USERPROFILE\.ssh\contabo_vortex_ed25519.pub | ssh root@<ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+```bash
+ssh -i ~/.ssh/contabo_vortex_ed25519 -o IdentitiesOnly=yes ilyra@13.140.229.115
 ```
 
-Sin la contraseña: la consola VNC del panel de Contabo, y pegar la llave en
-`/root/.ssh/authorized_keys`.
+La primera vez, aceptar la huella del servidor solo si es
+`SHA256:4zJi5U6tV1iarZCjpeBRbj1uQ97NHRacfpDPZRuDTXU`.
 
-Antes de confiar en el servidor, comparar la huella de `ssh-keyscan -t ed25519 <ip> |
-ssh-keygen -lf -` con la de `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` en la
-consola VNC. La de `13.140.229.115` es `SHA256:4zJi5U6tV1iarZCjpeBRbj1uQ97NHRacfpDPZRuDTXU`.
+Cuidados del servidor: `ufw` corta la sexta conexión SSH en 30 segundos, y fail2ban
+banea la IP una hora con 5 fallas. El servidor se reinicia a las 3:40 a. m. si un
+parche lo pide; los servicios de `compose.yml` tienen `restart: unless-stopped` y
+vuelven solos.
 
-### 3. Provisionar
+### 3. Preparar la cuenta
 
 Desde la raíz del repo, en la máquina de Ilyra:
 
 ```bash
-scp -i ~/.ssh/contabo_vortex_ed25519 infra/vps/scripts/provisionar.sh root@<ip>:/root/
-ssh -i ~/.ssh/contabo_vortex_ed25519 root@<ip> \
-  bash /root/provisionar.sh ilyra "$(cat ~/.ssh/vortex_despliegue.pub)"
+scp -i ~/.ssh/contabo_vortex_ed25519 infra/vps/scripts/preparar_cuenta.sh ilyra@13.140.229.115:
+ssh -i ~/.ssh/contabo_vortex_ed25519 ilyra@13.140.229.115 \
+  bash preparar_cuenta.sh "\"$(cat ~/.ssh/vortex_despliegue.pub)\""
 ```
 
-`provisionar.sh` deja el servidor así:
+`preparar_cuenta.sh` comprueba que Docker responda y que la cuenta tenga *linger* (sin
+eso, todo se apaga al cerrar la sesión), y deja, dentro de la cuenta:
 
-- **Usuarios:**
-  - `ilyra` con sudo, y la misma llave que root.
-  - `despliegue`, cuya llave solo puede correr `vortex-desplegar`.
-- **SSH:** solo con llave y sin root, aunque la imagen de Contabo traiga las contraseñas
-  encendidas.
-- **Seguridad:** parches automáticos (reinicia a las 3 a. m. de Ciudad de México si un
-  parche lo pide), fail2ban y `ufw` con solo SSH.
-- **Sistema:** 2 GB de swap, hora en UTC, y Docker del repositorio oficial con rotación
-  de logs.
-- **Vortex:**
-  - el repo en `/opt/vortex/repo`;
-  - el comando `vortex` (docker compose con el `.env` y la versión);
-  - el `.env` con los secretos generados;
-  - el respaldo nocturno.
+- el repo en `~/vortex/repo`;
+- la llave de despliegue en `~/.ssh/authorized_keys`, que solo puede correr
+  `~/vortex/bin/vortex-desplegar`;
+- el comando `vortex` (docker compose con el `.env` y la versión) en `~/.local/bin`;
+- el respaldo nocturno, como timer de systemd del usuario;
+- `~/vortex/.env` con los secretos generados, y Studio y el túnel de la base en los
+  puertos 20000 y 20001.
 
-Se puede volver a correr sin riesgo. **Antes de cerrar esa sesión**, en otra terminal:
-`ssh -i ~/.ssh/contabo_vortex_ed25519 ilyra@<ip>` (root ya no entra).
-
-Para la consola VNC de Contabo, que sí pide contraseña: `sudo passwd ilyra`. El SSH sigue
-sin aceptar contraseñas.
+Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
 
 ### 4. Cloudflare
 
@@ -171,7 +167,7 @@ sin aceptar contraseñas.
 
 ### 6. El `.env` del servidor y GitHub
 
-1. **Llenar lo que falta:** `sudo nano /opt/vortex/.env`. Lo que va a mano:
+1. **Llenar lo que falta:** `nano ~/vortex/.env`. Lo que va a mano:
    - los tres `DOMINIO_*`;
    - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado);
    - `CLOUDFLARE_TUNNEL_TOKEN` y `TURNSTILE_SECRET_KEY`;
@@ -180,22 +176,23 @@ sin aceptar contraseñas.
      (ADR-021). Sin ella, las aplicaciones de las empresas con IA esperan;
    - opcional: `RESPALDO_PING_URL` y `OPENAI_API_KEY` (respaldo de Gemini).
 2. **Comprobar:**
-   `sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar /opt/vortex/.env`.
+   `python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar ~/vortex/.env`.
    No imprime nada si todo está.
 3. **Guardar `RESTIC_PASSWORD` en el gestor de contraseñas**, junto con la llave de R2:
-   `sudo grep ^RESTIC_PASSWORD= /opt/vortex/.env`. Sin eso no se restaura nada.
+   `grep ^RESTIC_PASSWORD= ~/vortex/.env`. Sin eso no se restaura nada.
 4. **GitHub → Settings → Secrets and variables → Actions → Variables:**
    - `DOMINIO_EMPLEOS`, `DOMINIO_PANEL` y `DOMINIO_API`: los mismos del `.env`.
    - `SUPABASE_ANON_KEY`: la salida de
-     `sudo -u despliegue python3 /opt/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-publica /opt/vortex/.env`.
+     `python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-publica ~/vortex/.env`.
      Es pública: va en el navegador.
    - `TURNSTILE_SITE_KEY`.
+   - `VPS_USUARIO`: `ilyra`. Sin ella, el workflow entra como `despliegue`, el usuario de
+     un servidor propio.
 5. **GitHub → Settings → Environments → `production` → Secrets:**
    - `VPS_HOST`: la IP.
    - `VPS_SSH_KEY`: el contenido de `~/.ssh/vortex_despliegue`, la privada.
-   - `VPS_KNOWN_HOSTS`: la salida de `ssh-keyscan -t ed25519 <ip>`. Antes, comparar la
-     huella con la del servidor: `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`, dentro
-     del servidor.
+   - `VPS_KNOWN_HOSTS`: la salida de `ssh-keyscan -t ed25519 <ip>`, con la huella del
+     paso 2.
 
 ### 7. Desplegar
 
@@ -234,8 +231,8 @@ Contabo no trae alertas de recursos. Con lo gratis:
 **Antes de dar de alta a la primera empresa**, mientras no hay datos reales:
 
 ```bash
-sudo systemctl start vortex-respaldo && journalctl -u vortex-respaldo -n 30
-sudo -u despliegue /opt/vortex/repo/infra/vps/scripts/restaurar.sh latest --si
+systemctl --user start vortex-respaldo && journalctl --user -u vortex-respaldo -n 30
+~/vortex/repo/infra/vps/scripts/restaurar.sh latest --si
 ```
 
 La restauración borra la base y los CVs y pone los del snapshot. Después, `vortex ps`
@@ -259,29 +256,28 @@ vortex exec hr-engine-api python -m app.cli.alta_empresa \
 - **Logs:** `vortex logs -f --tail 100 <servicio>`.
 - **Studio:**
   1. En el servidor: `vortex --profile admin up -d studio`.
-  2. En la máquina de Ilyra: `ssh -L 3000:127.0.0.1:3000 ilyra@<ip>` y abrir
-     http://localhost:3000.
+  2. En la máquina de Ilyra: `ssh -N -L 20000:127.0.0.1:20000 ilyra@<ip>` y abrir
+     http://localhost:20000.
   3. Al terminar: `vortex --profile admin stop studio meta`. Ocupa ~0.5 GB.
 - **pgAdmin o DBeaver:**
   1. `vortex --profile admin up -d tunel-db`.
-  2. `ssh -L 5432:127.0.0.1:5432 ilyra@<ip>`.
-  3. Conectarse a `localhost:5432` como `postgres`, con `POSTGRES_PASSWORD` del `.env`.
+  2. `ssh -N -L 20001:127.0.0.1:20001 ilyra@<ip>`.
+  3. Conectarse a `localhost:20001` como `postgres`, con `POSTGRES_PASSWORD` del `.env`.
   4. Al terminar: `vortex --profile admin stop tunel-db`.
 
 ## Mantenimiento mensual (1 a 2 horas)
 
-1. **Sistema:** `sudo apt update && sudo apt upgrade`.
-   - Los parches de seguridad ya entran solos; esto trae lo demás, Docker incluido.
-   - Si pide reinicio, `sudo reboot`: el stack vuelve solo.
+1. **Sistema:** lo parcha Andres. Lo de Vortex son las imágenes: ver "Actualizar
+   versiones", y las alertas de seguridad de Node, Postgres y Supabase.
 2. **Respaldos:**
-   - `journalctl -u vortex-respaldo --since "-7 days"`;
+   - `journalctl --user -u vortex-respaldo --since "-7 days"`;
    - el snapshot más reciente: `vortex run --rm respaldo snapshots --latest 3`.
 3. **Probar una restauración** en un servidor temporal. No en el de producción, que ya
    tiene datos:
    1. Un VPS temporal con Ubuntu LTS y la llave de administración en root. Contabo cobra
       por mes: sale más barato uno por horas (Hetzner o DigitalOcean) que se destruye al
       terminar.
-   2. Provisionar con `provisionar.sh`.
+   2. Provisionar con `provisionar.sh` (ver "Servidor propio").
    3. Poner en el `/opt/vortex/.env` que dejó `provisionar.sh` los valores reales de
       `RESTIC_REPOSITORY`, `RESTIC_PASSWORD` y la llave de R2. El resto lo trae el snapshot.
    4. Restaurar: `sudo -u despliegue /opt/vortex/repo/infra/vps/scripts/restaurar.sh latest --si`.
@@ -330,7 +326,7 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 
 | Secreto | Cómo |
 |---|---|
-| `REDIS_PASSWORD`, `HR_ENGINE_JWT_SECRET`, `DASHBOARD_PASSWORD`, `PG_META_CRYPTO_KEY` | Vaciar su valor en el `.env`, correr `generar_secretos.py /opt/vortex/.env` y `vortex up -d` |
+| `REDIS_PASSWORD`, `HR_ENGINE_JWT_SECRET`, `DASHBOARD_PASSWORD`, `PG_META_CRYPTO_KEY` | Vaciar su valor en el `.env`, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d` |
 | `JWT_SECRET` | Lo mismo, y regenera `ANON_KEY` y `SERVICE_ROLE_KEY`. Hay que actualizar la variable `SUPABASE_ANON_KEY` de GitHub y volver a desplegar (el panel la lleva dentro). Cierra todas las sesiones |
 | `POSTGRES_PASSWORD` | No basta con el `.env`: `roles.sql` solo corre al crear la base. Primero, en `vortex exec db psql -U supabase_admin`, `ALTER USER … WITH PASSWORD '<nueva>'` para `postgres`, `authenticator`, `pgbouncer`, `supabase_auth_admin`, `supabase_functions_admin` y `supabase_storage_admin`. Después, el `.env` y `vortex up -d` |
 | `CLOUDFLARE_TUNNEL_TOKEN`, `SMTP_PASS`, `TURNSTILE_SECRET_KEY` y la llave de R2 | Rotarlos en su panel, cambiar el `.env` y `vortex up -d` |
@@ -341,14 +337,17 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 
 Si el servidor se pierde (RTO menor de 4 horas, ADR-020):
 
-1. **VPS nuevo** como en los pasos 1 y 2, y provisionar como en el paso 3.
+1. **Servidor nuevo:** una cuenta como la de los pasos 2 y 3, o un VPS propio con
+   `provisionar.sh` (ver "Servidor propio").
 2. **Restaurar:**
-   1. Poner en el `/opt/vortex/.env` que dejó `provisionar.sh` los valores reales de
-      `RESTIC_REPOSITORY`, `RESTIC_PASSWORD`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`
-      (del gestor de contraseñas).
-   2. Correr `sudo -u despliegue /opt/vortex/repo/infra/vps/scripts/restaurar.sh latest --si`.
+   1. Poner en el `.env` que dejó el script (`~/vortex/.env`, o `/opt/vortex/.env` en un
+      servidor propio) los valores reales de `RESTIC_REPOSITORY`, `RESTIC_PASSWORD`,
+      `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY` (del gestor de contraseñas).
+   2. Correr `~/vortex/repo/infra/vps/scripts/restaurar.sh latest --si` (en un servidor
+      propio, con `sudo -u despliegue` y la ruta de `/opt/vortex`).
    3. Trae la base, los CVs y el `.env` completo del snapshot.
-3. **GitHub:** actualizar `VPS_HOST` y `VPS_KNOWN_HOSTS` y correr el workflow.
+3. **GitHub:** actualizar `VPS_HOST`, `VPS_KNOWN_HOSTS` y `VPS_USUARIO`, y correr el
+   workflow.
 4. **Cloudflare no cambia.** El `.env` restaurado trae el token del túnel, así que el
    servidor nuevo entra por el mismo túnel y los DNS no se tocan.
 
@@ -379,6 +378,23 @@ En 4 GB, con ~0.45 GB del sistema:
 - **Uso real:** ~1.4 GB.
 - **Con el perfil `admin` encendido:** suma ~0.7 GB (Studio 512 MB, meta 128 MB y el
   túnel 32 MB). Por eso se apaga al terminar.
+
+## Servidor propio
+
+Si Vortex vuelve a un VPS solo suyo, con root (ADR-020 tal como se escribió), se usa
+`provisionar.sh` en lugar de `preparar_cuenta.sh`:
+
+```bash
+scp -i <llave> infra/vps/scripts/provisionar.sh root@<ip>:/root/
+ssh -i <llave> root@<ip> bash /root/provisionar.sh ilyra "$(cat ~/.ssh/vortex_despliegue.pub)"
+```
+
+- Deja un usuario administrador con sudo, el usuario `despliegue` (solo puede correr
+  `vortex-desplegar`), SSH sin root ni contraseñas, parches automáticos, fail2ban, `ufw`
+  con solo SSH, 2 GB de swap y Docker con rotación de logs.
+- Todo vive en `/opt/vortex`; los comandos del `.env` y de restauración llevan
+  `sudo -u despliegue`, y el timer del respaldo es de sistema (`sudo systemctl`).
+- En GitHub, `VPS_USUARIO` se borra o se pone en `despliegue`.
 
 ## Fuentes
 
