@@ -15,7 +15,7 @@
     "@vortex/supabase-client": "workspace:^",
     "@vortex/types": "workspace:*",
     "@vortex/ui": "workspace:*",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^1.55.0",
     "next": "^16.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
