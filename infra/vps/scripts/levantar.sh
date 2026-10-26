@@ -6,7 +6,8 @@
 #   3. las migraciones de Vortex (scripts/migrar.sh);
 #   4. todo lo demás, y espera a que cada servicio esté sano.
 # Lo corre scripts/desplegar.sh en cada despliegue; también sirve a mano tras un
-# reinicio raro o una restauración. VORTEX_SIN_PULL=1 usa las imágenes que ya hay.
+# reinicio raro o una restauración. VORTEX_SIN_PULL=1 usa las imágenes que ya hay y
+# solo baja las que falten.
 set -Eeuo pipefail
 dir=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck source=comun.sh
@@ -18,9 +19,26 @@ if [[ -n ${VORTEX_LOCAL:-} ]]; then
 fi
 "$PYTHON" "$dir/generar_secretos.py" "${verificar[@]}" "$VORTEX_ENV"
 
-if [[ -z ${VORTEX_SIN_PULL:-} ]]; then
-	log "bajando imágenes"
-	compose pull --quiet
+# De una en una y con reintentos: el registro público de ECR (las imágenes de Supabase)
+# limita las descargas anónimas por IP, y en paralelo responde "Rate exceeded" (visto en
+# el VPS el 2026-10-26). Bajarlas aquí también evita que `up` las baje en paralelo.
+bajar_imagenes() {
+	local intento
+	for intento in 1 2 3 4; do
+		if COMPOSE_PARALLEL_LIMIT=1 compose pull --quiet "$@"; then
+			return
+		fi
+		log "no se pudieron bajar todas las imágenes (intento $intento); reintento en $((intento * 20)) s"
+		sleep $((intento * 20))
+	done
+	return 1
+}
+
+log "bajando imágenes"
+if [[ -n ${VORTEX_SIN_PULL:-} ]]; then
+	bajar_imagenes --ignore-buildable --policy missing
+else
+	bajar_imagenes
 fi
 
 log "base"

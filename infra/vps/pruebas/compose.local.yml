@@ -6,7 +6,10 @@
 # levanta el túnel, y publica en 127.0.0.1 los tres sitios de Caddy con los dominios de
 # la prueba: localhost:8080 (career site), :8081 (panel) y :8082 (API), más Mailpit en
 # :8025. Con `localhost` y puerto, y no `*.localhost`, porque Node y Python no resuelven
-# subdominios de localhost en Windows y el e2e llama a la API desde Node.
+# subdominios de localhost en Windows y el e2e llama a la API desde Node. En el VPS
+# compartido van del 20080 al 20083 (PUERTO_PRUEBA_*, que pone probar_en_local.sh): solo
+# se permiten puertos desde el 20000. Caddy escucha adentro en el mismo puerto, porque el
+# dominio de cada sitio lo lleva.
 
 x-cors-de-prueba: &cors-de-prueba
   # El hr-engine en producción rechaza CORS con localhost (app/config.py). Nadie lo llama
@@ -47,9 +50,9 @@ services:
         VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
     networks: [borde, datos, local]
     ports:
-      - 127.0.0.1:8080:8080
-      - 127.0.0.1:8081:8081
-      - 127.0.0.1:8082:8082
+      - 127.0.0.1:${PUERTO_PRUEBA_EMPLEOS:-8080}:${PUERTO_PRUEBA_EMPLEOS:-8080}
+      - 127.0.0.1:${PUERTO_PRUEBA_PANEL:-8081}:${PUERTO_PRUEBA_PANEL:-8081}
+      - 127.0.0.1:${PUERTO_PRUEBA_API:-8082}:${PUERTO_PRUEBA_API:-8082}
 
   cloudflared:
     profiles: [nunca]
@@ -68,7 +71,7 @@ services:
     image: public.ecr.aws/supabase/mailpit:v1.31.3
     networks: [datos, local]
     ports:
-      - 127.0.0.1:8025:8025
+      - 127.0.0.1:${PUERTO_PRUEBA_MAILPIT:-8025}:8025
 
   respaldo:
     depends_on:
