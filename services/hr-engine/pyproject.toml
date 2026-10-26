@@ -33,7 +33,7 @@ dependencies = [
     # se declara porque el código la importa directamente.
     "pyyaml>=6.0",
     # Texto de los CVs en PDF para la coincidencia de skills del plan gratis (ADR-019).
-    "pypdf>=6.21.1",
+    "pypdf>=6.21.2",
     # El XML de un DOCX lo sube un candidato: la documentación de Python recomienda
     # defusedxml para XML no confiable en el servidor.
     "defusedxml>=0.7.1",
