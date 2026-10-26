@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const IcpSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
   name: z.string().min(1),
   industries: z.array(z.string()),
   countries: z.array(z.string().length(2)),
@@ -19,9 +19,9 @@ export const CampaignStatusSchema = z.enum(["draft", "running", "paused", "compl
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 
 export const CampaignSchema = z.object({
-  id: z.string().uuid(),
-  empresa_id: z.string().uuid(),
-  icp_id: z.string().uuid(),
+  id: z.guid(),
+  empresa_id: z.guid(),
+  icp_id: z.guid(),
   name: z.string().min(1),
   prospect_quantity: z.number().int().positive(),
   max_contacts_per_company: z.number().int().positive().default(3),

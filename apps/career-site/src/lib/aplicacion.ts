@@ -55,9 +55,7 @@ const Campos = z.object({
       .max(300, "El enlace es demasiado largo."),
   ]),
   sinIa: z.boolean(),
-  acepta: z.literal(true, {
-    errorMap: () => ({ message: "Para aplicar, acepta el aviso de privacidad." }),
-  }),
+  acepta: z.literal(true, { error: "Para aplicar, acepta el aviso de privacidad." }),
 });
 
 /** Lo que responde la base al registrar la aplicación. */
