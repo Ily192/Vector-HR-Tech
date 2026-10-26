@@ -33,6 +33,22 @@ compré contabo por más capacidad". Lo demás de este ADR sigue igual. Lo que c
 
 Donde abajo dice DigitalOcean o droplet, léase el VPS de Contabo. El runbook ya está al día.
 
+*Segunda enmienda, del 2026-10-26: el servidor es compartido.* El VPS lo administra Andres
+y también corre Coolify. Ilyra decidió que Vortex conviva con Coolify, aunque el punto 8
+de este ADR pedía un servidor solo para Vortex. A Vortex le toca una cuenta sin root
+(`ilyra`): Docker sin root, sin sudo, topes de 6 GB de RAM, 4 CPU y 30 GB de disco, y
+puertos desde el 20000.
+
+- **Aislamiento:** el que da Docker sin root. Los contenedores de Vortex corren dentro
+  del espacio de usuario de la cuenta, y Coolify no los ve ni los administra.
+- **Lo de sistema** (parches, firewall, fail2ban, swap) es de Andres, no de
+  `provisionar.sh`. La cuenta se prepara con `preparar_cuenta.sh`.
+- **Entrada:** sigue siendo Cloudflare Tunnel, que sale hacia Cloudflare y no necesita
+  puertos ni rutas de Coolify.
+- **Riesgo aceptado:** quien administra el servidor puede ver los datos de Vortex,
+  incluidos los CVs. Si eso deja de ser aceptable (por ejemplo, con el primer cliente de
+  pago o un contrato que lo pida), Vortex vuelve a un VPS propio con `provisionar.sh`.
+
 ## Context
 
 **El despliegue gestionado necesitaba seis proveedores** para un solo producto: Supabase Cloud, Vercel, Fly.io, Upstash, Resend y Cloudflare. Cada uno trae su cuenta, sus secretos, su factura y su panel. Para un equipo de una persona, esa dispersión es un costo de mantenimiento en sí misma.

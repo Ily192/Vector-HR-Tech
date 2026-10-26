@@ -372,7 +372,8 @@ e2e (14 aplicaciones con CV) y una restauración:
 | `cloudflared` | 96 MB | no corre en local |
 | **Total** | **2.5 GB** | **~0.95 GB** |
 
-En 4 GB, con ~0.45 GB del sistema:
+Calculado para un servidor de 4 GB, con ~0.45 GB del sistema. En la cuenta de Contabo el
+tope es de 6 GB solo para Vortex, así que sobra:
 
 - **Si todos llegaran a su tope a la vez:** queda ~1 GB libre, más 2 GB de swap.
 - **Uso real:** ~1.4 GB.
