@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import pathlib
 import re
 import sys
@@ -37,7 +38,7 @@ import httpx
 # La consola de Windows no es UTF-8 por defecto (los ✓ de la salida).
 sys.stdout.reconfigure(encoding="utf-8")
 
-MAILPIT = "http://127.0.0.1:8025"
+MAILPIT = os.environ.get("MAILPIT_URL", "http://127.0.0.1:8025")
 IP_DE_PRUEBA = "203.0.113.7"  # TEST-NET-3: hace de CF-Connecting-IP
 
 env = {}
