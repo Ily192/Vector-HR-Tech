@@ -2,9 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * En el VPS el sitio corre como servidor Node (ADR-020): el Dockerfile
- * (infra/vps/career-site) pide `standalone` con NEXT_OUTPUT. El trazado parte de la
- * raíz del monorepo para incluir los packages del workspace. Vercel no lo usa.
+ * En producción el sitio está en Vercel, que no usa esto. Solo la prueba local del stack
+ * del VPS lo corre como servidor Node: su Dockerfile (infra/vps/pruebas/career-site.Dockerfile)
+ * pide `standalone` con NEXT_OUTPUT. El trazado parte de la raíz del monorepo para incluir
+ * los packages del workspace.
  */
 const standalone =
   process.env.NEXT_OUTPUT === "standalone"

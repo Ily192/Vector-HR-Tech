@@ -1,8 +1,12 @@
-# Caddy en el VPS (ADR-020): sirve el panel y reparte lo demás por dominio.
+# Caddy en el VPS (ADR-020): la puerta de la API. El career site y el panel están en
+# Vercel desde la enmienda del 2026-11-11, así que aquí solo entra DOMINIO_API.
 #
 # Todo llega por Cloudflare Tunnel (cloudflared → http://caddy:80). Cloudflare termina
-# el TLS, así que aquí todo es HTTP y no hay certificados que renovar. Los dominios
-# salen del .env del servidor (DOMINIO_*).
+# el TLS, así que aquí todo es HTTP y no hay certificados que renovar. El dominio sale
+# del .env del servidor (DOMINIO_API).
+#
+# La prueba local (pruebas/Caddyfile) importa este archivo y le suma el career site y el
+# panel, para que el e2e recorra el flujo completo contra el stack.
 
 {
 	auto_https off
@@ -24,34 +28,8 @@
 	}
 }
 
-# Career site (Next.js). Las cabeceras de seguridad las pone next.config.mjs.
-http://{$DOMINIO_EMPLEOS} {
-	import comunes
-	# El CV va dentro de la Server Action, hasta 5 MB (next.config.mjs).
-	request_body {
-		max_size 6MB
-	}
-	reverse_proxy career-site:3000
-}
-
-# Panel de la empresa: la SPA de Vite, estática.
-http://{$DOMINIO_PANEL} {
-	import comunes
-	header {
-		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-		X-Frame-Options DENY
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
-	}
-	root * /srv/panel
-	@hasheados path /assets/*
-	header @hasheados Cache-Control "public, max-age=31536000, immutable"
-	try_files {path} /index.html
-	header /index.html Cache-Control "no-cache"
-	file_server
-}
-
-# API de Supabase. Solo las rutas que usan el panel, el career site y el hr-engine: el
-# resto del gateway (y Studio) no se publica.
+# API de Supabase. Solo las rutas que usan el panel, el career site (desde Vercel) y el
+# hr-engine: el resto del gateway (y Studio) no se publica.
 http://{$DOMINIO_API} {
 	import comunes
 	request_body {

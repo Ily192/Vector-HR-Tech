@@ -60,7 +60,7 @@ vortex-ops/
 │   └── ...
 │
 ├── infra/                   IaC + deploy
-│   ├── vps/                 producción en un VPS (ADR-020)
+│   ├── vps/                 el backend de producción en un VPS (ADR-020)
 │   ├── coolify/             docker-compose de referencia
 │   ├── docker/              Dockerfiles
 │   ├── supabase/            migrations + seed
@@ -96,7 +96,7 @@ Empieza por **[docs/00_README.md](docs/00_README.md)**. El plan completo está e
 | DB | Supabase (Postgres 15 + pgvector + RLS) |
 | Auth | Supabase Auth + JWT + Paperclip run-tokens |
 | Observability | OpenTelemetry · Sentry · Grafana · Better Stack logs |
-| CI/CD | GitHub Actions · VPS en Contabo con Docker Compose ([ADR-020](docs/adr/020-plataforma-en-un-vps.md)) |
+| CI/CD | GitHub Actions · career site y panel en Vercel · backend en un VPS de Contabo con Docker Compose ([ADR-020](docs/adr/020-plataforma-en-un-vps.md), tercera enmienda) |
 | Testing | Vitest · Pytest · Playwright · k6 (load) · Zod (runtime) |
 
 ## Brand

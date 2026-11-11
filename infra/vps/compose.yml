@@ -1,8 +1,9 @@
 # Vortex Ops · producción en un solo VPS (ADR-020). Runbook: docs/runbooks/vps.md.
 #
 # Supabase autoalojado (solo lo que se usa), el hr-engine (API, worker y un solo beat),
-# Redis, el career site, el panel y Caddy. La única entrada desde internet es Cloudflare
-# Tunnel: no se publica ningún puerto en el host. Solo el perfil `admin` (Studio y el
+# Redis y Caddy. El career site y el panel están en Vercel desde la enmienda de ADR-020
+# del 2026-11-11: aquí solo vive el backend, detrás de DOMINIO_API. La única entrada desde
+# internet es Cloudflare Tunnel: no se publica ningún puerto en el host. Solo el perfil `admin` (Studio y el
 # túnel a Postgres) abre puertos, y en 127.0.0.1, para entrar por SSH.
 #
 # En el servidor se usa con el wrapper que instala scripts/provisionar.sh:
@@ -336,34 +337,7 @@ services:
     healthcheck:
       disable: true
 
-  # ─── Sitios ──────────────────────────────────────────────────────────────
-  career-site:
-    image: ${REGISTRO:-ghcr.io/ily192}/vortex-career-site:${VERSION:?falta VERSION en version.env}
-    restart: unless-stopped
-    logging: *logs
-    mem_limit: 256m
-    stop_grace_period: 20s
-    # `salida` para la verificación de Turnstile.
-    networks: [datos, salida]
-    depends_on:
-      api-gw:
-        condition: service_started
-    environment:
-      # Supabase por la red interna; el sitio solo lo lee en el servidor.
-      SUPABASE_URL: http://api-gw:8000
-      SUPABASE_ANON_KEY: ${ANON_KEY:?}
-      # Sin la service_role: su propio rol (migración 0017).
-      SUPABASE_CAREER_SITE_KEY: ${CAREER_SITE_KEY:?}
-      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      start_period: 20s
-      retries: 3
-
-  # Panel (estático, dentro de la imagen) y proxy de todo lo demás. HTTP: el TLS lo
-  # termina Cloudflare.
+  # La puerta de la API (caddy/Caddyfile). HTTP: el TLS lo termina Cloudflare.
   caddy:
     image: ${REGISTRO:-ghcr.io/ily192}/vortex-caddy:${VERSION:?falta VERSION en version.env}
     restart: unless-stopped
@@ -371,8 +345,6 @@ services:
     mem_limit: 64m
     networks: [borde, datos]
     depends_on:
-      career-site:
-        condition: service_started
       api-gw:
         condition: service_started
       hr-engine-api:
@@ -380,8 +352,6 @@ services:
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     environment:
-      DOMINIO_EMPLEOS: ${DOMINIO_EMPLEOS:?}
-      DOMINIO_PANEL: ${DOMINIO_PANEL:?}
       DOMINIO_API: ${DOMINIO_API:?}
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:8090/salud"]
@@ -389,8 +359,8 @@ services:
       timeout: 5s
       retries: 3
 
-  # La única entrada: un túnel saliente hacia Cloudflare. Las rutas públicas (los tres
-  # dominios → http://caddy:80) se configuran en el panel de Cloudflare.
+  # La única entrada: un túnel saliente hacia Cloudflare. La ruta pública (DOMINIO_API →
+  # http://caddy:80) se configura en el panel de Cloudflare.
   cloudflared:
     image: cloudflare/cloudflared:2026.10.1
     restart: unless-stopped
@@ -502,8 +472,8 @@ networks:
   # Entre el túnel y Caddy.
   borde:
     internal: true
-  # Salida a internet para quien la necesita: Auth (SMTP), el career site (Turnstile),
-  # el hr-engine, el túnel y el respaldo (R2).
+  # Salida a internet para quien la necesita: Auth (SMTP), el hr-engine, el túnel y el
+  # respaldo (R2).
   salida: {}
   # Solo para los puertos de 127.0.0.1 del perfil admin.
   admin: {}

@@ -1,4 +1,4 @@
-# Contexto de infra/vps/career-site/Dockerfile (la raíz del monorepo): lo que pide el
+# Contexto de infra/vps/pruebas/career-site.Dockerfile (la raíz del monorepo): lo que pide el
 # build del career site, nada más.
 *
 !package.json

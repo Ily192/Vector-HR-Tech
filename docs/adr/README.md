@@ -15,7 +15,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [007](007-pgvector-not-pinecone.md) | pgvector en Supabase, no Pinecone | Accepted |
 | [008](008-llm-routing-policy.md) | Routing LLMs (Gemini default, gpt-4o reasoning, Claude code) | Accepted |
 | [009](009-vendoring-paperclip-openclaw.md) | Vendoring (no submodule) de paperclip-master y openclaw-main | Accepted |
-| [010](010-vercel-frontends.md) | Frontends en Vercel + subdominio default hasta revenue | Superseded by ADR-020 (para el MVP) |
+| [010](010-vercel-frontends.md) | Frontends en Vercel + subdominio default hasta revenue | Superseded by ADR-020 (para el MVP); vigente otra vez para el career site y el panel desde la tercera enmienda de ADR-020 (2026-11-11) |
 | [011](011-typography-inter.md) | Tipografía Inter (display) + Lato (body), free | Superseded por la marca v2 ([branding-v2](../brand/branding-v2.md): Figtree + JetBrains Mono) |
 | [012](012-backend-hosting-deferred.md) | Backends en Fly.io (Cycle 2+); Coolify diferido | Superseded by ADR-020 (para el MVP) |
 | [013](013-brand-placeholder.md) | Wordmark + Lucide como brand visual; logo diferido | Accepted |
@@ -25,7 +25,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Accepted |
 | [018](018-preseleccion-ia-del-plan-gratis.md) | Preseleccionar con IA el plan gratis: a ciegas, con topes y por instrucción de la empresa | Superseded by ADR-019 (siguen vigentes §10-§12 y §14) |
 | [019](019-plan-gratis-sin-ia.md) | El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho | Accepted |
-| [020](020-plataforma-en-un-vps.md) | Toda la plataforma en un VPS, con Supabase autoalojado y Docker Compose | Accepted |
+| [020](020-plataforma-en-un-vps.md) | Toda la plataforma en un VPS, con Supabase autoalojado y Docker Compose | Accepted; desde el 2026-11-11, solo el backend (los frontends en Vercel) |
 | [021](021-evaluacion-ia-del-plan-de-pago.md) | La evaluación con IA del plan de pago, a ciegas y como trabajo interno del hr-engine | Accepted |
 
 ## Cómo escribir una ADR

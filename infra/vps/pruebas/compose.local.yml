@@ -31,23 +31,55 @@ services:
     image: vortex-local/hr-engine:prueba
     environment: *cors-de-prueba
 
+  # En producción el career site y el panel están en Vercel (enmienda de ADR-020 del
+  # 2026-11-11). Aquí se levantan junto al stack para que el e2e recorra el flujo
+  # completo: el career site como servidor Node y el panel dentro de Caddy.
   career-site:
     image: vortex-local/career-site:prueba
     build:
       context: ../..
-      dockerfile: infra/vps/career-site/Dockerfile
+      dockerfile: infra/vps/pruebas/career-site.Dockerfile
       args:
         NEXT_PUBLIC_SITE_URL: http://${DOMINIO_EMPLEOS}
         NEXT_PUBLIC_PANEL_EMPRESAS_URL: http://${DOMINIO_PANEL}
+    restart: unless-stopped
+    mem_limit: 256m
+    networks: [datos]
+    depends_on:
+      api-gw:
+        condition: service_started
+    environment:
+      # Supabase por la red interna; el sitio solo lo lee en el servidor. En Vercel va
+      # por https://DOMINIO_API.
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_ANON_KEY: ${ANON_KEY:?}
+      # Sin la service_role: su propio rol (migración 0017).
+      SUPABASE_CAREER_SITE_KEY: ${CAREER_SITE_KEY:?}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
 
   caddy:
     image: vortex-local/caddy:prueba
     build:
       context: ../..
-      dockerfile: infra/vps/caddy/Dockerfile
+      dockerfile: infra/vps/pruebas/caddy-con-panel.Dockerfile
       args:
         VITE_SUPABASE_URL: http://${DOMINIO_API}
         VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
+    depends_on:
+      career-site:
+        condition: service_started
+    # pruebas/Caddyfile importa el de producción y le suma los dos sitios.
+    volumes:
+      - ./pruebas/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/Caddyfile:/etc/caddy/produccion.Caddyfile:ro
+    environment:
+      DOMINIO_EMPLEOS: ${DOMINIO_EMPLEOS:?}
+      DOMINIO_PANEL: ${DOMINIO_PANEL:?}
     networks: [borde, datos, local]
     ports:
       - 127.0.0.1:${PUERTO_PRUEBA_EMPLEOS:-8080}:${PUERTO_PRUEBA_EMPLEOS:-8080}
