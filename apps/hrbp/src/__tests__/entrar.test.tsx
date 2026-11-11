@@ -15,6 +15,11 @@ describe("entrar al panel", () => {
   it("pide el enlace y responde igual tenga o no cuenta el correo", async () => {
     montar(<Entrar />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Entra a tu panel");
+    expect(screen.getByLabelText("VECTOR HR TECH")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Regístrate gratis" })).toHaveAttribute(
+      "href",
+      "https://vectorhrtech.com/publicar-vacantes",
+    );
 
     fireEvent.change(screen.getByLabelText("Correo de trabajo"), {
       target: { value: " mariana@andes.mx " },
@@ -23,7 +28,7 @@ describe("entrar al panel", () => {
 
     await screen.findByRole("heading", { level: 1, name: "Revisa tu correo" });
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Si mariana@andes.mx tiene una cuenta en Vortex Ops, te llegó un enlace",
+      "Si mariana@andes.mx tiene una cuenta en el panel de Vector HR Tech, te llegó un enlace",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Usar otro correo" }));
@@ -35,9 +40,9 @@ describe("entrar al panel", () => {
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Tu cuenta no tiene acceso",
     );
-    expect(screen.getByRole("link", { name: "hola@vectorhr.tech" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "hola@vectorhrtech.com" })).toHaveAttribute(
       "href",
-      "mailto:hola@vectorhr.tech",
+      "mailto:hola@vectorhrtech.com",
     );
     expect(screen.queryByRole("button", { name: "Reintentar" })).toBeNull();
     expect(screen.getByRole("button", { name: "Salir" })).toBeInTheDocument();

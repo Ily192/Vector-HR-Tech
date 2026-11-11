@@ -13,8 +13,8 @@ test.describe("career-site @smoke", () => {
     const response = await page.goto("/");
     expect(response?.status()).toBeLessThan(400);
 
-    await expect(page).toHaveTitle(/Vortex Empleos/i);
-    await expect(page.getByLabel("VORTEX OPS").first()).toBeVisible();
+    await expect(page).toHaveTitle(/Vector HR Tech/i);
+    await expect(page.getByLabel("VECTOR HR TECH").first()).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/Tu siguiente trabajo/i);
     await expect(page.getByRole("search", { name: "Buscar vacantes" })).toBeVisible();
     await expect(page.getByText(/Agendar/i)).toHaveCount(0);

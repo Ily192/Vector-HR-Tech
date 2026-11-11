@@ -9,11 +9,11 @@ vi.mock("next/link", async () => ({ default: (await import("../test/mocks-next")
 describe("career-site · encabezado y pie comunes", () => {
   it("el encabezado lleva el wordmark al inicio", () => {
     render(<SiteHeader />);
-    expect(screen.getByRole("link", { name: /Vortex Empleos, inicio/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Empleos Vector HR Tech, inicio/i })).toHaveAttribute(
       "href",
       "/",
     );
-    expect(screen.getByLabelText("VORTEX OPS")).toBeInTheDocument();
+    expect(screen.getByLabelText("VECTOR HR TECH")).toBeInTheDocument();
   });
 
   it("el encabezado solo navega para candidatos, sin CTA de venta", () => {
@@ -30,12 +30,16 @@ describe("career-site · encabezado y pie comunes", () => {
     expect(screen.getByText(new RegExp(`${year}.*Vector HR Tech`))).toBeInTheDocument();
   });
 
-  it("la única puerta para empresas es su panel", () => {
+  it("para empresas solo hay registrarse gratis y entrar al panel", () => {
     render(<SiteFooter />);
+    expect(screen.getByRole("link", { name: /Publica tus vacantes gratis/i })).toHaveAttribute(
+      "href",
+      "https://vectorhrtech.com/publicar-vacantes",
+    );
     expect(screen.getByRole("link", { name: /Entra a tu panel/i })).toHaveAttribute(
       "href",
-      "https://vortex-hrbp.vercel.app",
+      "https://panel.vectorhrtech.com",
     );
-    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getAllByRole("link")).toHaveLength(2);
   });
 });

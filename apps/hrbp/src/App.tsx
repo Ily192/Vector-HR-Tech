@@ -79,7 +79,7 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
       return {
         seccion: null,
         titulo: "Página no encontrada",
-        migas: "Vortex Ops",
+        migas: "Vector HR Tech",
         contenido: (
           <section className="max-w-xl rounded-[22px] border border-mist-200 bg-white p-6">
             <h1 className="text-2xl">No encontramos esta página</h1>
@@ -105,7 +105,7 @@ export function App() {
   const titulo = sesion === null ? "Entrar" : vista.titulo;
 
   useEffect(() => {
-    document.title = `${titulo} · Vortex Ops`;
+    document.title = `${titulo} · Vector HR Tech`;
   }, [titulo]);
 
   // Un enlace ya usado vuelve con `#error_code=…` aunque la sesión siga viva: se limpia.

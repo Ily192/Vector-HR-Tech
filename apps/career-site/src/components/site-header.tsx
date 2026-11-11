@@ -14,10 +14,10 @@ export function SiteHeader() {
       <div className="container mx-auto flex h-[68px] items-center gap-6 px-4 md:px-6">
         <Link
           href="/"
-          aria-label="Vortex Empleos, inicio"
+          aria-label="Empleos Vector HR Tech, inicio"
           className="flex items-center gap-2.5 rounded-lg"
         >
-          <Wordmark brand="vortex" size="sm" tone="dark" withMark />
+          <Wordmark brand="vector" size="sm" tone="dark" withMark />
           <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-aqua-300">
             Empleos
           </span>
