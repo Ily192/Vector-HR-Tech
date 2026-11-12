@@ -57,6 +57,9 @@ export const registrarInteres = async (origen: OrigenDelInteres) =>
 
 export const entrar = async (correo: string) => (await adaptador()).entrar(correo);
 
+export const verificarCodigo = async (correo: string, codigo: string) =>
+  (await adaptador()).verificarCodigo(correo, codigo);
+
 export const salir = async () => (await adaptador()).salir();
 
 /** Avisa cuando entra o sale alguien. Devuelve cómo dejar de escuchar. */

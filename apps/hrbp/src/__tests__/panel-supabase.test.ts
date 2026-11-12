@@ -212,7 +212,7 @@ describe("sesión", () => {
     expect(peticiones).toHaveLength(0);
   });
 
-  it("pide el enlace solo para cuentas que existen y no revela cuáles", async () => {
+  it("pide el código solo para cuentas que existen y no revela cuáles", async () => {
     let respuesta: Respuesta = {
       estado: 422,
       filas: { code: "otp_disabled", message: "Signups not allowed for otp" },
@@ -224,7 +224,8 @@ describe("sesión", () => {
     expect(await adaptador.entrar(" nadie@ejemplo.com ")).toEqual({ ok: true });
     const [otp] = peticiones;
     expect(otp?.cuerpo).toMatchObject({ email: "nadie@ejemplo.com", create_user: false });
-    expect(otp?.url.searchParams.get("redirect_to")).toBe(`${window.location.origin}/`);
+    // Código y no enlace: no hay a dónde volver.
+    expect(otp?.url.searchParams.get("redirect_to")).toBeNull();
 
     respuesta = { estado: 429, filas: { code: "over_email_send_rate_limit", message: "…" } };
     expect(await adaptador.entrar("mariana@andes.mx")).toEqual({
@@ -233,6 +234,53 @@ describe("sesión", () => {
     });
     respuesta = { estado: 500, filas: { code: "unexpected_failure", message: "…" } };
     expect(await adaptador.entrar("mariana@andes.mx")).toEqual({ ok: false, motivo: "error" });
+  });
+
+  it("abre la sesión con el código del correo", async () => {
+    let respuesta: Respuesta = { estado: 403, filas: { code: "otp_expired", message: "…" } };
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/auth/v1/verify" ? respuesta : undefined,
+    );
+
+    expect(await adaptador.verificarCodigo(" mariana@andes.mx ", " 123456 ")).toEqual({
+      ok: false,
+      motivo: "codigo-invalido",
+    });
+    expect(peticiones[0]?.cuerpo).toMatchObject({
+      email: "mariana@andes.mx",
+      token: "123456",
+      type: "email",
+    });
+
+    respuesta = { estado: 429, filas: { code: "over_request_rate_limit", message: "…" } };
+    expect(await adaptador.verificarCodigo("mariana@andes.mx", "123456")).toEqual({
+      ok: false,
+      motivo: "demasiados-intentos",
+    });
+    respuesta = { estado: 500, filas: { code: "unexpected_failure", message: "…" } };
+    expect(await adaptador.verificarCodigo("mariana@andes.mx", "123456")).toEqual({
+      ok: false,
+      motivo: "error",
+    });
+
+    respuesta = {
+      filas: {
+        access_token: tokenCon({ empresa_id: EMPRESA, app_role: "HR" }),
+        refresh_token: "refresco-nuevo",
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: {
+          id: "usuario-1",
+          email: "mariana@andes.mx",
+          aud: "authenticated",
+          app_metadata: {},
+          user_metadata: {},
+          created_at: "2026-11-12T00:00:00Z",
+        },
+      },
+    };
+    expect(await adaptador.verificarCodigo("mariana@andes.mx", "123456")).toEqual({ ok: true });
   });
 
   it("avisa cuando sale la persona", async () => {

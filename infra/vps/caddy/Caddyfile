@@ -39,6 +39,14 @@ http://{$DOMINIO_API} {
 	handle @supabase {
 		reverse_proxy api-gw:8000
 	}
+	# El alta desde vectorhrtech.com/publicar-vacantes (ADR-017, 2026-11-12): la llama el
+	# servidor de la web con su secreto. Un registro es un JSON corto.
+	handle /alta/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy hr-engine-api:8000
+	}
 	# Para el monitoreo externo: sin el detalle del /ready del hr-engine.
 	handle /salud/hr-engine {
 		reverse_proxy hr-engine-api:8000 {

@@ -240,6 +240,11 @@ producción se cambia solo con el OK de Ilyra.
    | | `SUPABASE_CAREER_SITE_KEY` | `CAREER_SITE_KEY` del `.env`, con la tubería de la fila `CAREER_SITE_KEY` de "Rotar secretos" para que no pase por la pantalla. La service_role no va en Vercel | Secret |
    | `vortex-hrbp` | `VITE_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
    | | `VITE_SUPABASE_ANON_KEY` | la misma clave pública | Config |
+   | `vector-hr-tech` (la web) | `FLUVE_ALTA_URL` | `https://<DOMINIO_API>/alta/plan-gratis` | Config |
+   | | `FLUVE_ALTA_SECRETO` | `ALTA_SECRETO` del `.env`, con la tubería de la fila `ALTA_SECRETO` de "Rotar secretos" | Secret |
+
+   La web solo lee `FLUVE_ALTA_*` al publicarse: después de cargarlas hay que volver a
+   desplegarla. Sin ellas, el registro queda en su base y no da de alta a nadie.
 
    Las `NEXT_PUBLIC_*` y `VITE_*` se escriben en el bundle al construir: después de
    cambiarlas hay que volver a desplegar.
@@ -286,6 +291,26 @@ vortex exec hr-engine-api python -m app.cli.alta_empresa \
 ```
 
 `--reenviar <correo>` manda otro enlace a quien no ha entrado.
+
+Desde el 2026-11-12 las empresas se dan de alta solas desde
+`vectorhrtech.com/publicar-vacantes` (ADR-017): la web llama a `POST /alta/plan-gratis`
+y la persona entra al panel con el código de 6 dígitos que le llega al correo. El
+comando queda para los casos a mano.
+
+**Correos de Auth.** Las plantillas están en `infra/supabase/templates` y las sirve Caddy
+por dentro:
+
+- `confirmation.html`: el código de una cuenta nueva del alta desde la web;
+- `magic_link.html`: el código para entrar de una cuenta que ya existe;
+- `invite.html`: la invitación por la terminal, con enlace.
+
+El código y el enlace duran 15 minutos (`GOTRUE_MAILER_OTP_EXP`). Los asuntos son
+`ASUNTO_CODIGO` y `ASUNTO_INVITACION`.
+
+**Limpieza.** Cada día a las 4:30 UTC, `altas.limpiar` borra las empresas registradas
+por la web que nadie confirmó en 7 días, con su cuenta de Auth. Nunca toca una empresa
+con una cuenta confirmada o con vacantes. El resultado sale en los logs del worker
+(`altas.limpieza`).
 
 ## Día a día
 
@@ -372,6 +397,7 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 | `POSTGRES_PASSWORD` | No basta con el `.env`: `roles.sql` solo corre al crear la base. Primero, en `vortex exec db psql -U supabase_admin`, `ALTER USER … WITH PASSWORD '<nueva>'` para `postgres`, `authenticator`, `pgbouncer`, `supabase_auth_admin`, `supabase_functions_admin` y `supabase_storage_admin`. Después, el `.env` y `vortex up -d` |
 | `CLOUDFLARE_TUNNEL_TOKEN`, `SMTP_PASS` y la llave de R2 | Rotarlos en su panel, cambiar el `.env` y `vortex up -d` |
 | `TURNSTILE_SECRET_KEY` | Rotarla en Cloudflare, cambiarla en el proyecto de Vercel del career site y volver a desplegarlo |
+| `ALTA_SECRETO` | El que comparten la web y el hr-engine para `POST /alta/plan-gratis`. Vaciarlo, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d hr-engine-api`. Después, cargarlo en la web sin que pase por la pantalla: `ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-alta ~/vortex/.env' \| vercel env add FLUVE_ALTA_SECRETO production --scope proyectos-ilys-projects --type secret` (vercel.com/docs/cli/env, "Type"), y volver a desplegar la web. Mientras no coinciden, el alta responde 401 y la web muestra su agradecimiento de respaldo |
 | `RESTIC_PASSWORD` | `vortex run --rm respaldo key add`, después `key remove` de la vieja. Guardar la nueva en el gestor |
 | La llave de despliegue | Una nueva con `ssh-keygen`, `provisionar.sh` con la pública y el secret `VPS_SSH_KEY` |
 
@@ -457,6 +483,11 @@ ssh -i <llave> root@<ip> bash /root/provisionar.sh ilyra "$(cat ~/.ssh/vortex_de
 - Contabo: [Auto Backup](https://contabo.com/en-us/auto-backup).
 - [UptimeRobot](https://uptimerobot.com/pricing/), plan Free.
 - [GHCR: visibilidad y permisos](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
+- Supabase Auth v2.197.0 (el alta con código):
+  - [`/otp` con `create_user` y `data`](https://github.com/supabase/auth/blob/v2.197.0/internal/api/otp.go) y [magic link y alta](https://github.com/supabase/auth/blob/v2.197.0/internal/api/magic_link.go);
+  - [alta con y sin autoconfirmación](https://github.com/supabase/auth/blob/v2.197.0/internal/api/signup.go);
+  - [`type: email` en `/verify`](https://github.com/supabase/auth/blob/v2.197.0/internal/api/verify.go) y [`{{ .Token }}` en las plantillas](https://github.com/supabase/auth/blob/v2.197.0/internal/mailer/templatemailer/templatemailer.go);
+  - [topes por IP con la cabecera](https://github.com/supabase/auth/blob/v2.197.0/internal/api/middleware.go) y [el de correos por hora, solo sin autoconfirmación](https://github.com/supabase/auth/blob/v2.197.0/internal/api/mail.go).
 - Vercel: [límites de las funciones](https://vercel.com/docs/functions/limitations) (cuerpo de 4.5 MB), [variables Config y Secret](https://vercel.com/docs/environment-variables/sensitive-environment-variables) y [plan Hobby](https://vercel.com/docs/plans/hobby) (sin uso comercial).
 - Next.js 16 (`node_modules/next/dist/docs`), para el career site de la prueba local:
   - `output`, "Automatically Copying Traced Files";

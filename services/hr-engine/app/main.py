@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import cv_evaluator, health, sourcer
+from app.api import alta, cv_evaluator, health, sourcer
 from app.api.rate_limit import limiter
 from app.config import settings
 from app.monitoring import (
@@ -179,6 +179,8 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # ── Routers ──
 app.include_router(health.router)
+# Lo llama la web de Vector HR Tech de servidor a servidor (ADR-017, 2026-11-12).
+app.include_router(alta.router, tags=["alta"])
 app.include_router(sourcer.router, prefix="/api/sourcer", tags=["sourcer"])
 app.include_router(cv_evaluator.router, prefix="/api/cv-evaluator", tags=["cv-evaluator"])
 

@@ -19,6 +19,26 @@ from app.domain.puertos import CuentaYaExisteError, RepositorioDeAltas, Servicio
 INTENTOS_DE_SLUG = 3
 
 
+async def crear_con_slug_libre(
+    repositorio: RepositorioDeAltas,
+    solicitud: SolicitudDeAlta,
+    token_hash: str,
+    sufijo: Callable[[], str],
+) -> tuple[UUID, str]:
+    """Crea la empresa con su invitación. Si el slug limpio ya es de otra empresa,
+    reintenta con un sufijo corto."""
+    slug = slug_de_empresa(solicitud.empresa)
+    empresa_id = await repositorio.crear_empresa_con_invitacion(solicitud, slug, token_hash)
+    for _ in range(INTENTOS_DE_SLUG):
+        if empresa_id is not None:
+            break
+        slug = slug_de_empresa(solicitud.empresa, sufijo())
+        empresa_id = await repositorio.crear_empresa_con_invitacion(solicitud, slug, token_hash)
+    if empresa_id is None:
+        raise RuntimeError(f"no hubo un slug libre para {solicitud.empresa!r}")
+    return empresa_id, slug
+
+
 @dataclass(frozen=True)
 class ResultadoDelAlta:
     empresa_id: UUID
@@ -53,19 +73,9 @@ class DarDeAltaEmpresa:
             raise CuentaYaExisteError(f"{solicitud.correo} ya tiene cuenta en el panel")
 
         token = nuevo_token()
-        slug = slug_de_empresa(solicitud.empresa)
-        empresa_id = await self._repositorio.crear_empresa_con_invitacion(
-            solicitud, slug, hash_del_token(token)
+        empresa_id, slug = await crear_con_slug_libre(
+            self._repositorio, solicitud, hash_del_token(token), self._sufijo
         )
-        for _ in range(INTENTOS_DE_SLUG):
-            if empresa_id is not None:
-                break
-            slug = slug_de_empresa(solicitud.empresa, self._sufijo())
-            empresa_id = await self._repositorio.crear_empresa_con_invitacion(
-                solicitud, slug, hash_del_token(token)
-            )
-        if empresa_id is None:
-            raise RuntimeError(f"no hubo un slug libre para {solicitud.empresa!r}")
 
         try:
             await self._invitaciones.invitar(solicitud.correo, token, solicitud.nombre)
@@ -76,7 +86,7 @@ class DarDeAltaEmpresa:
 
 
 class ReenviarInvitacion:
-    """Vuelve a mandar la invitación a quien todavía no entra: el enlace dura una hora.
+    """Vuelve a mandar la invitación a quien todavía no entra: el enlace dura 15 minutos (GOTRUE_MAILER_OTP_EXP).
 
     No crea nada: la cuenta y su empresa existen desde la primera invitación.
     """

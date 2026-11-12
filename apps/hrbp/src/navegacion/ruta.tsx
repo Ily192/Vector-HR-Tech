@@ -17,10 +17,16 @@ export type Ruta =
   | { pantalla: "pipeline"; vacanteId: string }
   | { pantalla: "no-encontrada" };
 
+/** La página a la que vuelve quien se registra en vectorhrtech.com/publicar-vacantes. */
+export const RUTA_DE_VERIFICAR = "/verificar";
+
 /** Traduce una ruta de la URL a la pantalla que le toca. */
 export function resolverRuta(pathname: string): Ruta {
   const partes = pathname.split("/").filter(Boolean);
   if (partes.length === 0) return { pantalla: "inicio" };
+  // Donde se escribe el código del alta desde la web: con la sesión abierta, es el inicio.
+  if (partes.length === 1 && partes[0] === RUTA_DE_VERIFICAR.slice(1))
+    return { pantalla: "inicio" };
   if (partes[0] !== "vacantes" || partes.length > 2) return { pantalla: "no-encontrada" };
   if (partes.length === 1) return { pantalla: "mis-vacantes" };
   const [, segunda = ""] = partes;
@@ -45,9 +51,10 @@ export function useRuta(): string {
   return useSyncExternalStore(suscribir, () => window.location.pathname);
 }
 
-/** Cambia de pantalla sin recargar. */
-export function navegar(destino: string) {
-  window.history.pushState(null, "", destino);
+/** Cambia de pantalla sin recargar. Con `reemplazar`, sin dejar la anterior en el historial. */
+export function navegar(destino: string, { reemplazar = false } = {}) {
+  if (reemplazar) window.history.replaceState(null, "", destino);
+  else window.history.pushState(null, "", destino);
   window.dispatchEvent(new Event(EVENTO_NAVEGAR));
   window.scrollTo({ top: 0 });
 }

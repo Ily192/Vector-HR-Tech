@@ -137,9 +137,17 @@ class Settings(BaseSettings):
     ia_presupuesto_mensual_usd: float = Field(default=25.0, ge=0)
 
     # ─── Panel de la empresa ─────────────────────────────
-    # A dónde vuelve el enlace de la invitación. Solo lo usa el comando de alta de
-    # empresas, no la API ni el worker. Tiene que estar en las Redirect URLs de Auth.
+    # A dónde vuelve el enlace de la invitación del comando de alta, y la página
+    # `/verificar` del alta desde la web. Tiene que estar en las Redirect URLs de Auth.
     panel_url: str = "http://localhost:3001"
+
+    # ─── Alta desde la web (POST /alta/plan-gratis) ──────
+    # El secreto que comparten la web (FLUVE_ALTA_SECRETO en Vercel) y el hr-engine.
+    # Vacío = el endpoint responde 503: el alta desde la web está apagada.
+    alta_secreto: str = ""
+    # Registros nuevos por hora, por IP del visitante (con hash) y por correo.
+    alta_limite_por_ip: str = "5/hour"
+    alta_limite_por_correo: str = "3/hour"
 
     # ─── Control plane ───────────────────────────────────
     paperclip_url: str = "http://localhost:4000"

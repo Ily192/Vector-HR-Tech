@@ -54,6 +54,9 @@ x-hr-engine: &hr-engine
     SUPABASE_URL: http://api-gw:8000
     SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
     PANEL_URL: ${ESQUEMA_PUBLICO:-https}://${DOMINIO_PANEL:?}
+    # El secreto que comparte con la web para el alta desde publicar-vacantes (ADR-017,
+    # 2026-11-12). En Vercel es FLUVE_ALTA_SECRETO del proyecto vector-hr-tech.
+    ALTA_SECRETO: ${ALTA_SECRETO:?}
     # La evaluación con IA del plan de pago (ADR-021). Sin key no se evalúa nada y las
     # aplicaciones de las empresas con IA esperan; solo la key del nivel de pago de Gemini.
     GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
@@ -148,9 +151,17 @@ services:
       GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: pg-functions://postgres/public/custom_access_token_hook
 
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      # Sin autoconfirmación: la cuenta que crea el alta desde la web (POST /otp con
+      # create_user) queda sin confirmar hasta que la persona escribe el código. Con
+      # "true", Auth la confirmaba y abría una sesión al crearla (internal/api/signup.go,
+      # v2.197.0) y no se podía saber quién escribió el código. Las invitaciones de
+      # Vector HR no cambian: el enlace confirma la cuenta al usarse.
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
       GOTRUE_MAILER_SECURE_EMAIL_CHANGE_ENABLED: "true"
-      GOTRUE_MAILER_OTP_EXP: 3600
+      # 15 minutos para el código de 6 dígitos (y el enlace de las invitaciones, que
+      # comparte el valor): se escribe en el momento y una ventana corta deja menos
+      # intentos para adivinarlo.
+      GOTRUE_MAILER_OTP_EXP: 900
       GOTRUE_MAILER_OTP_LENGTH: 6
       GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
       GOTRUE_SMS_AUTOCONFIRM: "false"
@@ -162,8 +173,12 @@ services:
       # Las plantillas en español de infra/supabase/templates; las sirve Caddy por dentro.
       GOTRUE_MAILER_TEMPLATES_INVITE: http://caddy:8090/plantillas/invite.html
       GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://caddy:8090/plantillas/magic_link.html
+      # La cuenta nueva del alta desde la web recibe esta; la que ya existe, la de
+      # magic link. Las dos llevan el código ({{ .Token }}).
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://caddy:8090/plantillas/confirmation.html
       GOTRUE_MAILER_SUBJECTS_INVITE: ${ASUNTO_INVITACION:?}
-      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: ${ASUNTO_ENLACE_MAGICO:?}
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: ${ASUNTO_CODIGO:?}
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: ${ASUNTO_CODIGO:?}
 
       # Resend por SMTP, por 2587 con STARTTLS: Contabo bloquea el 25 de salida.
       GOTRUE_SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}

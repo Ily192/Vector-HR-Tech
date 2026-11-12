@@ -493,14 +493,31 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
     },
 
     async entrar(correo) {
+      // El correo lleva un código de 6 dígitos y no un enlace (infra/supabase/templates):
+      // a una cuenta sin confirmar, Auth le reenvía el de su alta.
       const { error } = await supabase.auth.signInWithOtp({
         email: correo.trim(),
-        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/` },
+        options: { shouldCreateUser: false },
       });
       // Sin cuenta, GoTrue contesta "Signups not allowed for otp". Se responde igual
       // que con cuenta para no revelar qué correos usan el panel.
       if (!error || error.code === "otp_disabled") return { ok: true };
       return { ok: false, motivo: error.status === 429 ? "demasiados-intentos" : "error" };
+    },
+
+    async verificarCodigo(correo, codigo) {
+      // `email` revisa el código del alta (confirmación) y el de entrada (magic link).
+      const { error } = await supabase.auth.verifyOtp({
+        email: correo.trim(),
+        token: codigo.trim(),
+        type: "email",
+      });
+      if (!error) return { ok: true };
+      if (error.status === 429) return { ok: false, motivo: "demasiados-intentos" };
+      if (error.code === "otp_expired" || error.status === 403) {
+        return { ok: false, motivo: "codigo-invalido" };
+      }
+      return { ok: false, motivo: "error" };
     },
 
     async salir() {

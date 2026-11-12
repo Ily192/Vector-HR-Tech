@@ -19,6 +19,8 @@ dependencies = [
     # avisos abiertos (algorithm confusion; ecdsa sin corrección). `crypto` habilita RS256.
     "pyjwt[crypto]>=2.15.1",
     "slowapi>=0.1.9",
+    # Los topes del alta desde la web (app/infrastructure/altas_web.py); slowapi ya la trae.
+    "limits>=5.0",
     "openai>=1.54.0",
     "google-genai>=1.0.0",
     "sentry-sdk[fastapi]>=2.18.0",

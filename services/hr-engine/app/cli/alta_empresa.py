@@ -6,7 +6,9 @@
 
 Crea la empresa con plan gratis y su invitación de un solo uso, y Supabase Auth
 manda el correo; el enlace deja a la persona dentro del panel. `--reenviar`
-vuelve a mandarlo a quien no ha entrado (el enlace dura una hora).
+vuelve a mandarlo a quien no ha entrado (el enlace dura 15 minutos). Desde el 2026-11-12
+las empresas se dan de alta solas desde vectorhrtech.com/publicar-vacantes (POST
+/alta/plan-gratis); este comando queda para los casos que Vector HR lleva a mano.
 
 Necesita DATABASE_URL (el rol dueño de la base), SUPABASE_URL,
 SUPABASE_SECRET_KEY y PANEL_URL. La lógica está en

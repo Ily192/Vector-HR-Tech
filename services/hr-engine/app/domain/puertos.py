@@ -7,10 +7,13 @@ los tests, adaptadores falsos. El dominio solo conoce estas firmas.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
 
 from app.domain.alta import SolicitudDeAlta
+from app.domain.alta_web import SolicitudDeAltaWeb
 from app.domain.anonimizacion import CvAnonimo
 from app.domain.entidades import (
     AplicacionPorEvaluar,
@@ -216,4 +219,92 @@ class ServicioDeInvitaciones(Protocol):
 
     async def reenviar(self, correo: str) -> None:
         """Vuelve a mandar el correo a una cuenta que todavía no entra."""
+        ...
+
+
+# ─── Alta desde la web, con código ──────────────────────────────────────────
+
+#: Qué pasó con un registro de la web: se creó la empresa o el correo ya tenía cuenta.
+ResultadoDeAltaWeb = Literal["empresa_creada", "cuenta_existente"]
+
+
+class CodigoNoEnviadoError(RuntimeError):
+    """Auth no mandó el código: caído, sin clave válida o con su límite de correos."""
+
+
+class CodigoReenviadoMuyProntoError(RuntimeError):
+    """Ya hay un código de hace menos de un minuto (GOTRUE_SMTP_MAX_FREQUENCY): sigue
+    sirviendo, así que no es un error para quien se registra."""
+
+
+class LimiteDeAltasError(RuntimeError):
+    """Demasiados registros de la misma IP o del mismo correo en la última hora."""
+
+    def __init__(self, reintentar_en_s: int) -> None:
+        super().__init__(f"límite de altas: reintentar en {reintentar_en_s} s")
+        self.reintentar_en_s = reintentar_en_s
+
+
+@dataclass(frozen=True)
+class AltaPendiente:
+    """Una empresa que se registró por la web y nunca escribió su código."""
+
+    empresa_id: UUID
+    usuarios: tuple[UUID, ...]
+
+
+class RepositorioDeAltasWeb(Protocol):
+    """Los registros de la web (`altas_web`): idempotencia, datos para verificar y limpieza."""
+
+    async def reservar(self, solicitud: SolicitudDeAltaWeb, ip_hash: str | None) -> bool:
+        """Guarda el `lead_id`. False si ya estaba: es un reintento de la web."""
+        ...
+
+    async def completar(
+        self, lead_id: str, empresa_id: UUID | None, resultado: ResultadoDeAltaWeb
+    ) -> None: ...
+
+    async def liberar(self, lead_id: str) -> None:
+        """Quita la reserva si el alta falló, para que la web pueda reintentar."""
+        ...
+
+    async def marcar_confirmadas(self) -> int:
+        """Pone `confirmado_en` a las altas cuyo dueño ya escribió el código."""
+        ...
+
+    async def pendientes_desde(self, antes_de: datetime) -> list[AltaPendiente]:
+        """Las empresas creadas por la web antes de `antes_de` en las que nadie confirmó
+        su correo, sin vacantes. Nunca devuelve una empresa con una cuenta confirmada."""
+        ...
+
+    async def borrar_empresa(self, empresa_id: UUID) -> None:
+        """Borra la empresa; su invitación y su alta se van en cascada."""
+        ...
+
+
+class ServicioDeCodigos(Protocol):
+    """El correo con el código de 6 dígitos de Supabase Auth (`POST /auth/v1/otp`)."""
+
+    async def mandar_codigo_de_alta(
+        self, correo: str, token: str, nombre: str, ip: str | None
+    ) -> None:
+        """Crea la cuenta con el token de la invitación en el metadata, que es lo que
+        `handle_new_user` (0003) busca, y le manda el código. Lanza
+        `CodigoNoEnviadoError` o `CodigoReenviadoMuyProntoError`."""
+        ...
+
+    async def mandar_codigo_de_entrada(self, correo: str, ip: str | None) -> None:
+        """Manda un código a una cuenta que ya existe, sin crear nada."""
+        ...
+
+    async def borrar_usuario(self, usuario_id: UUID) -> None:
+        """Borra la cuenta de Auth (API de administración)."""
+        ...
+
+
+class LimitadorDeAltas(Protocol):
+    """Topes de registros por hash de IP y por correo."""
+
+    async def consumir(self, ip_hash: str | None, correo: str) -> None:
+        """Cuenta un intento. Lanza `LimiteDeAltasError` si alguno se pasó."""
         ...
