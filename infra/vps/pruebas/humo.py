@@ -1,6 +1,7 @@
 """Lo que el e2e del plan gratis no ve del stack del VPS (pruebas/probar_en_local.sh).
 
-    python humo.py <.env de prueba> borde
+    python humo.py <.env de prueba> borde <correo invitado>
+    python humo.py <.env de prueba> alta
     python humo.py <.env de prueba> career-site
     python humo.py <.env de prueba> foto <estado.json>
     python humo.py <.env de prueba> comparar <estado.json>
@@ -9,9 +10,12 @@
   - Studio y el resto del gateway no se publican;
   - sin apikey no se entra;
   - sin invitación no hay alta;
-  - un correo desconocido no recibe enlace, y una cuenta invitada que aún no entra sí;
-  - Auth usa las plantillas en español, que sirve Caddy (la del enlace mágico, en
-    Mailpit).
+  - un correo desconocido no recibe código, y una cuenta invitada que aún no entra sí;
+  - Auth usa las plantillas en español, que sirve Caddy (la del código, en Mailpit), y
+    el correo lleva el código y no un enlace.
+- `alta`: `POST /alta/plan-gratis` por Caddy (ADR-017, enmienda del 2026-11-12): sin el
+  secreto es 401; con datos que no sirven, 422; y pasado el tope por correo, 429 con
+  Retry-After. El recorrido completo (código, panel, salir y volver) es del e2e.
 - `career-site`: la clave del career site (rol `career_site`, migración 0017) contra el
   gateway y la Storage API de verdad: lee la vacante abierta y nada más, sube un CV, no
   lista ni baja ninguno, y borra solo el que nombra en `x-cv-ruta`. Necesita una
@@ -33,6 +37,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 import uuid
@@ -95,11 +100,15 @@ def borde() -> None:
         headers={"apikey": ANON},
         json={"email": f"nadie-{uuid.uuid4().hex[:6]}@x.test", "create_user": False},
     )
-    ok(r.status_code == 422, "un correo desconocido no recibe enlace", r.text[:120])
+    ok(r.status_code == 422, "un correo desconocido no recibe código", r.text[:120])
 
 
 def plantilla(correo: str) -> None:
-    """El enlace mágico de una cuenta que existe sale con la plantilla de Caddy."""
+    """El código de una cuenta que existe sale con la plantilla de Caddy.
+
+    La cuenta invitada que aún no entra está sin confirmar: Auth le reenvía el correo de
+    confirmación (GOTRUE_MAILER_AUTOCONFIRM=false), que también lleva el código.
+    """
     for _ in range(4):
         enviado = time.time()
         r = http.post(
@@ -111,7 +120,7 @@ def plantilla(correo: str) -> None:
             break
         print("  (Auth pide esperar entre correos a la misma cuenta: 60 s, como en producción)")
         time.sleep(31)
-    ok(r.status_code == 200, "Auth manda el enlace mágico por SMTP", r.text[:200])
+    ok(r.status_code == 200, "Auth manda el código por SMTP", r.text[:200])
     limite = time.time() + 60
     while time.time() < limite:
         lista = httpx.get(
@@ -119,17 +128,78 @@ def plantilla(correo: str) -> None:
         ).json()
         for mensaje in lista.get("messages", []):
             llegado = datetime.fromisoformat(mensaje["Created"].replace("Z", "+00:00")).timestamp()
-            if mensaje["Subject"] == env["ASUNTO_ENLACE_MAGICO"] and llegado >= enviado - 2:
+            if mensaje["Subject"] == env["ASUNTO_CODIGO"] and llegado >= enviado - 2:
                 cuerpo = httpx.get(f"{MAILPIT}/api/v1/message/{mensaje['ID']}", timeout=10).json()
-                # El botón de infra/supabase/templates; la plantilla de Auth es en inglés.
+                texto = re.sub(r"<[^>]*>", " ", cuerpo["HTML"])
+                # El texto de infra/supabase/templates; la plantilla de Auth es en inglés.
                 ok(
-                    "Entrar al panel" in cuerpo["HTML"]
-                    and f"{API}/auth/v1/verify" in cuerpo["HTML"],
-                    "con la plantilla en español y el enlace a la API pública",
+                    "Tu código para entrar" in texto and re.search(r"\b\d{6}\b", texto),
+                    "con la plantilla en español y el código de 6 dígitos",
+                )
+                ok(
+                    "/auth/v1/verify" not in cuerpo["HTML"],
+                    "sin enlace que un filtro de correo pueda gastar",
                 )
                 return
         time.sleep(1)
-    ok(False, f"llega el enlace mágico a {correo}")
+    ok(False, f"llega el código a {correo}")
+
+
+def alta() -> None:
+    """El endpoint del alta desde la web, por Caddy: secreto, datos y tope por correo."""
+    url = f"{API}/alta/plan-gratis"
+    correo = f"alta-{uuid.uuid4().hex[:8]}@humo.test"
+    registro = {
+        "nombre": "Humo del alta",
+        "correo": correo,
+        "publica_para": "propia",
+        "empresa": f"Humo del alta {uuid.uuid4().hex[:6]}",
+        "cargo": None,
+        "web_empresa": "https://humo.test",
+        "linkedin": None,
+        "verificacion": "dominio",
+        "pais": "mx",
+        "tamano": "1-15",
+        "sector": "otro",
+        "contrataciones_mes": "0",
+        "puestos": [],
+        "ip": "198.51.100.77",
+    }
+    secreto = {"Authorization": f"Bearer {env['ALTA_SECRETO']}"}
+    r = http.post(url, json={**registro, "lead_id": "humo-0"})
+    ok(r.status_code == 401, "sin el secreto, 401", r.status_code)
+    r = http.post(
+        url, json={**registro, "lead_id": "humo-0"}, headers={"Authorization": "Bearer x"}
+    )
+    ok(r.status_code == 401, "con otro secreto, 401", r.status_code)
+    r = http.post(url, json={**registro, "lead_id": "humo-0", "pais": "co"}, headers=secreto)
+    ok(r.status_code == 422, "un país que no es del formulario, 422", r.status_code)
+    r = http.post(
+        url, content=b"x" * 20_000, headers={**secreto, "Content-Type": "application/json"}
+    )
+    ok(r.status_code == 413, "un cuerpo de más de 16 KB no pasa de Caddy", r.status_code)
+
+    marca = uuid.uuid4().hex[:6]
+    for i in range(3):
+        r = http.post(url, json={**registro, "lead_id": f"humo-{marca}-{i}"}, headers=secreto)
+        ok(
+            r.status_code == 200 and r.json()["estado"] == "codigo_enviado",
+            f"registro {i + 1} de 3 en la hora con el mismo correo",
+            r.text[:200],
+        )
+    ok(
+        r.json()["verificar_url"].endswith(f"/verificar#correo={correo.replace('@', '%40')}"),
+        "vuelve a /verificar con el correo en el fragmento",
+        r.json()["verificar_url"],
+    )
+    r = http.post(url, json={**registro, "lead_id": f"humo-{marca}-3"}, headers=secreto)
+    ok(
+        r.status_code == 429 and int(r.headers.get("Retry-After", "0")) > 0,
+        "el cuarto, 429 con Retry-After",
+        (r.status_code, r.headers.get("Retry-After")),
+    )
+    r = http.post(url, json={**registro, "lead_id": f"humo-{marca}-0"}, headers=secreto)
+    ok(r.status_code == 200, "un reintento de la web no gasta el tope", r.status_code)
 
 
 def career_site() -> None:
@@ -271,6 +341,8 @@ if __name__ == "__main__":
     if modo == "borde":
         borde()
         plantilla(sys.argv[3])
+    elif modo == "alta":
+        alta()
     elif modo == "career-site":
         career_site()
     elif modo == "foto":

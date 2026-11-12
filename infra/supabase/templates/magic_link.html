@@ -1,16 +1,17 @@
-<!-- Enlace para entrar al panel (signInWithOtp). En Supabase Cloud se pega en Auth → Email Templates → Magic link. -->
+<!-- Código para entrar al panel (signInWithOtp a una cuenta que ya existe). En Supabase Cloud se pega en Auth → Email Templates → Magic link. -->
+<!-- Solo el código, sin enlace: los filtros de correo de algunas empresas abren los enlaces y gastarían el código antes que la persona. -->
 <div style="font-family: Arial, Helvetica, sans-serif; max-width: 520px; color: #181854; line-height: 1.5">
   <p style="font-size: 18px; font-weight: 800; margin: 0 0 16px">VECTOR HR TECH</p>
-  <h2 style="font-size: 22px; margin: 0 0 12px">Tu enlace para entrar</h2>
-  <p style="margin: 0 0 20px">Dura una hora y sirve una sola vez.</p>
-  <p style="margin: 0 0 24px">
-    <a
-      href="{{ .ConfirmationURL }}"
-      style="background: #fe7802; color: #181854; font-weight: 700; padding: 12px 20px; border-radius: 12px; text-decoration: none; display: inline-block"
-      >Entrar al panel</a
-    >
+  <h2 style="font-size: 22px; margin: 0 0 12px">Tu código para entrar</h2>
+  <p style="margin: 0 0 16px">Escríbelo en el panel, en la pantalla donde lo pediste:</p>
+  <p
+    style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 700; letter-spacing: 8px; background: #f2f3f7; border-radius: 12px; padding: 14px 20px; margin: 0 0 20px; display: inline-block"
+  >
+    {{ .Token }}
   </p>
+  <p style="margin: 0 0 20px">Dura 15 minutos y sirve una sola vez.</p>
   <p style="margin: 0; font-size: 14px; color: #686b78">
-    Si no lo pediste, ignora este correo: sin abrir el enlace nadie entra a tu cuenta.
+    Si no lo pediste, ignora este correo: sin el código nadie entra a tu cuenta. ¿Dudas? Escríbenos a
+    <a href="mailto:hola@vectorhrtech.com" style="color: #181854">hola@vectorhrtech.com</a>.
   </p>
 </div>

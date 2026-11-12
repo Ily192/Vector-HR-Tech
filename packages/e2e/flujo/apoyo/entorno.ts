@@ -30,6 +30,12 @@ export type Entorno = {
   /** Solo en local: la base para el comando de alta y el barrido. */
   baseDeDatos: string | null;
   mailpit: string | null;
+  /**
+   * El alta desde la web (`POST /alta/plan-gratis` del hr-engine) y su secreto. Solo
+   * contra el stack del VPS (pruebas/probar_en_local.sh), donde además hay Mailpit para
+   * leer el código: `E2E_ALTA_URL`, `E2E_ALTA_SECRETO` y `E2E_MAILPIT_URL`.
+   */
+  alta: { url: string; secreto: string } | null;
 };
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -94,7 +100,11 @@ export function entorno(): Entorno {
       panel: variable("E2E_PANEL_URL"),
       correo: variable("E2E_CORREO"),
       baseDeDatos: null,
-      mailpit: null,
+      mailpit: process.env.E2E_MAILPIT_URL || null,
+      alta:
+        process.env.E2E_ALTA_URL && process.env.E2E_ALTA_SECRETO
+          ? { url: process.env.E2E_ALTA_URL, secreto: process.env.E2E_ALTA_SECRETO }
+          : null,
     };
     return enMemoria;
   }
@@ -123,6 +133,8 @@ export function entorno(): Entorno {
     // El hr-engine habla con asyncpg.
     baseDeDatos: (s.DB_URL as string).replace(/^postgresql:/, "postgresql+asyncpg:"),
     mailpit: s.MAILPIT_URL as string,
+    // En local el hr-engine no corre como API: el alta desde la web se prueba en el VPS.
+    alta: null,
   };
   return enMemoria;
 }

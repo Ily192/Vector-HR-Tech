@@ -4,10 +4,12 @@
 #
 #   1. genera un .env de prueba con scripts/generar_secretos.py --local;
 #   2. construye las imágenes y levanta todo con scripts/levantar.sh;
-#   3. da de alta una empresa con el comando del hr-engine, y humo.py revisa el borde;
+#   3. da de alta una empresa con el comando del hr-engine, y humo.py revisa el borde y
+#      el endpoint del alta desde la web (secreto, datos y tope);
 #   4. corre contra el stack el e2e del plan gratis (`E2E_REMOTO=1 pnpm e2e:flujo`,
 #      packages/e2e): invitación, vacante, 7 aplicaciones con CV, el worker del stack,
-#      el gancho, el .zip y eliminar; después humo.py prueba la clave del career site;
+#      el gancho, el .zip y eliminar; y el alta desde la web con el código de Mailpit.
+#      Después humo.py prueba la clave del career site;
 #   5. respalda (scripts/respaldar.sh), borra la base y los CVs, restaura
 #      (scripts/restaurar.sh), comprueba que volvió todo y corre el e2e otra vez;
 #   6. muestra la memoria de cada servicio y lo baja todo, volúmenes incluidos.
@@ -112,7 +114,15 @@ e2e() {
 		"E2E_SUPABASE_URL=http://$api"
 		"E2E_SUPABASE_PUBLISHABLE_KEY=$(valor_del_env ANON_KEY)"
 		"E2E_SUPABASE_SECRET_KEY=$(valor_del_env SERVICE_ROLE_KEY)"
+		# El alta desde la web (ADR-017, 2026-11-12) y Mailpit, para leer el código.
+		"E2E_ALTA_URL=http://$api/alta/plan-gratis"
+		"E2E_ALTA_SECRETO=$(valor_del_env ALTA_SECRETO)"
 	)
+	if [[ -n ${VORTEX_SERVIDOR:-} ]]; then
+		variables+=(E2E_MAILPIT_URL=http://mailpit:8025)
+	else
+		variables+=("E2E_MAILPIT_URL=http://localhost:${PUERTO_PRUEBA_MAILPIT:-8025}")
+	fi
 	if [[ -z ${VORTEX_SERVIDOR:-} ]]; then
 		env "${variables[@]}" pnpm --dir "$raiz" e2e:flujo
 		return
@@ -130,6 +140,8 @@ correo="rh-$(date +%s)@andes.test"
 compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 	--empresa "Andes Logística" --correo "$correo" --nombre "Mariana Ruiz" --tamano 35
 humo borde "$correo"
+log "el alta desde la web: secreto, datos y tope"
+humo alta
 log "e2e del plan gratis contra el stack"
 e2e
 log "la clave del career site (rol career_site, migración 0017)"

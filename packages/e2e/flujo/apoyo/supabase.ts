@@ -29,3 +29,14 @@ export async function enlaceParaEntrar(correo: string): Promise<string> {
   if (!enlace) throw new Error("generate_link no devolvió el enlace.");
   return enlace;
 }
+
+/** Cuántas empresas hay con ese nombre, con la clave secreta (no la ve ningún rol de la API). */
+export async function empresasLlamadas(nombre: string): Promise<number> {
+  const e = entorno();
+  const url = new URL(`${e.supabaseUrl}/rest/v1/empresas`);
+  url.searchParams.set("select", "id");
+  url.searchParams.set("name", `eq.${nombre}`);
+  const respuesta = await fetch(url, { headers: cabeceras(e.claveSecreta) });
+  if (!respuesta.ok) throw new Error(`empresas respondió ${respuesta.status}`);
+  return ((await respuesta.json()) as unknown[]).length;
+}
