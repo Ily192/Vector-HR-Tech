@@ -352,7 +352,8 @@ services:
       # Supabase por la red interna; el sitio solo lo lee en el servidor.
       SUPABASE_URL: http://api-gw:8000
       SUPABASE_ANON_KEY: ${ANON_KEY:?}
-      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?}
+      # Sin la service_role: su propio rol (migración 0017).
+      SUPABASE_CAREER_SITE_KEY: ${CAREER_SITE_KEY:?}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]

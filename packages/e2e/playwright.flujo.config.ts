@@ -41,7 +41,8 @@ export default defineConfig({
             env: {
               SUPABASE_URL: e.supabaseUrl,
               SUPABASE_PUBLISHABLE_KEY: e.clavePublica,
-              SUPABASE_SECRET_KEY: e.claveSecreta,
+              // Su propio rol, no la clave secreta (migración 0017).
+              SUPABASE_CAREER_SITE_KEY: e.claveCareerSite ?? "",
               NEXT_PUBLIC_PANEL_EMPRESAS_URL: e.panel,
             },
           },

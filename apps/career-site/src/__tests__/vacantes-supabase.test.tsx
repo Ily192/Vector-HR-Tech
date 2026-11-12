@@ -46,7 +46,7 @@ vi.mock("@vortex/supabase-client", () => {
   };
   return {
     createPublicClient: () => ({ from: () => consulta }),
-    createServiceRoleClient: () => ({}),
+    createCareerSiteClient: () => ({}),
     getOptionalEnv: () => "configurada",
   };
 });

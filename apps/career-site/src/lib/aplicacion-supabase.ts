@@ -1,16 +1,20 @@
 /**
  * Los puertos de la aplicación sobre Supabase y Cloudflare Turnstile.
  *
- * - El CV lo sube el servidor con la clave secreta: el bucket `cvs` no deja
- *   escribir ni a `anon` ni a `authenticated` (0005), para no ser un dropbox público.
+ * - El CV lo sube el servidor con la clave del rol `career_site` (migración 0017),
+ *   no con la service_role: el bucket `cvs` no deja escribir ni a `anon` ni a
+ *   `authenticated` (0005), para no ser un dropbox público, y en Vercel la clave
+ *   maestra quedaría fuera del servidor.
  * - La aplicación la registra `aplicar_a_vacante` con la clave pública: es una RPC
  *   de superficie mínima que `anon` puede ejecutar.
- * - La vacante se busca con la clave secreta porque la vista pública no expone el
- *   `empresa_id`, y la ruta del CV tiene que empezar por él.
+ * - La vacante se busca con la clave del career site porque la vista pública no
+ *   expone el `empresa_id`, y la ruta del CV tiene que empezar por él.
+ * - Para borrar un CV, el rol tiene que mandar su ruta en la cabecera `x-cv-ruta`:
+ *   así no puede listar ni bajar los CVs de otros (0017).
  */
 import "server-only";
 
-import { createPublicClient, createServiceRoleClient } from "@vortex/supabase-client";
+import { createCareerSiteClient, createPublicClient } from "@vortex/supabase-client";
 
 import type { PuertosDeAplicacion, RespuestaDeAplicar } from "./aplicacion";
 
@@ -50,11 +54,11 @@ function traducir(error: { code?: string; message?: string }): RespuestaDeAplica
 }
 
 export function puertosDeSupabase(ip: string | null): PuertosDeAplicacion {
-  const secreto = createServiceRoleClient();
+  const careerSite = createCareerSiteClient();
   const publico = createPublicClient();
   return {
     async vacante(slug) {
-      const { data, error } = await secreto
+      const { data, error } = await careerSite
         .from("vacantes")
         .select("id, empresa_id")
         .eq("slug", slug)
@@ -66,13 +70,21 @@ export function puertosDeSupabase(ip: string | null): PuertosDeAplicacion {
     },
     verificarHumano: (token) => verificarHumano(token, ip),
     async subirCv(ruta, contenido, contentType) {
-      const { error } = await secreto.storage
+      const { error } = await careerSite.storage
         .from("cvs")
         .upload(ruta, contenido, { contentType, upsert: false });
       if (error) throw new Error(`career-site: no se pudo subir el CV: ${error.message}`);
     },
     async borrarCv(ruta) {
-      await secreto.storage.from("cvs").remove([ruta]);
+      const { data, error } = await createCareerSiteClient({ cabeceras: { "x-cv-ruta": ruta } })
+        .storage.from("cvs")
+        .remove([ruta]);
+      // Que no se borre no tumba la respuesta al candidato, pero tiene que verse.
+      if (error || data?.length !== 1) {
+        console.warn(
+          `career-site: no se borró el CV huérfano ${ruta}: ${error?.message ?? "0 objetos"}`,
+        );
+      }
     },
     async aplicar(d) {
       const { error } = await publico.rpc("aplicar_a_vacante", {
