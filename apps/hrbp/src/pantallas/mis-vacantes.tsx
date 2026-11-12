@@ -3,10 +3,11 @@ import { Badge, Button, buttonVariants, cn, haceCuanto } from "@vortex/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
-import { useEliminarVacante, useMisVacantes } from "../datos/consultas";
+import { useEliminarVacante, useMisVacantes, useSesion } from "../datos/consultas";
 import type { CupoDeVacantes, VacanteDeLaEmpresa } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
+import { AvisoDeModeracion, AvisoDeReclutador, InsigniaDeModeracion } from "./moderacion";
 
 const formatoDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long" });
 
@@ -21,6 +22,7 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
         <div className="min-w-0 flex-1 basis-64">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-extrabold tracking-[-0.01em]">{v.titulo}</h2>
+            <InsigniaDeModeracion moderacion={v.moderacion} />
             {v.cupoCompleto && <Badge variant="warning">Cupo completo</Badge>}
           </div>
           <p className="mt-1 text-sm text-mist-600">
@@ -54,6 +56,7 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
           )}
         </div>
       </div>
+      <AvisoDeModeracion moderacion={v.moderacion} motivos={v.motivos} />
       {confirmando && (
         <div
           role="alertdialog"
@@ -86,6 +89,7 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
 /** Las vacantes activas de la empresa y cuántos cupos le quedan. */
 export function MisVacantes() {
   const { data } = useMisVacantes();
+  const { data: sesion } = useSesion();
   if (!data) return null;
   const { vacantes, cupo } = data;
 
@@ -112,6 +116,7 @@ export function MisVacantes() {
           )
         }
       />
+      {sesion?.publicaParaClientes && <AvisoDeReclutador />}
       {cupo.publicacionesLibres === 0 ? (
         <output className="block rounded-2xl bg-flame-50 p-4 text-sm text-flame-700">
           Ya publicaste las {cupo.limite} vacantes nuevas que tu plan permite en 30 días.

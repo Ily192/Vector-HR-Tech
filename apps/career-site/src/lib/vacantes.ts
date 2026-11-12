@@ -2,9 +2,10 @@
  * Acceso a las vacantes públicas del career-site.
  *
  * Las páginas solo llaman a estas funciones: no saben de dónde salen los datos
- * ni qué hace pública a una vacante. Esa regla (`status = 'open'`, sin
- * `empresa_id`, salario solo si la empresa lo publica, cupo completo según su
- * plan) es de la vista `vacantes_publicas` en Supabase (migraciones 0004, 0007 y 0008).
+ * ni qué hace pública a una vacante. Esa regla (`status = 'open'` y moderada,
+ * sin `empresa_id`, salario solo si la empresa lo publica, cupo completo según su
+ * plan) es de la vista `vacantes_publicas` en Supabase (migraciones 0004, 0007,
+ * 0008 y 0019).
  *
  * Con Supabase configurado (`lib/supabase.ts`) los datos salen de la vista con la
  * clave pública; sin él, de `VACANTES_DE_EJEMPLO`, con la misma forma que una fila.
@@ -27,7 +28,7 @@ import { supabaseConfigurado } from "./supabase";
 const LIMITE = 300;
 
 const COLUMNAS =
-  "id, slug, title, jd, seniority, modality, location, created_at, empresa_nombre, empresa_slug, salario_min, salario_max, moneda, cupo_completo, evalua_con_ia";
+  "id, slug, title, jd, seniority, modality, location, created_at, empresa_nombre, empresa_slug, salario_min, salario_max, moneda, cupo_completo, evalua_con_ia, empresa_verificada, publicada_por, linkedin_de_quien_publica";
 
 /** PostgREST devuelve `+00:00`; el esquema pide ISO con `Z`. */
 const conFechaIso = <T extends { created_at: string }>(fila: T): T => ({
@@ -77,6 +78,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     salario_max: 28000,
     moneda: "MXN",
     cupo_completo: false,
+    empresa_verificada: true,
   },
   {
     id: "00000000-0000-4000-8000-0000000000a3",

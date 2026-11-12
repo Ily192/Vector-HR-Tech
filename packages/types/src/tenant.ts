@@ -28,6 +28,13 @@ export const EmpresaSchema = z.object({
   tamano_empleados: z.number().int().positive().nullable().default(null),
   /** Ajuste de Vector HR al tope de vacantes. `null` = el que da el tamaño. */
   limite_vacantes: z.number().int().min(1).max(50).nullable().default(null),
+  /** `clientes`: reclutador independiente; sus vacantes siempre se revisan (0019, ADR-022). */
+  publica_para: z.enum(["propia", "clientes"]).default("propia"),
+  web: z.string().url().nullable().default(null),
+  linkedin: z.string().url().nullable().default(null),
+  /** Insignia "Empresa verificada". La pone el hr-engine, nunca el panel. */
+  verificada: z.boolean().default(false),
+  verificada_en: z.string().datetime({ offset: true }).nullable().default(null),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });

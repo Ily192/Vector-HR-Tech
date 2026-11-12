@@ -57,7 +57,16 @@ type Generated =
   // Con default o los pone el hr-engine (0014 y 0015).
   | "fit_strengths"
   | "evaluada_en"
-  | "motivo_de_descarte";
+  | "motivo_de_descarte"
+  // Los pone la base o el hr-engine (0019): el panel no los escribe.
+  | "moderacion"
+  | "motivos_moderacion"
+  | "moderada_en"
+  | "publica_para"
+  | "web"
+  | "linkedin"
+  | "verificada"
+  | "verificada_en";
 
 type Insert<T> = Omit<T, Extract<keyof T, Generated>> &
   Partial<Pick<T, Extract<keyof T, Generated>>>;
@@ -278,6 +287,15 @@ export interface Database {
           p_sin_ia?: boolean;
         };
         Returns: string;
+      };
+      /**
+       * El botón "Reportar vacante" del career site (0019, ADR-022). Solo la ejecuta el
+       * rol `career_site`; la IP se guarda como hash con sal. `oculta`: con este
+       * reporte ya son dos personas distintas y la vacante pasó a revisión.
+       */
+      reportar_vacante: {
+        Args: { p_slug: string; p_motivo: string; p_ip?: string | null };
+        Returns: "recibido" | "oculta";
       };
       /**
        * La empresa gratuita pide los servicios de IA desde el panel (0013). La

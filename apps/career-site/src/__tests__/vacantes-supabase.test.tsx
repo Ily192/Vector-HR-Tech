@@ -23,6 +23,26 @@ const FILAS = [
     moneda: null,
     cupo_completo: false,
   },
+  {
+    id: "00000000-0000-4000-8000-0000000000b2",
+    slug: "ejecutivo-de-ventas-p2x7",
+    title: "Ejecutivo de ventas",
+    jd: "Ventas consultivas a pymes.",
+    seniority: "junior",
+    modality: "onsite",
+    location: "Caracas",
+    created_at: "2026-10-18T15:00:00+00:00",
+    empresa_nombre: "Recluta con Ana",
+    empresa_slug: "recluta-con-ana",
+    salario_min: null,
+    salario_max: null,
+    moneda: null,
+    cupo_completo: false,
+    evalua_con_ia: false,
+    empresa_verificada: false,
+    publicada_por: "Ana Ruiz",
+    linkedin_de_quien_publica: "https://www.linkedin.com/in/ana-ruiz",
+  },
 ];
 
 const estado = vi.hoisted(() => ({
@@ -68,8 +88,11 @@ describe("career-site con Supabase", () => {
     const { listarVacantes } = await import("../lib/vacantes");
     const vacantes = await listarVacantes({ q: "ANALISTA" });
     expect(vacantes.map((v) => v.slug)).toEqual(["analista-de-datos-k3f9"]);
+    // Sin las columnas de 0019, la insignia y quien publica salen vacías.
+    expect(vacantes[0]?.empresa_verificada).toBe(false);
+    expect(vacantes[0]?.publicada_por).toBeNull();
     expect(vacantes[0]?.created_at).toBe("2026-10-19T15:00:00.000Z");
-    expect(await listarVacantes({ q: "ventas" })).toEqual([]);
+    expect(await listarVacantes({ q: "enfermería" })).toEqual([]);
   });
 
   it("busca el detalle por slug", async () => {
@@ -89,5 +112,22 @@ describe("career-site con Supabase", () => {
     render(await VacanteDetail({ params: Promise.resolve({ slug: "analista-de-datos-k3f9" }) }));
     expect(screen.getByRole("form", { name: "Aplicar a la vacante" })).toBeInTheDocument();
     expect(screen.getByText(/Envía tu CV a Siete/)).toBeInTheDocument();
+    // Y el botón de reporte, con su aviso (ADR-022).
+    expect(screen.getByRole("form", { name: "Reportar la vacante" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Vector HR nunca te pedirá dinero para postularte."),
+    ).toBeInTheDocument();
+  });
+
+  it("la de un reclutador independiente sale a su nombre, con su LinkedIn y sin insignia", async () => {
+    const { default: VacanteDetail } = await import("../app/vacantes/[slug]/page");
+    render(await VacanteDetail({ params: Promise.resolve({ slug: "ejecutivo-de-ventas-p2x7" }) }));
+    expect(
+      screen.getByText(/Publicada por Ana Ruiz, reclutador\(a\) independiente/),
+    ).toBeInTheDocument();
+    const enlace = screen.getByRole("link", { name: "LinkedIn" });
+    expect(enlace).toHaveAttribute("href", "https://www.linkedin.com/in/ana-ruiz");
+    expect(enlace).toHaveAttribute("rel", "nofollow noopener noreferrer");
+    expect(screen.queryByText("Empresa verificada")).toBeNull();
   });
 });

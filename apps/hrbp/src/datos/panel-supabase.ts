@@ -204,7 +204,11 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       }
       const [perfil, empresa] = await Promise.all([
         supabase.from("profiles").select("full_name").eq("id", sesion.userId).maybeSingle(),
-        supabase.from("empresas").select("name, plan").eq("id", sesion.empresaId).single(),
+        supabase
+          .from("empresas")
+          .select("name, plan, publica_para")
+          .eq("id", sesion.empresaId)
+          .single(),
       ]);
       if (perfil.error) throw perfil.error;
       if (empresa.error) throw empresa.error;
@@ -214,6 +218,7 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
         empresa: { nombre: empresa.data.name },
         plan: NOMBRE_DEL_PLAN[empresa.data.plan],
         modulos: LIMITES_DEL_PLAN[empresa.data.plan].modulos,
+        publicaParaClientes: empresa.data.publica_para === "clientes",
       };
     },
 
@@ -221,7 +226,9 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       const [vacantes, cupo, recibidas] = await Promise.all([
         supabase
           .from("vacantes")
-          .select("id, title, status, modality, location, publicada_en, created_at")
+          .select(
+            "id, title, status, modality, location, publicada_en, created_at, moderacion, motivos_moderacion",
+          )
           .eq("status", "open")
           .order("publicada_en", { ascending: false, nullsFirst: false }),
         supabase.rpc("mi_cupo_de_vacantes").single(),
@@ -241,6 +248,8 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
           publicadaEn: v.publicada_en ?? v.created_at,
           aplicaciones: porVacante.get(v.id)?.recibidas ?? 0,
           cupoCompleto: porVacante.get(v.id)?.completo ?? false,
+          moderacion: v.moderacion,
+          motivos: v.motivos_moderacion,
         })),
         cupo: {
           activas: cupo.data.activas,
@@ -301,7 +310,7 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       const [vacante, filas, cupo, gancho, evaluaciones, plan] = await Promise.all([
         supabase
           .from("vacantes")
-          .select("id, title, publicada_en, created_at")
+          .select("id, title, publicada_en, created_at, moderacion, motivos_moderacion")
           .eq("id", vacanteId)
           .eq("status", "open")
           .maybeSingle(),
@@ -337,6 +346,8 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
           titulo: vacante.data.title,
           publicadaEn: vacante.data.publicada_en ?? vacante.data.created_at,
           aplicaciones: recibidas,
+          moderacion: vacante.data.moderacion,
+          motivos: vacante.data.motivos_moderacion,
         },
         maxAplicaciones: cupo.data?.limite ?? null,
         etapas: ETAPAS_DEL_PIPELINE.map((etapa) => ({

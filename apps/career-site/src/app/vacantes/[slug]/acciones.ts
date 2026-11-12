@@ -4,8 +4,15 @@ import { headers } from "next/headers";
 
 import { procesarAplicacion } from "../../../lib/aplicacion";
 import { puertosDeSupabase } from "../../../lib/aplicacion-supabase";
+import { procesarReporte } from "../../../lib/reporte";
+import { puertosDeReporte } from "../../../lib/reporte-supabase";
 import { supabaseConfigurado } from "../../../lib/supabase";
 import type { ResultadoDeAplicar } from "../../../lib/tipos-de-aplicacion";
+import type { ResultadoDeReportar } from "../../../lib/tipos-de-reporte";
+
+async function ipDelVisitante(): Promise<string | null> {
+  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+}
 
 /**
  * Server Action del formulario de aplicación. Solo traduce: la lógica está en
@@ -23,6 +30,20 @@ export async function aplicarAVacante(
       mensaje: "Las aplicaciones se abren cuando el sitio se conecte a la base de datos.",
     };
   }
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || null;
-  return procesarAplicacion(slug, formulario, puertosDeSupabase(ip));
+  return procesarAplicacion(slug, formulario, puertosDeSupabase(await ipDelVisitante()));
+}
+
+/**
+ * "Reportar vacante" (ADR-022). Con dos personas distintas la base la oculta y la
+ * pasa a revisión de Vector HR; la lógica está en `lib/reporte.ts`.
+ */
+export async function reportarVacante(
+  slug: string,
+  _anterior: ResultadoDeReportar | null,
+  formulario: FormData,
+): Promise<ResultadoDeReportar> {
+  if (!supabaseConfigurado()) {
+    return { estado: "error", mensaje: "Los reportes se abren cuando el sitio se conecte." };
+  }
+  return procesarReporte(slug, formulario, puertosDeReporte(await ipDelVisitante()));
 }

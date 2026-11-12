@@ -4,14 +4,15 @@ import {
   ETIQUETA_SENIORITY,
 } from "@vortex/types/etiquetas";
 import { Badge, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BadgeCheck, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FormularioDeAplicacion } from "../../../components/formulario-de-aplicacion";
+import { ReportarVacante } from "../../../components/reportar-vacante";
 import { formatearSalario } from "../../../lib/formato";
 import { obtenerVacante, recibeAplicaciones } from "../../../lib/vacantes";
-import { aplicarAVacante } from "./acciones";
+import { aplicarAVacante, reportarVacante } from "./acciones";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -45,7 +46,32 @@ export default async function VacanteDetail({ params }: Props) {
           {v.seniority && <Badge variant="outline">{ETIQUETA_SENIORITY[v.seniority]}</Badge>}
         </div>
         <h1 className="text-4xl font-extrabold tracking-[-0.035em] md:text-5xl">{v.title}</h1>
-        <p className="mt-2 text-lg font-semibold text-mist-700">{v.empresa_nombre}</p>
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-lg font-semibold text-mist-700">
+          {v.empresa_nombre}
+          {v.empresa_verificada && (
+            <Badge variant="success" className="gap-1">
+              <BadgeCheck aria-hidden="true" className="h-3.5 w-3.5" /> Empresa verificada
+            </Badge>
+          )}
+        </p>
+        {v.publicada_por && (
+          <p className="mt-1 text-sm text-mist-600">
+            Publicada por {v.publicada_por}, reclutador(a) independiente
+            {v.linkedin_de_quien_publica && (
+              <>
+                {" · "}
+                <a
+                  href={v.linkedin_de_quien_publica}
+                  target="_blank"
+                  rel="nofollow noopener noreferrer"
+                  className="font-bold text-aqua-700 underline"
+                >
+                  LinkedIn
+                </a>
+              </>
+            )}
+          </p>
+        )}
         <p className="mt-3 text-lg font-extrabold tabular-nums">
           {salario ? (
             <>
@@ -66,6 +92,14 @@ export default async function VacanteDetail({ params }: Props) {
           <p className="text-[15.5px] leading-relaxed text-mist-700">{v.jd}</p>
         </CardContent>
       </Card>
+
+      <p className="mb-6 flex items-start gap-2 rounded-xl bg-aqua-50 px-4 py-3 text-sm text-ink-900">
+        <ShieldAlert aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-aqua-700" />
+        <span>
+          <b>Vector HR nunca te pedirá dinero para postularte.</b> Si una vacante te pide pagar un
+          curso, un kit o tus datos bancarios, repórtala.
+        </span>
+      </p>
 
       <Card className="border-ink-100 bg-[linear-gradient(180deg,theme(colors.ink.50),#fff_70%)]">
         <CardHeader>
@@ -97,6 +131,15 @@ export default async function VacanteDetail({ params }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {recibeAplicaciones() && (
+        <div className="mt-6">
+          <ReportarVacante
+            accion={reportarVacante.bind(null, v.slug)}
+            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
+          />
+        </div>
+      )}
     </main>
   );
 }

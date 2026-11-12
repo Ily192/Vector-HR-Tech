@@ -18,6 +18,30 @@ export type Seniority = z.infer<typeof SenioritySchema>;
 export const ModalitySchema = z.enum(["onsite", "hybrid", "remote"]);
 export type Modality = z.infer<typeof ModalitySchema>;
 
+/**
+ * Moderación de la vacante antes del career site (0019, ADR-022). La del panel nace
+ * `pendiente`; el hr-engine la publica, la manda a revisión o la rechaza. El panel la
+ * lee pero no la escribe: la fija la base.
+ */
+export const ModeracionSchema = z.enum([
+  "pendiente",
+  "publicada",
+  "en_revision",
+  "rechazada",
+  "oculta",
+]);
+export type Moderacion = z.infer<typeof ModeracionSchema>;
+
+/** Por qué quedó en revisión, rechazada u oculta: la frase citada y qué corregir. */
+export const MotivoDeModeracionSchema = z.object({
+  regla: z.string(),
+  senal: z.string(),
+  gravedad: z.enum(["baja", "media", "alta"]),
+  cita: z.string().nullable().default(null),
+  corregir: z.string().nullable().default(null),
+});
+export type MotivoDeModeracion = z.infer<typeof MotivoDeModeracionSchema>;
+
 export const VacanteSchema = z.object({
   id: z.guid(),
   empresa_id: z.guid(),
@@ -56,6 +80,10 @@ export const VacanteSchema = z.object({
     )
     .max(MAX_SKILLS_POR_VACANTE)
     .default([]),
+  /** Si sale al career site (0019): solo las `publicada`. */
+  moderacion: ModeracionSchema.default("publicada"),
+  motivos_moderacion: z.array(MotivoDeModeracionSchema).default([]),
+  moderada_en: z.string().datetime({ offset: true }).nullable().default(null),
 });
 export type Vacante = z.infer<typeof VacanteSchema>;
 
@@ -87,6 +115,12 @@ export const VacantePublicaSchema = VacanteSchema.pick({
    * saberlo antes de aplicar. Sin el dato, lo que no evalúa con IA.
    */
   evalua_con_ia: z.boolean().default(false),
+  /** Insignia "Empresa verificada" (0019, ADR-022). Un reclutador independiente nunca la lleva. */
+  empresa_verificada: z.boolean().default(false),
+  /** Solo si la publica un reclutador independiente: su nombre, como responsable. */
+  publicada_por: z.string().nullable().default(null),
+  /** El LinkedIn de ese reclutador. */
+  linkedin_de_quien_publica: z.string().url().nullable().default(null),
 });
 export type VacantePublica = z.infer<typeof VacantePublicaSchema>;
 

@@ -191,7 +191,7 @@ describe("sesión", () => {
     const { adaptador } = clienteDePrueba((p) => {
       if (p.ruta === "/rest/v1/profiles") return { filas: [{ full_name: "Mariana Villarreal" }] };
       if (p.ruta === "/rest/v1/empresas") {
-        return { filas: [{ name: "Andes Logística", plan: "gratis" }] };
+        return { filas: [{ name: "Andes Logística", plan: "gratis", publica_para: "propia" }] };
       }
       return undefined;
     });
@@ -200,7 +200,19 @@ describe("sesión", () => {
       empresa: { nombre: "Andes Logística" },
       plan: "Career site · gratis",
       modulos: ["career-site"],
+      publicaParaClientes: false,
     });
+  });
+
+  it("sabe si la cuenta es de un reclutador independiente (ADR-022)", async () => {
+    const { adaptador } = clienteDePrueba((p) => {
+      if (p.ruta === "/rest/v1/profiles") return { filas: [{ full_name: "Ana Ruiz" }] };
+      if (p.ruta === "/rest/v1/empresas") {
+        return { filas: [{ name: "Recluta con Ana", plan: "gratis", publica_para: "clientes" }] };
+      }
+      return undefined;
+    });
+    expect((await adaptador.obtenerSesion())?.publicaParaClientes).toBe(true);
   });
 
   it.each([
@@ -368,6 +380,8 @@ describe("vacantes", () => {
               location: null,
               publicada_en: "2026-10-10T12:00:00+00:00",
               created_at: "2026-10-09T12:00:00+00:00",
+              moderacion: "publicada",
+              motivos_moderacion: [],
             },
             {
               id: otra,
@@ -377,6 +391,16 @@ describe("vacantes", () => {
               location: "Apodaca, NL",
               publicada_en: null,
               created_at: "2026-10-12T12:00:00+00:00",
+              moderacion: "rechazada",
+              motivos_moderacion: [
+                {
+                  regla: "pago",
+                  senal: "Le pide al candidato pagar",
+                  gravedad: "alta",
+                  cita: "debes pagar",
+                  corregir: "Quita el cobro",
+                },
+              ],
             },
           ],
         };
@@ -410,6 +434,12 @@ describe("vacantes", () => {
       ["Chofer", 0, false, "Apodaca, NL"],
     ]);
     expect(vacantes[1]?.publicadaEn).toBe("2026-10-12T12:00:00+00:00");
+    // La moderación llega tal cual de la base (0019): el panel no la decide.
+    expect(vacantes.map((v) => v.moderacion)).toEqual(["publicada", "rechazada"]);
+    expect(vacantes[1]?.motivos[0]?.corregir).toBe("Quita el cobro");
+    expect(peticiones.find((p) => p.ruta === "/rest/v1/vacantes")?.url.search).toContain(
+      "moderacion",
+    );
     expect(cupo).toEqual({
       activas: 2,
       limite: 4,
@@ -450,6 +480,8 @@ describe("pipeline", () => {
                 id: VACANTE,
                 title: "Coordinador",
                 publicada_en: "2026-10-10T12:00:00+00:00",
+                moderacion: "publicada",
+                motivos_moderacion: [],
                 created_at: "2026-10-10T12:00:00+00:00",
               },
             ],
@@ -553,6 +585,8 @@ describe("pipeline", () => {
                 id: VACANTE,
                 title: "Backend",
                 publicada_en: "2026-10-10T12:00:00+00:00",
+                moderacion: "publicada",
+                motivos_moderacion: [],
                 created_at: "2026-10-10T12:00:00+00:00",
               },
             ],

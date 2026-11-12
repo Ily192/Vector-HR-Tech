@@ -143,6 +143,8 @@ function vacante(
     publicadaEn: haceDias(dias),
     aplicaciones,
     cupoCompleto: aplicaciones >= LIMITES_DEL_PLAN.gratis.aplicacionesPorVacante,
+    moderacion: "publicada",
+    motivos: [],
     ...extra,
   };
 }
@@ -154,6 +156,7 @@ function estadoGratis(): Estado {
       empresa: { nombre: "Andes Logística" },
       plan: "Career site · gratis",
       modulos: ["career-site"],
+      publicaParaClientes: false,
     },
     // Andes Logística tiene 80 personas: 4 vacantes activas (la regla es de `domain/plan.py`).
     limite: limiteDeVacantes(80),
@@ -212,6 +215,7 @@ function estadoConIa(): Estado {
       empresa: { nombre: "Grupo Cobalto" },
       plan: "Servicios de IA",
       modulos: ["cockpit", "career-site"],
+      publicaParaClientes: false,
     },
     limite: null,
     maxAplicaciones: LIMITES_DEL_PLAN.ia.aplicacionesPorVacante,
@@ -348,6 +352,9 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
         publicadaEn: new Date().toISOString(),
         aplicaciones: 0,
         cupoCompleto: false,
+        // Sin hr-engine que la modere: en el ejemplo se publica al instante.
+        moderacion: "publicada",
+        motivos: [],
       },
       aplicados: [],
       // Como `resumen_del_gancho()`: en el plan gratis hay gancho aunque no haya CVs.
@@ -382,6 +389,8 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
         titulo: v.titulo,
         publicadaEn: v.publicadaEn,
         aplicaciones: v.aplicaciones,
+        moderacion: v.moderacion,
+        motivos: v.motivos,
       },
       maxAplicaciones: estado.maxAplicaciones,
       etapas: ETAPAS_DEL_PIPELINE.map((etapa) => ({
