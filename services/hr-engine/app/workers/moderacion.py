@@ -1,7 +1,9 @@
 """Tareas de la moderación de vacantes (ADR-022). Sin IA.
 
-`moderacion.barrer` corre cada minuto con Celery beat: una vacante de una empresa
-verificada sin señales de riesgo sale al career site en el siguiente barrido.
+`moderacion.barrer` corre cada minuto con Celery beat. Primero da la insignia a las
+empresas cuyo dueño acaba de confirmar el código del alta desde la web
+(`ConfirmarAltasDeLaWeb`), y después modera: una vacante de una empresa verificada
+sin señales de riesgo sale al career site en el siguiente barrido.
 `moderacion.avisar` corre cada 5 minutos y decide si toca mandar el resumen de la
 cola a hola@. Como coincidencias, no son runs de agente: sin run-token ni tope de
 gasto, porque no llaman a ningún LLM.
@@ -11,21 +13,38 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import asdict
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from app.application.moderar_vacantes import AvisarColaDeRevision, ModerarVacantesPendientes
+from app.application.verificar_empresa import ConfirmarAltasDeLaWeb, VerificarEmpresa
 from app.config import settings
 from app.database import db_session
+from app.infrastructure.altas_web import SqlRepositorioDeAltasWeb
 from app.infrastructure.moderacion import CorreoSmtp, SqlRepositorioDeModeracion
 from app.monitoring import logger
 from app.security import enlaces_de_revision
 from app.workers.celery_app import celery_app
 
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def confirmar_altas(db: AsyncSession) -> ConfirmarAltasDeLaWeb:
+    """La insignia de las altas recién confirmadas, y su marca `confirmado_en`."""
+    return ConfirmarAltasDeLaWeb(
+        SqlRepositorioDeAltasWeb(db), VerificarEmpresa(SqlRepositorioDeModeracion(db))
+    )
+
 
 async def _barrer() -> dict[str, int]:
     async with db_session() as db:
+        confirmadas = await confirmar_altas(db).ejecutar()
         caso = ModerarVacantesPendientes(SqlRepositorioDeModeracion(db))
-        resultado = asdict(await caso.ejecutar(lote=settings.moderacion_lote))
+        resultado = {
+            "altas_confirmadas": confirmadas,
+            **asdict(await caso.ejecutar(lote=settings.moderacion_lote)),
+        }
     if any(resultado.values()):
         logger.info("moderacion.barrido", **resultado)
     return resultado

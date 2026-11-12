@@ -35,6 +35,9 @@
 begin;
 
 -- ─── 1. Empresas: cómo publican y la insignia ───────────────────────────────
+-- Los checks de web y LinkedIn aceptan lo mismo que valida el alta desde la web
+-- (`domain/alta_web.py`, 0018): https, sin espacios, hasta 300 caracteres, y para
+-- LinkedIn un host de linkedin.com. Sin distinguir mayúsculas, como `urlsplit`.
 
 alter table public.empresas
     add column if not exists publica_para text not null default 'propia',
@@ -55,7 +58,7 @@ do $$
 begin
     alter table public.empresas
         add constraint empresas_web_https
-            check (web is null or (web ~ '^https://[^[:space:]]+$' and char_length(web) <= 300));
+            check (web is null or (web ~* '^https://[^[:space:]]+$' and char_length(web) <= 300));
 exception when duplicate_object then null;
 end $$;
 
@@ -64,7 +67,7 @@ begin
     alter table public.empresas
         add constraint empresas_linkedin_https
             check (linkedin is null
-                   or (linkedin ~ '^https://([a-z0-9-]+\.)?linkedin\.com/[^[:space:]]+$'
+                   or (linkedin ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/[^[:space:]]*)?$'
                        and char_length(linkedin) <= 300));
 exception when duplicate_object then null;
 end $$;

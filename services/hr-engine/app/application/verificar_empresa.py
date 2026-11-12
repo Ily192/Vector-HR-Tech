@@ -24,7 +24,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from app.domain.moderacion import RepositorioDeModeracion, insignia_por_dominio
+from app.domain.moderacion import (
+    RepositorioDeConfirmaciones,
+    RepositorioDeModeracion,
+    insignia_por_dominio,
+)
 
 PUBLICA_PARA = frozenset({"propia", "clientes"})
 
@@ -59,3 +63,48 @@ class VerificarEmpresa:
             verificada=verificada,
         )
         return quedo
+
+
+#: Altas por barrido. El barrido corre cada minuto, con la moderación.
+LOTE_DE_CONFIRMACIONES = 100
+
+
+class ConfirmarAltasDeLaWeb:
+    """Da la insignia a las empresas cuyo dueño ya confirmó el código, y las marca.
+
+    Es la conexión con el alta desde la web (enmienda de ADR-017): Auth pone
+    `email_confirmed_at` cuando la persona escribe el código, y este caso de uso lo
+    traduce en dos cosas, en este orden:
+
+    1. `VerificarEmpresa` con lo que la empresa dio al registrarse (`altas_web`): cómo
+       publica, su web y su LinkedIn, y la insignia si el dominio del correo coincide.
+    2. `confirmado_en` en `altas_web`, la misma marca que lee la limpieza de 7 días.
+
+    Si el proceso muere entre 1 y 2, el siguiente barrido repite 1, que no cambia
+    nada la segunda vez (la insignia solo se suma).
+
+    Corre antes de cada barrido de la moderación (`moderacion.barrer`): la primera
+    vacante de una empresa que acaba de confirmar ya se modera con su insignia.
+    """
+
+    def __init__(
+        self,
+        confirmaciones: RepositorioDeConfirmaciones,
+        verificar: VerificarEmpresa,
+    ) -> None:
+        self._confirmaciones = confirmaciones
+        self._verificar = verificar
+
+    async def ejecutar(self, *, lote: int = LOTE_DE_CONFIRMACIONES) -> int:
+        """Devuelve cuántas altas marcó."""
+        altas = await self._confirmaciones.confirmadas_sin_marcar(lote)
+        for alta in altas:
+            await self._verificar.ejecutar(
+                alta.empresa_id,
+                correo=alta.correo,
+                publica_para=alta.publica_para,
+                web=alta.web,
+                linkedin=alta.linkedin,
+            )
+            await self._confirmaciones.marcar_confirmada(alta.alta_id, alta.confirmado_en)
+        return len(altas)

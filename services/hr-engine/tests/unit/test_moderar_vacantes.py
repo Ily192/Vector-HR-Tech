@@ -15,8 +15,9 @@ from app.application.moderar_vacantes import (
     ResolverRevision,
     armar_resumen,
 )
-from app.application.verificar_empresa import VerificarEmpresa
+from app.application.verificar_empresa import ConfirmarAltasDeLaWeb, VerificarEmpresa
 from app.domain.moderacion import (
+    AltaConfirmada,
     AvisosRecientes,
     Decision,
     EstadoDeModeracion,
@@ -416,3 +417,61 @@ def test_otro_secreto_no_valida() -> None:
 def test_sin_secreto_no_se_firma() -> None:
     with pytest.raises(ValueError):
         enlaces_de_revision.firmar("", uuid4())
+
+
+# ─────────────────────────────── la conexión con el alta (PR 1) ───────────────────────────────
+
+
+class ConfirmacionesFalsas:
+    def __init__(self, altas: list[AltaConfirmada]) -> None:
+        self.altas = altas
+        self.marcadas: list[int] = []
+
+    async def confirmadas_sin_marcar(self, limite: int) -> list[AltaConfirmada]:
+        return [a for a in self.altas if a.alta_id not in self.marcadas][:limite]
+
+    async def marcar_confirmada(self, alta_id: int, confirmado_en: datetime) -> None:
+        self.marcadas.append(alta_id)
+
+
+def _alta(alta_id: int, correo: str, web: str | None, **kw: object) -> AltaConfirmada:
+    datos: dict[str, object] = {
+        "alta_id": alta_id,
+        "empresa_id": uuid4(),
+        "correo": correo,
+        "publica_para": "propia",
+        "web": web,
+        "linkedin": None,
+        "confirmado_en": AHORA,
+    }
+    datos.update(kw)
+    return AltaConfirmada(**datos)  # type: ignore[arg-type]
+
+
+async def test_confirmar_da_la_insignia_y_marca_cada_alta() -> None:
+    repo = RepoFalso()
+    confirmaciones = ConfirmacionesFalsas(
+        [
+            _alta(1, "rh@andes.com.mx", "https://andes.com.mx"),
+            _alta(2, "dueno@gmail.com", "https://andes.com.mx"),
+        ]
+    )
+    caso = ConfirmarAltasDeLaWeb(confirmaciones, VerificarEmpresa(repo))
+    assert await caso.ejecutar() == 2
+    assert [v["verificada"] for v in repo.verificaciones] == [True, False]
+    assert confirmaciones.marcadas == [1, 2]
+    # Lo ya marcado no se repite.
+    assert await caso.ejecutar() == 0
+
+
+class VerificacionQueFalla(RepoFalso):
+    async def guardar_verificacion(self, empresa_id: UUID, **kw: object) -> bool:  # type: ignore[override]
+        raise ConnectionError("la base se cayó")
+
+
+async def test_si_la_insignia_falla_no_se_marca_y_se_reintenta() -> None:
+    confirmaciones = ConfirmacionesFalsas([_alta(7, "rh@andes.com.mx", None)])
+    caso = ConfirmarAltasDeLaWeb(confirmaciones, VerificarEmpresa(VerificacionQueFalla()))
+    with pytest.raises(ConnectionError):
+        await caso.ejecutar()
+    assert confirmaciones.marcadas == []

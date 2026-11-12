@@ -7,6 +7,7 @@ todavía no tienen a nadie dentro y lee `auth.users`, que ningún rol de la API 
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import bindparam, text
@@ -57,6 +58,39 @@ _MARCAR_CONFIRMADAS = text(
     """
 )
 
+# Las altas que crearon una empresa y cuyo dueño ya escribió el código (ADR-022): la
+# insignia sale del correo que confirmó y de lo que la empresa dio al registrarse.
+_CONFIRMADAS_SIN_MARCAR = text(
+    """
+    select a.id as alta_id, a.empresa_id, a.publica_para, a.web_empresa, a.linkedin,
+           c.correo, c.confirmado
+      from privado.altas_web a
+      join lateral (
+            select u.email as correo, u.email_confirmed_at as confirmado
+              from public.profiles p
+              join auth.users u on u.id = p.id
+             where p.empresa_id = a.empresa_id
+               and u.email_confirmed_at is not null
+             order by u.email_confirmed_at
+             limit 1
+           ) c on true
+     where a.resultado = 'empresa_creada'
+       and a.confirmado_en is null
+       and a.empresa_id is not null
+     order by a.creado_en
+     limit :limite
+    """
+)
+
+_MARCAR_CONFIRMADA = text(
+    """
+    update privado.altas_web
+       set confirmado_en = :confirmado
+     where id = :alta_id
+       and confirmado_en is null
+    """
+)
+
 # Las que nadie confirmó, con sus cuentas de Auth. Nunca una empresa con una cuenta
 # confirmada (por ejemplo, alguien que entró con una invitación de Vector HR) ni con
 # vacantes.
@@ -104,6 +138,14 @@ async def liberar(db: AsyncSession, lead_id: str) -> None:
 async def marcar_confirmadas(db: AsyncSession) -> int:
     resultado = await db.execute(_MARCAR_CONFIRMADAS)
     return int(getattr(resultado, "rowcount", 0) or 0)
+
+
+async def confirmadas_sin_marcar(db: AsyncSession, limite: int) -> list[Any]:
+    return list((await db.execute(_CONFIRMADAS_SIN_MARCAR, {"limite": limite})).all())
+
+
+async def marcar_confirmada(db: AsyncSession, *, alta_id: int, confirmado: datetime) -> None:
+    await db.execute(_MARCAR_CONFIRMADA, {"alta_id": alta_id, "confirmado": confirmado})
 
 
 async def pendientes_desde(db: AsyncSession, antes_de: datetime) -> list[tuple[UUID, list[UUID]]]:

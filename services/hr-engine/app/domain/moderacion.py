@@ -611,6 +611,30 @@ class RepositorioDeModeracion(Protocol):
         ...
 
 
+@dataclass(frozen=True, slots=True)
+class AltaConfirmada:
+    """Un alta desde la web (`privado.altas_web`) cuyo dueño ya escribió el código."""
+
+    alta_id: int
+    empresa_id: UUID
+    #: El correo que confirmó: el código de acceso probó que la persona lo lee.
+    correo: str
+    publica_para: str
+    web: str | None
+    linkedin: str | None
+    confirmado_en: datetime
+
+
+class RepositorioDeConfirmaciones(Protocol):
+    """Las altas desde la web que confirmaron el código y todavía no tienen la marca."""
+
+    async def confirmadas_sin_marcar(self, limite: int) -> list[AltaConfirmada]: ...
+
+    async def marcar_confirmada(self, alta_id: int, confirmado_en: datetime) -> None:
+        """Pone `confirmado_en`, la marca que también lee la limpieza de 7 días."""
+        ...
+
+
 class RevisorDeVacantes(Protocol):
     """Un revisor externo (el modelo del PR 3). Devuelve marcas como las reglas."""
 
