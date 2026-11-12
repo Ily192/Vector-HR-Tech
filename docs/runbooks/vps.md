@@ -1,8 +1,11 @@
 # Runbook · VPS en Contabo
 
-Toda la plataforma en un solo servidor (ADR-020): Supabase autoalojado, el hr-engine, el
-career site y el panel, con Docker Compose. El stack vive en `infra/vps/` y se prueba
-entero en local antes de llevar un cambio al servidor (`infra/vps/pruebas/probar_en_local.sh`).
+El backend en un solo servidor (ADR-020): Supabase autoalojado y el hr-engine, con Docker
+Compose, detrás de `api.`. El career site (`empleos.`) y el panel (`panel.`) están en
+Vercel desde la enmienda del 2026-11-11 (ver "Vercel: el career site y el panel"). El
+stack vive en `infra/vps/` y se prueba entero en local antes de llevar un cambio al
+servidor (`infra/vps/pruebas/probar_en_local.sh`), con los dos sitios levantados al lado
+solo para el e2e.
 
 El servidor es un Cloud VPS de Contabo desde el 2026-10-22. Antes el plan era un droplet
 de DigitalOcean (ver la enmienda de ADR-020); Ilyra eligió Contabo por tener más capacidad.
@@ -26,8 +29,7 @@ servidor propio se usa `provisionar.sh` (ver "Servidor propio", al final).
 | `api-gw` | Envoy, el gateway del Supabase autoalojado: valida la apikey | no |
 | `redis` | Cola de Celery, con contraseña | no |
 | `hr-engine-api`, `hr-engine-worker`, `hr-engine-beat` | FastAPI, el worker y **un solo** beat | sí (proveedores de IA, Sentry) |
-| `career-site` | Next.js en modo `standalone` | sí (Turnstile) |
-| `caddy` | Sirve el panel (estático) y reparte por dominio | no |
+| `caddy` | La puerta de la API: reparte por ruta y sirve las plantillas de correo a Auth | no |
 | `cloudflared` | Cloudflare Tunnel: la única entrada desde internet | sí |
 
 - **No se publica ningún puerto en el host.** El túnel sale hacia Cloudflare, y `ufw`
@@ -45,13 +47,16 @@ servidor propio se usa `provisionar.sh` (ver "Servidor propio", al final).
 - **Studio no pasa por el gateway ni por Caddy:** desde internet, `/`, `/pg/` y lo demás
   dan 404.
 
-Por dominio (los tres en el `.env` y en las variables de GitHub):
+Por dominio (los tres en el `.env`; en GitHub solo `DOMINIO_API`):
 
-| Dominio | Qué sirve Caddy |
-|---|---|
-| `DOMINIO_EMPLEOS` | El career site |
-| `DOMINIO_PANEL` | El panel de la empresa |
-| `DOMINIO_API` | Solo `/auth/v1`, `/rest/v1`, `/storage/v1` y `/salud/hr-engine` (para el monitoreo) |
+| Dominio | Dónde | Qué sirve |
+|---|---|---|
+| `DOMINIO_EMPLEOS` | Vercel (`vortex-career-site`) | El career site |
+| `DOMINIO_PANEL` | Vercel (`vortex-hrbp`) | El panel de la empresa |
+| `DOMINIO_API` | Este servidor, por el túnel | Solo `/auth/v1`, `/rest/v1`, `/storage/v1` y `/salud/hr-engine` (para el monitoreo) |
+
+Los dos primeros siguen en el `.env` aunque no se sirvan aquí: el CORS del hr-engine y las
+URLs de regreso de Auth (`GOTRUE_SITE_URL`, `GOTRUE_URI_ALLOW_LIST`) los usan.
 
 ## Antes de empezar
 
@@ -59,6 +64,8 @@ Cuentas, todas con 2FA. Las crea Ilyra: Claude no crea cuentas ni escribe creden
 
 - **Contabo:** el servidor.
 - **Cloudflare:** el dominio, el túnel (Zero Trust, plan Free), Turnstile y R2.
+- **Vercel:** los proyectos `vortex-career-site` y `vortex-hrbp`, en el equipo
+  `proyectos-ilys-projects`. Hobby no permite uso comercial: el plan lo decide Ilyra.
 - **Resend:** el correo, con el dominio verificado.
 - **GitHub:** el repo ya existe; solo faltan sus variables y secrets.
 
@@ -134,20 +141,22 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
 
 ### 4. Cloudflare
 
-1. **DNS:** el dominio en Cloudflare, con los registros de Vercel mientras tanto.
+1. **DNS:** el dominio en Cloudflare. Los subdominios del career site y del panel apuntan
+   a Vercel (ver "Vercel: el career site y el panel"); solo el de la API va al túnel.
 2. **Túnel:**
    - Zero Trust → Networking → Tunnels → **Create a tunnel** (Cloudflared), nombre
      `vortex`.
    - Elegir **Docker** y copiar solo el token del comando: va en
      `CLOUDFLARE_TUNNEL_TOKEN`. No hay que correr el comando; lo hace compose.
-   - En **Routes → Add route → Published application**, tres rutas, todas con Service
-     URL `http://caddy:80`: el subdominio del career site, el del panel y el de la API.
-   - En DNS, cada uno tiene que quedar como CNAME a `<id>.cfargotunnel.com`, con la nube
-     naranja (Proxied). Si no apareció solo, se crea a mano.
+   - En **Routes → Add route → Published application**, una sola ruta: el subdominio de
+     la API, con Service URL `http://caddy:80`. Si quedaron rutas del career site o del
+     panel de antes de la enmienda, se borran.
+   - En DNS, el de la API tiene que quedar como CNAME a `<id>.cfargotunnel.com`, con la
+     nube naranja (Proxied). Si no apareció solo, se crea a mano.
    ([docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/create-remote-tunnel/))
 3. **SSL/TLS:** activar *Always Use HTTPS*.
-4. **Turnstile:** un widget para el dominio del career site. La *site key* (pública) va
-   en la variable de GitHub `TURNSTILE_SITE_KEY` y la *secret key* en `TURNSTILE_SECRET_KEY`.
+4. **Turnstile:** un widget para el dominio del career site. Las dos claves van en el
+   proyecto de Vercel del career site (ver "Vercel: el career site y el panel"), no aquí.
 5. **R2:**
    - Un bucket `vortex-respaldos`, sin acceso público.
    - *Manage API tokens* → un token con **Object Read & Write solo sobre ese bucket**. Da
@@ -170,7 +179,7 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
 1. **Llenar lo que falta:** `nano ~/vortex/.env`. Lo que va a mano:
    - los tres `DOMINIO_*`;
    - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado);
-   - `CLOUDFLARE_TUNNEL_TOKEN` y `TURNSTILE_SECRET_KEY`;
+   - `CLOUDFLARE_TUNNEL_TOKEN`;
    - `RESTIC_REPOSITORY`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`;
    - `GOOGLE_API_KEY`, la key de Gemini del **nivel de pago**, para la evaluación con IA
      (ADR-021). Sin ella, las aplicaciones de las empresas con IA esperan;
@@ -181,13 +190,11 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
 3. **Guardar `RESTIC_PASSWORD` en el gestor de contraseñas**, junto con la llave de R2:
    `grep ^RESTIC_PASSWORD= ~/vortex/.env`. Sin eso no se restaura nada.
 4. **GitHub → Settings → Secrets and variables → Actions → Variables:**
-   - `DOMINIO_EMPLEOS`, `DOMINIO_PANEL` y `DOMINIO_API`: los mismos del `.env`.
-   - `SUPABASE_ANON_KEY`: la salida de
-     `python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-publica ~/vortex/.env`.
-     Es pública: va en el navegador.
-   - `TURNSTILE_SITE_KEY`.
+   - `DOMINIO_API`: el mismo del `.env`. El workflow lo usa para comprobar el despliegue.
    - `VPS_USUARIO`: `ilyra`. Sin ella, el workflow entra como `despliegue`, el usuario de
      un servidor propio.
+   - Las variables `DOMINIO_EMPLEOS`, `DOMINIO_PANEL`, `SUPABASE_ANON_KEY` y
+     `TURNSTILE_SITE_KEY` de antes de la enmienda ya no se usan: se pueden borrar.
 5. **GitHub → Settings → Environments → `production` → Secrets:**
    - `VPS_HOST`: la IP.
    - `VPS_SSH_KEY`: el contenido de `~/.ssh/vortex_despliegue`, la privada.
@@ -199,11 +206,11 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
 Actions → **Deploy VPS (Contabo)** → *Run workflow* desde `main`.
 
 - **Qué hace:**
-  - construye y sube a GHCR las tres imágenes (`vortex-hr-engine`, `vortex-career-site` y
-    `vortex-caddy`, etiquetadas con el commit);
+  - construye y sube a GHCR las dos imágenes (`vortex-hr-engine` y `vortex-caddy`,
+    etiquetadas con el commit);
   - entra por SSH y corre `scripts/levantar.sh`: la base, Auth y Storage, las migraciones
     que falten (`scripts/migrar.sh`) y el resto;
-  - comprueba los tres dominios desde internet.
+  - comprueba `https://<DOMINIO_API>/salud/hr-engine` desde internet.
 - **Seguridad:**
   - el servidor baja las imágenes con el `GITHUB_TOKEN` del job, que caduca al terminar;
   - en el servidor no queda ningún token de GitHub;
@@ -212,14 +219,47 @@ Actions → **Deploy VPS (Contabo)** → *Run workflow* desde `main`.
 En el servidor: `vortex ps` muestra todo `healthy` (el beat no tiene healthcheck), y
 `vortex logs -f --tail 50 hr-engine-beat` muestra un barrido por minuto.
 
+### Vercel: el career site y el panel
+
+Los dos proyectos ya existen en `proyectos-ilys-projects` (`vortex-career-site` y
+`vortex-hrbp`) y construyen desde el monorepo con el `vercel.json` de cada app. Lo de
+producción se cambia solo con el OK de Ilyra.
+
+1. **Variables de entorno**, en *Production*. Las públicas como *Config* y las secretas
+   como *Secret*, que no se pueden volver a leer
+   ([docs](https://vercel.com/docs/environment-variables/sensitive-environment-variables)):
+
+   | Proyecto | Variable | Valor | Tipo |
+   |---|---|---|---|
+   | `vortex-career-site` | `NEXT_PUBLIC_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
+   | | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | la salida de `generar_secretos.py --clave-publica ~/vortex/.env` | Config |
+   | | `NEXT_PUBLIC_SITE_URL` | `https://<DOMINIO_EMPLEOS>` | Config |
+   | | `NEXT_PUBLIC_PANEL_EMPRESAS_URL` | `https://<DOMINIO_PANEL>` | Config |
+   | | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | la *site key* del widget | Config |
+   | | `TURNSTILE_SECRET_KEY` | la *secret key* del widget | Secret |
+   | | `SUPABASE_CAREER_SITE_KEY` | `CAREER_SITE_KEY` del `.env`, con la tubería de la fila `CAREER_SITE_KEY` de "Rotar secretos" para que no pase por la pantalla. La service_role no va en Vercel | Secret |
+   | `vortex-hrbp` | `VITE_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
+   | | `VITE_SUPABASE_ANON_KEY` | la misma clave pública | Config |
+
+   Las `NEXT_PUBLIC_*` y `VITE_*` se escriben en el bundle al construir: después de
+   cambiarlas hay que volver a desplegar.
+2. **Dominios:** en cada proyecto, *Settings → Domains*, el subdominio que le toca. En
+   Cloudflare, el registro que pide Vercel (CNAME), en **DNS only** (nube gris), como el
+   resto de los registros de Vercel del dominio.
+3. **Desplegar** a producción desde `main` y comprobar que `https://<DOMINIO_EMPLEOS>/` y
+   `https://<DOMINIO_PANEL>/` respondan.
+4. **El CV pesa 4 MB como máximo.** Vercel corta el cuerpo de una función en 4.5 MB
+   ([docs](https://vercel.com/docs/functions/limitations#request-body-size)), y el CV
+   viaja dentro de la Server Action (`apps/career-site/src/lib/tipos-de-aplicacion.ts`).
+
 ### 8. Monitoreo
 
 Contabo no trae alertas de recursos. Con lo gratis:
 
 - **Uptime:** [UptimeRobot](https://uptimerobot.com) (plan Free), tres monitores HTTP(S)
   cada 5 minutos, con aviso por correo:
-  - `https://<DOMINIO_PANEL>/`;
-  - `https://<DOMINIO_EMPLEOS>/`;
+  - `https://<DOMINIO_PANEL>/` (Vercel);
+  - `https://<DOMINIO_EMPLEOS>/` (Vercel);
   - `https://<DOMINIO_API>/salud/hr-engine` (responde `ok` si el hr-engine ve a Postgres y
     a Redis).
 - **Recursos:** en la revisión mensual, `free -h`, `df -h` y `docker stats --no-stream`.
@@ -327,10 +367,11 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 | Secreto | Cómo |
 |---|---|
 | `REDIS_PASSWORD`, `HR_ENGINE_JWT_SECRET`, `DASHBOARD_PASSWORD`, `PG_META_CRYPTO_KEY` | Vaciar su valor en el `.env`, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d` |
-| `JWT_SECRET` | Lo mismo, y regenera `ANON_KEY`, `SERVICE_ROLE_KEY` y `CAREER_SITE_KEY`. Hay que actualizar la variable `SUPABASE_ANON_KEY` de GitHub y volver a desplegar (el panel la lleva dentro), y cargar la `CAREER_SITE_KEY` nueva en el career site (fila siguiente). Cierra todas las sesiones |
+| `JWT_SECRET` | Lo mismo, y regenera `ANON_KEY`, `SERVICE_ROLE_KEY` y `CAREER_SITE_KEY`. Hay que actualizar la `ANON_KEY` en los dos proyectos de Vercel y la `CAREER_SITE_KEY` en el career site (fila siguiente), y volver a desplegarlos (el panel lleva la pública dentro del bundle). Cierra todas las sesiones |
 | `CAREER_SITE_KEY` | La clave del career site, con el rol `career_site` (migración 0017): no es la service_role, solo lee la vacante abierta y sube CVs. Vaciarla y correr `generar_secretos.py ~/vortex/.env` la vuelve a firmar. Va al career site en Vercel como `SUPABASE_CAREER_SITE_KEY`, de tipo Secret, sin pasar por la pantalla: `ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-career-site ~/vortex/.env' \| vercel env add SUPABASE_CAREER_SITE_KEY --environment production --type secret` (vercel.com/docs/cli/env, "Type"). Después, volver a desplegar el career site |
 | `POSTGRES_PASSWORD` | No basta con el `.env`: `roles.sql` solo corre al crear la base. Primero, en `vortex exec db psql -U supabase_admin`, `ALTER USER … WITH PASSWORD '<nueva>'` para `postgres`, `authenticator`, `pgbouncer`, `supabase_auth_admin`, `supabase_functions_admin` y `supabase_storage_admin`. Después, el `.env` y `vortex up -d` |
-| `CLOUDFLARE_TUNNEL_TOKEN`, `SMTP_PASS`, `TURNSTILE_SECRET_KEY` y la llave de R2 | Rotarlos en su panel, cambiar el `.env` y `vortex up -d` |
+| `CLOUDFLARE_TUNNEL_TOKEN`, `SMTP_PASS` y la llave de R2 | Rotarlos en su panel, cambiar el `.env` y `vortex up -d` |
+| `TURNSTILE_SECRET_KEY` | Rotarla en Cloudflare, cambiarla en el proyecto de Vercel del career site y volver a desplegarlo |
 | `RESTIC_PASSWORD` | `vortex run --rm respaldo key add`, después `key remove` de la vieja. Guardar la nueva en el gestor |
 | La llave de despliegue | Una nueva con `ssh-keygen`, `provisionar.sh` con la pública y el secret `VPS_SSH_KEY` |
 
@@ -368,16 +409,18 @@ e2e (14 aplicaciones con CV) y una restauración:
 | `hr-engine-api` | 192 MB | 102 MB |
 | `hr-engine-worker` | 512 MB | 271 MB |
 | `hr-engine-beat` | 224 MB | 134 MB |
-| `career-site` | 256 MB | 54 MB |
 | `caddy` | 64 MB | 16 MB |
 | `cloudflared` | 96 MB | no corre en local |
-| **Total** | **2.5 GB** | **~0.95 GB** |
+| **Total** | **2.3 GB** | **~0.85 GB** |
 
 Calculado para un servidor de 4 GB, con ~0.45 GB del sistema. En la cuenta de Contabo el
 tope es de 6 GB solo para Vortex, así que sobra:
 
-- **Si todos llegaran a su tope a la vez:** queda ~1 GB libre, más 2 GB de swap.
-- **Uso real:** ~1.4 GB.
+- **Si todos llegaran a su tope a la vez:** queda ~1.2 GB libre, más 2 GB de swap.
+- **Uso real:** ~1.3 GB.
+
+El career site (256 MB de tope, 54 MB medidos) salió de esta tabla con la enmienda del
+2026-11-11: la prueba local lo sigue levantando, pero en producción corre en Vercel.
 - **Con el perfil `admin` encendido:** suma ~0.7 GB (Studio 512 MB, meta 128 MB y el
   túnel 32 MB). Por eso se apaga al terminar.
 
@@ -414,7 +457,8 @@ ssh -i <llave> root@<ip> bash /root/provisionar.sh ilyra "$(cat ~/.ssh/vortex_de
 - Contabo: [Auto Backup](https://contabo.com/en-us/auto-backup).
 - [UptimeRobot](https://uptimerobot.com/pricing/), plan Free.
 - [GHCR: visibilidad y permisos](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
-- Next.js 16 (`node_modules/next/dist/docs`):
+- Vercel: [límites de las funciones](https://vercel.com/docs/functions/limitations) (cuerpo de 4.5 MB), [variables Config y Secret](https://vercel.com/docs/environment-variables/sensitive-environment-variables) y [plan Hobby](https://vercel.com/docs/plans/hobby) (sin uso comercial).
+- Next.js 16 (`node_modules/next/dist/docs`), para el career site de la prueba local:
   - `output`, "Automatically Copying Traced Files";
   - "Self-Hosting";
   - "Caching without Cache Components", `dynamic`.

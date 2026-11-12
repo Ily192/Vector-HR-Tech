@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-20
 - **Decider:** Ilyra ("pagando por separado varias instancias para un proyecto no es ni ordenado ni factible para el mantenimiento; si subimos la plataforma en un VPS y la gestionamos en un solo lado es más óptimo"). Delegó la decisión técnica: "piensa como un PM y un dev senior para tomar las mejores decisiones a largo plazo".
-- **Supersedes:** ADR-010 (frontends en Vercel) y ADR-012 (backends en Fly.io), para el MVP
+- **Supersedes:** ADR-010 (frontends en Vercel) y ADR-012 (backends en Fly.io), para el MVP. La tercera enmienda (2026-11-11) devuelve los frontends a Vercel
 - **Tags:** infra, hosting, seguridad, costos, mantenimiento
 
 *Actualizado el 2026-10-20, con el stack ya construido (`infra/vps/`, runbook
@@ -48,6 +48,40 @@ puertos desde el 20000.
 - **Acceso a los datos:** Andres, como administrador, puede ver los datos de Vortex,
   incluidos los CVs. Es del equipo, así que se acepta. Si un contrato pide que solo
   ciertas personas tengan acceso, Vortex vuelve a un VPS propio con `provisionar.sh`.
+
+*Tercera enmienda, del 2026-11-11: los frontends vuelven a Vercel.* Ilyra decidió que la
+bolsa de empleo (`empleos.vectorhrtech.com`, `apps/career-site`) y el panel de la empresa
+(`panel.vectorhrtech.com`, `apps/hrbp`) se sirvan desde Vercel, porque son de Vector HR
+Tech y no de Fluve AI. El VPS queda solo para el backend, detrás de `api.vectorhrtech.com`:
+el Supabase autoalojado (base, Auth, PostgREST, Storage y el gateway), el hr-engine (API,
+worker y beat), Redis y el respaldo. Para estos dos sitios, esto vuelve a lo que decía
+ADR-010; el resto de este ADR sigue igual.
+
+- **Qué cambió en el repo:**
+  - `compose.yml` ya no tiene el career site.
+  - Caddy solo publica `DOMINIO_API`, y su imagen ya no construye el panel.
+  - `deploy-vps.yml` construye dos imágenes en vez de tres y solo comprueba
+    `/salud/hr-engine`.
+  - El túnel de Cloudflare queda con una sola ruta.
+- **La prueba local no pierde cobertura.** `pruebas/probar_en_local.sh` sigue levantando
+  el career site y el panel junto al stack (`pruebas/compose.local.yml` y
+  `pruebas/Caddyfile`), para que el e2e recorra el flujo completo contra el backend real.
+- **Los dominios del career site y del panel siguen en el `.env` del servidor**, porque
+  el CORS del hr-engine y las URLs de regreso de Auth los usan.
+- **Variables:** Turnstile y la clave pública de Supabase pasan de las variables de
+  GitHub a los proyectos de Vercel (`vortex-career-site` y `vortex-hrbp`). En GitHub
+  quedan `DOMINIO_API` y `VPS_USUARIO`.
+- **La clave `service_role` sale del servidor.** El career site sube el CV con ella
+  (`apps/career-site/src/lib/aplicacion-supabase.ts`) porque el bucket `cvs` no deja
+  escribir a `anon`. En el VPS viajaba por la red interna; en Vercel tiene que ir como
+  variable de tipo *Secret*. Queda pendiente reemplazarla por una clave de menor alcance
+  (ver la tarjeta de Trello).
+- **Costo y plan:** vuelve el riesgo que este ADR evitaba. El plan Hobby de Vercel no
+  permite uso comercial ([docs](https://vercel.com/docs/plans/hobby)), y Pro cuesta US$20
+  al mes. El plan lo decide Ilyra.
+- **Límite de Vercel:** el cuerpo de una función se corta en 4.5 MB
+  ([docs](https://vercel.com/docs/functions/limitations#request-body-size)). El CV ya
+  tenía un tope de 4 MB por eso.
 
 ## Context
 

@@ -136,9 +136,13 @@ test("plan gratis: alta, publicar, aplicar, gancho, .zip y eliminar", async ({ p
         .annotations.push({ type: "barrido", description: resultado.split("\n").at(-1) ?? "" });
     }
     // En un despliegue el beat barre cada minuto: se recarga hasta que aparezca.
+    // Un barrido puede caer entre dos aplicaciones (los 5 legibles ya revisados y
+    // el escaneado todavía sin subir): se espera también al ilegible, que llega
+    // en el barrido siguiente.
     await expect(async () => {
       await page.goto(`${e.panel}/vacantes/${vacanteId}`);
       await expect(gancho).toContainText("Revisamos 5 de tus CVs", { timeout: 5_000 });
+      await expect(gancho).toContainText("Un CV no se pudo leer", { timeout: 1_000 });
     }).toPass({ timeout: e.remoto ? 4 * 60_000 : 30_000, intervals: [2_000, 15_000] });
   });
 

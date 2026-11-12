@@ -15,7 +15,7 @@ llenar a mano, nunca los valores.
 `--verificar` sale con error si falta un valor obligatorio o si las claves no están
 firmadas con JWT_SECRET; lo corre scripts/levantar.sh antes de tocar nada.
 `--clave-publica` imprime solo ANON_KEY, que es pública por diseño (la lleva el panel
-en el navegador) y va en la variable SUPABASE_ANON_KEY de GitHub.
+en el navegador) y va en los proyectos de Vercel del panel y del career site.
 
 Solo usa la biblioteca estándar: corre con el python3 de Ubuntu.
 """

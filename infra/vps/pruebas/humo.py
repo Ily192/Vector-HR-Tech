@@ -10,7 +10,6 @@
   - sin apikey no se entra;
   - sin invitación no hay alta;
   - un correo desconocido no recibe enlace, y una cuenta invitada que aún no entra sí;
-  - el panel es una SPA con caché larga en sus assets;
   - Auth usa las plantillas en español, que sirve Caddy (la del enlace mágico, en
     Mailpit).
 - `career-site`: la clave del career site (rol `career_site`, migración 0017) contra el
@@ -22,7 +21,9 @@
   byte.
 
 El flujo completo (alta, invitación, vacante, aplicaciones, worker, .zip) lo recorre
-`pnpm e2e:flujo` con E2E_REMOTO=1 (packages/e2e). Necesita httpx: se corre con el
+`pnpm e2e:flujo` con E2E_REMOTO=1 (packages/e2e). El panel y el career site ya no son del
+VPS (enmienda de ADR-020 del 2026-11-11): sus cabeceras y su caché son de Vercel
+(vercel.json de cada app), así que aquí no se revisan. Necesita httpx: se corre con el
 entorno del hr-engine (`python -m uv run`).
 """
 
@@ -32,7 +33,6 @@ import hashlib
 import json
 import os
 import pathlib
-import re
 import sys
 import time
 import uuid
@@ -54,7 +54,6 @@ for linea in pathlib.Path(sys.argv[1]).read_text("utf-8").splitlines():
 
 ANON, SERVICIO = env["ANON_KEY"], env["SERVICE_ROLE_KEY"]
 API = f"http://{env['DOMINIO_API']}"
-PANEL = f"http://{env['DOMINIO_PANEL']}"
 http = httpx.Client(timeout=30, headers={"CF-Connecting-IP": IP_DE_PRUEBA})
 servicio = {"apikey": SERVICIO, "Authorization": f"Bearer {SERVICIO}"}
 
@@ -67,16 +66,6 @@ def ok(condicion: bool, paso: str, detalle: object = "") -> None:
 
 
 def borde() -> None:
-    r = http.get(f"{PANEL}/")
-    ok(r.status_code == 200 and 'id="root"' in r.text, "panel servido por Caddy")
-    entrada = re.search(r'/assets/entrada-[^"]+\.js', r.text)
-    r = http.get(f"{PANEL}{entrada.group(0) if entrada else '/assets/x.js'}")
-    ok(
-        r.status_code == 200 and "immutable" in r.headers.get("cache-control", ""),
-        "assets del panel con caché larga",
-    )
-    r = http.get(f"{PANEL}/vacantes/una-ruta-de-la-spa")
-    ok(r.status_code == 200 and 'id="root"' in r.text, "las rutas de la SPA caen en index.html")
     r = http.get(f"{API}/salud/hr-engine")
     ok(r.status_code == 200 and r.text == "ok", "/salud/hr-engine para el monitoreo")
     for ruta in ("/", "/pg/tables", "/functions/v1/x", "/realtime/v1/api"):
