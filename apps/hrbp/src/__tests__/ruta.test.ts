@@ -5,6 +5,9 @@ import { resolverRuta } from "../navegacion/ruta";
 describe("resolverRuta", () => {
   it.each([
     ["/", { pantalla: "inicio" }],
+    // Con la sesión abierta, la página del código del alta es el inicio.
+    ["/verificar", { pantalla: "inicio" }],
+    ["/verificar/x", { pantalla: "no-encontrada" }],
     ["/vacantes", { pantalla: "mis-vacantes" }],
     ["/vacantes/", { pantalla: "mis-vacantes" }],
     ["/vacantes/nueva", { pantalla: "crear-empleo" }],

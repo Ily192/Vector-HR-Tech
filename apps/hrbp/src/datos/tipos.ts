@@ -170,12 +170,20 @@ export type DescargaDeCvs =
   | { url: null; motivo: "sin-cvs" | "ejemplo" };
 
 /**
- * Resultado de pedir el enlace para entrar. `ok` no dice que el correo tenga
+ * Resultado de pedir el código para entrar. `ok` no dice que el correo tenga
  * cuenta: la respuesta es la misma para no revelar quién usa el panel.
  */
 export type ResultadoDeEntrar =
   | { ok: true }
   | { ok: false; motivo: "demasiados-intentos" | "error" };
+
+/**
+ * Resultado de escribir el código. Auth no distingue un código equivocado de uno
+ * vencido o ya usado (`otp_expired` en los dos casos): es `codigo-invalido`.
+ */
+export type ResultadoDeVerificar =
+  | { ok: true }
+  | { ok: false; motivo: "codigo-invalido" | "demasiados-intentos" | "error" };
 
 /** La cuenta entró, pero no es de HR o Dirección de una empresa. */
 export class SinAccesoAlPanel extends Error {
@@ -290,7 +298,10 @@ export interface AdaptadorDelPanel {
   descartar(aplicacionId: string, motivo: string): Promise<ResultadoDeDescartar>;
   solicitarDescargaDeCvs(vacanteId: string): Promise<DescargaDeCvs>;
   registrarInteres(origen: OrigenDelInteres): Promise<void>;
+  /** Manda el código de 6 dígitos al correo, si tiene cuenta. */
   entrar(correo: string): Promise<ResultadoDeEntrar>;
+  /** Abre la sesión con el código que llegó al correo. */
+  verificarCodigo(correo: string, codigo: string): Promise<ResultadoDeVerificar>;
   salir(): Promise<void>;
   /** Avisa cuando alguien entra o sale. Devuelve cómo dejar de escuchar. */
   alCambiarLaSesion(avisar: () => void): () => void;

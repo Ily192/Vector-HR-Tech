@@ -2,7 +2,14 @@ import { type ReactNode, Suspense, lazy, useEffect } from "react";
 
 import { useSesion, useSesionEnVivo } from "./datos/consultas";
 import { Marco, type Seccion } from "./marco/marco";
-import { Enlace, type Ruta, resolverRuta, useRuta } from "./navegacion/ruta";
+import {
+  Enlace,
+  RUTA_DE_VERIFICAR,
+  type Ruta,
+  navegar,
+  resolverRuta,
+  useRuta,
+} from "./navegacion/ruta";
 
 // Cada pantalla es su propio chunk: el bundle principal solo lleva el marco (tope de 90 KB).
 const Cockpit = lazy(() => import("./pantallas/cockpit").then((m) => ({ default: m.Cockpit })));
@@ -107,6 +114,13 @@ export function App() {
   useEffect(() => {
     document.title = `${titulo} · Vector HR Tech`;
   }, [titulo]);
+
+  // Con la sesión abierta, `/verificar#correo=…` (el registro desde la web) es el inicio.
+  useEffect(() => {
+    if (sesion && window.location.pathname === RUTA_DE_VERIFICAR) {
+      navegar("/", { reemplazar: true });
+    }
+  }, [sesion]);
 
   // Un enlace ya usado vuelve con `#error_code=…` aunque la sesión siga viva: se limpia.
   useEffect(() => {

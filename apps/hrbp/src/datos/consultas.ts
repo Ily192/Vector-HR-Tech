@@ -18,6 +18,7 @@ import {
   registrarInteres,
   salir,
   solicitarDescargaDeCvs,
+  verificarCodigo,
 } from "./panel";
 import { SinAccesoAlPanel } from "./tipos";
 
@@ -94,5 +95,11 @@ export const useDescargarCvs = () => useMutation({ mutationFn: solicitarDescarga
 export const useRegistrarInteres = () => useMutation({ mutationFn: registrarInteres });
 
 export const useEntrar = () => useMutation({ mutationFn: entrar });
+
+export const useVerificarCodigo = () =>
+  useMutation({
+    mutationFn: ({ correo, codigo }: { correo: string; codigo: string }) =>
+      verificarCodigo(correo, codigo),
+  });
 
 export const useSalir = () => useMutation({ mutationFn: salir });

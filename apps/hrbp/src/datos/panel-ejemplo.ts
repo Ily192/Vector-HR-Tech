@@ -436,6 +436,10 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
     return { ok: true };
   },
 
+  async verificarCodigo() {
+    return { ok: true };
+  },
+
   async salir() {},
 
   alCambiarLaSesion() {
