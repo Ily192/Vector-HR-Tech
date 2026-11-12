@@ -64,9 +64,14 @@ async def _empresa(
 
 
 async def _vacante(db: asyncpg.Connection, empresa_id: str, status: str = "open") -> str:
-    """Inserta una vacante como el tenant, igual que lo hará el panel."""
+    """Inserta una vacante como el tenant, igual que lo hará el panel.
+
+    Desde 0019 la del panel nace 'pendiente' y no sale al career site hasta que la
+    modera el hr-engine: si está abierta, la publica como lo haría la moderación, y
+    deja la sesión otra vez en el tenant.
+    """
     await assume_tenant(db, empresa_id)
-    return str(
+    vacante_id = str(
         await db.fetchval(
             """
             insert into vacantes (empresa_id, slug, title, jd, status)
@@ -78,6 +83,12 @@ async def _vacante(db: asyncpg.Connection, empresa_id: str, status: str = "open"
             status,
         )
     )
+    if status == "open":
+        await _como_soporte(
+            db, "update vacantes set moderacion = 'publicada' where id = $1::uuid", vacante_id
+        )
+        await assume_tenant(db, empresa_id)
+    return vacante_id
 
 
 async def _sin_cupo(coro: Any) -> asyncpg.PostgresError:
