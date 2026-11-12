@@ -1,6 +1,6 @@
 # Verificador de vacantes: comparación de modelos
 
-Corrida del 2026-11-12 21:50 UTC con `python -m app.cli.evals_verificador` (services/hr-engine). Set sintético `casos.yaml`: 40 vacantes inventadas de México y Venezuela (22 legítimas, 13 de riesgo alto y 5 de riesgo medio). Mismo prompt para todos (`instrucciones.md`), salida estructurada con el esquema del script y una sola pasada por modelo.
+Corrida del 2026-11-12 22:06 UTC con `python -m app.cli.evals_verificador` (services/hr-engine). Set sintético `casos.yaml`: 40 vacantes inventadas de México y Venezuela (22 legítimas, 13 de riesgo alto y 5 de riesgo medio). Mismo prompt para todos (`instrucciones.md`), salida estructurada con el esquema del script y una sola pasada por modelo.
 
 - Claude: `thinking` adaptativo, `effort: low`, `output_config.format`. Opus 5.5 y Sonnet 5.5 con `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`); Haiku 5.5 no tiene fallback del lado del servidor y su negativa cuenta como revisión manual.
 - Gemini: `generate_content` con `response_json_schema`; 2.5 con `thinking_budget=0` (como el hr-engine hoy) y los 3.x con `thinking_level=LOW`.
@@ -10,21 +10,68 @@ Criterio: el más barato con recall de alto = 100%, ninguna sospechosa como bajo
 
 ## Resultados
 
-Todavía no corrió ningún modelo.
+| Modelo | Recall alto | Sospechosas como bajo | Falsos positivos | Exactitud | Negativas | Errores | Costo por vacante | Costo total | Latencia media |
+|---|---|---|---|---|---|---|---|---|---|
+| `gemini-2.5-flash` | — | 0 | — | — | 0 | 40 | US$0.00000 | US$0.0000 | — |
+| `gemini-3.5-flash-lite` | 100% | 0 | 0% | 100% | 0 | 0 | US$0.00040 | US$0.0160 | 1.0 s |
+| `gemini-3.8-flash` | 100% | 0 | 0% | 100% | 0 | 0 | US$0.00091 | US$0.0363 | 2.7 s |
 
 Sin correr:
 - `claude-haiku-5-5`: apagado: sin créditos en la API de Anthropic (se activa con --con-claude)
 - `claude-sonnet-5-5`: apagado: sin créditos en la API de Anthropic (se activa con --con-claude)
 - `claude-opus-5-5`: apagado: sin créditos en la API de Anthropic (se activa con --con-claude)
-- `gemini-2.5-flash`: falta GOOGLE_API_KEY
-- `gemini-3.5-flash-lite`: falta GOOGLE_API_KEY
-- `gemini-3.8-flash`: falta GOOGLE_API_KEY
 
-Gasto de la corrida: US$0.0000 (tope US$2.00).
+Gasto de la corrida: US$0.0523 (tope US$1.00).
 
 ## Recomendación
 
-Ningún modelo corrió el set completo: no hay recomendación todavía.
+gemini-3.5-flash-lite: el más barato que detectó todas las de riesgo alto, no dejó pasar ninguna sospechosa como bajo y mandó a revisión el 0% de las legítimas.
+
+## Fallos por modelo
+
+### `gemini-2.5-flash`
+
+- `leg-almacen-turno-rotativo`: esperado bajo, obtuvo error (API 404). Señal: puesto operativo con prestaciones
+- `leg-asesor-seguros`: esperado bajo, obtuvo error (API 404). Señal: venta de seguros con base, capacitación y cédula, sin cobro
+- `leg-asistente-administrativa`: esperado bajo, obtuvo error (API 404). Señal: oferta administrativa estándar
+- `leg-atencion-home-office`: esperado bajo, obtuvo error (API 404). Señal: home office legítimo con equipo propio y sueldo realista
+- `leg-ayudante-construccion`: esperado bajo, obtuvo error (API 404). Señal: pago semanal en obra, legítimo
+- `leg-backend-remoto`: esperado bajo, obtuvo error (API 404). Señal: trabajo remoto real con proceso técnico
+- `leg-cajero-farmacia`: esperado bajo, obtuvo error (API 404). Señal: puesto de tienda estándar
+- `leg-call-center-bilingue`: esperado bajo, obtuvo error (API 404). Señal: call center con sueldo y capacitación pagada
+- `leg-celulares-whatsapp-y-tienda`: esperado bajo, obtuvo error (API 404). Señal: WhatsApp junto a tienda física y datos verificables
+- `leg-chofer-vehiculo-empresa`: esperado bajo, obtuvo error (API 404). Señal: chofer con vehículo de la empresa
+- `leg-cocinero-cancun`: esperado bajo, obtuvo error (API 404). Señal: hotelería con propinas
+- `leg-contador-junior`: esperado bajo, obtuvo error (API 404). Señal: puesto profesional estándar
+- `leg-disenador-freelance`: esperado bajo, obtuvo error (API 404). Señal: freelance por proyecto con contrato de servicios
+- `leg-encuestador-pago-por-pieza`: esperado bajo, obtuvo error (API 404). Señal: pago por pieza legítimo de empresa de investigación
+- `leg-enfermera-nocturno`: esperado bajo, obtuvo error (API 404). Señal: puesto clínico estándar
+- `leg-pasantia-academica`: esperado bajo, obtuvo error (API 404). Señal: pasantía curricular sin pago, con convenio universitario
+- `leg-profesor-ingles-online`: esperado bajo, obtuvo error (API 404). Señal: remoto con pago por hora razonable
+- `leg-reclutador-junior`: esperado bajo, obtuvo error (API 404). Señal: comisión por colocación con base fija
+- `leg-repartidor-moto-propia`: esperado bajo, obtuvo error (API 404). Señal: pide moto propia pero paga por entrega y reconoce gasolina
+- `leg-tecnico-mantenimiento`: esperado bajo, obtuvo error (API 404). Señal: técnico industrial estándar
+- `leg-vendedor-piso-comision`: esperado bajo, obtuvo error (API 404). Señal: comisión por ventas en tienda física
+- `leg-ventas-b2b-comision`: esperado bajo, obtuvo error (API 404). Señal: comisiones con sueldo base y prestaciones
+- `sos-cripto-inversion`: esperado alto, obtuvo error (API 404). Señal: inversión en cripto con promesa de duplicar
+- `sos-datos-bancarios-antes`: esperado alto, obtuvo error (API 404). Señal: datos bancarios e identificación antes de la entrevista
+- `sos-deposito-capacitacion`: esperado alto, obtuvo error (API 404). Señal: depósito para apartar lugar
+- `sos-enlace-acortado`: esperado medio, obtuvo error (API 404). Señal: enlace acortado y sin datos de la empresa
+- `sos-ensobretado-material`: esperado alto, obtuvo error (API 404). Señal: cobro por material de trabajo desde casa
+- `sos-examen-medico-clinica`: esperado alto, obtuvo error (API 404). Señal: cobro por examen médico en clínica indicada
+- `sos-kit-de-inicio`: esperado alto, obtuvo error (API 404). Señal: cobro por kit de inicio (multinivel)
+- `sos-likes-pagados-usdt`: esperado alto, obtuvo error (API 404). Señal: estafa de tareas (pagan por dar likes, en cripto)
+- `sos-modelos-telegram`: esperado alto, obtuvo error (API 404). Señal: señales de trata (viaje pagado, fotos de cuerpo, contacto solo por Telegram)
+- `sos-mula-de-dinero`: esperado alto, obtuvo error (API 404). Señal: mula de dinero (recibir y reenviar transferencias)
+- `sos-paquetes-frontera`: esperado alto, obtuvo error (API 404). Señal: actividad ilegal disfrazada (traslado de paquetes sin saber contenido)
+- `sos-se-tu-propio-jefe`: esperado medio, obtuvo error (API 404). Señal: «sé tu propio jefe» vago, sin empresa ni puesto
+- `sos-solo-telegram-digitador`: esperado medio, obtuvo error (API 404). Señal: contacto solo por Telegram
+- `sos-solo-whatsapp-sin-empresa`: esperado medio, obtuvo error (API 404). Señal: contacto solo por WhatsApp, sin empresa identificable
+- `sos-sueldo-irreal-desde-casa`: esperado medio, obtuvo error (API 404). Señal: sueldo irreal + sin experiencia + desde casa, sin cobro explícito
+- `sos-suplantacion-marca`: esperado alto, obtuvo error (API 404). Señal: suplanta a una marca conocida, cobra activación y usa enlace acortado
+- `sos-tarjeta-y-cvv`: esperado alto, obtuvo error (API 404). Señal: pide datos de tarjeta y CVV
+- `sos-trabajo-exterior-tramites`: esperado alto, obtuvo error (API 404). Señal: trabajo en el exterior con cobro por trámites (posible trata)
+
 
 ## Estimación antes de correr
 
