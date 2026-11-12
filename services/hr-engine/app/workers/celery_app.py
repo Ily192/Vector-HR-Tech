@@ -22,6 +22,8 @@ celery_app = Celery(
         "app.workers.evaluaciones",
         # Alta desde la web: limpieza de las que nadie confirmó (ADR-017).
         "app.workers.altas",
+        # Moderación de vacantes antes del career site (ADR-022).
+        "app.workers.moderacion",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -91,6 +93,19 @@ celery_app.conf.update(
             "task": "evaluaciones.barrer",
             "schedule": 60.0,
             "options": {"expires": 55},
+        },
+        # Una vacante sin riesgo sale al career site en menos de un minuto (ADR-022).
+        "moderacion-barrer": {
+            "task": "moderacion.barrer",
+            "schedule": 60.0,
+            "options": {"expires": 55},
+        },
+        # El resumen de la cola a hola@: la tarea decide si toca (cada N horas, o antes si
+        # hay una vacante oculta por reportes).
+        "moderacion-avisar": {
+            "task": "moderacion.avisar",
+            "schedule": 300.0,
+            "options": {"expires": 290},
         },
     },
 )
