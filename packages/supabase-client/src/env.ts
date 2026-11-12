@@ -40,6 +40,8 @@ const ALIASES: Record<string, readonly string[]> = {
     "VITE_SUPABASE_PUBLISHABLE_KEY",
   ],
   SUPABASE_SERVICE_ROLE_KEY: ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"],
+  // El JWT del rol `career_site` (migración 0017). Secreto: sin prefijo público.
+  SUPABASE_CAREER_SITE_KEY: ["SUPABASE_CAREER_SITE_KEY"],
 };
 
 export function getOptionalEnv(canonical: keyof typeof ALIASES): string | undefined {

@@ -7,7 +7,7 @@
 #   3. da de alta una empresa con el comando del hr-engine, y humo.py revisa el borde;
 #   4. corre contra el stack el e2e del plan gratis (`E2E_REMOTO=1 pnpm e2e:flujo`,
 #      packages/e2e): invitación, vacante, 7 aplicaciones con CV, el worker del stack,
-#      el gancho, el .zip y eliminar;
+#      el gancho, el .zip y eliminar; después humo.py prueba la clave del career site;
 #   5. respalda (scripts/respaldar.sh), borra la base y los CVs, restaura
 #      (scripts/restaurar.sh), comprueba que volvió todo y corre el e2e otra vez;
 #   6. muestra la memoria de cada servicio y lo baja todo, volúmenes incluidos.
@@ -132,6 +132,8 @@ compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 humo borde "$correo"
 log "e2e del plan gratis contra el stack"
 e2e
+log "la clave del career site (rol career_site, migración 0017)"
+humo career-site
 
 humo foto "$tmp/foto.json"
 log "respaldo"

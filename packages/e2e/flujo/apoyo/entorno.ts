@@ -1,4 +1,5 @@
 import { execSync } from "node:child_process";
+import { createHmac } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,6 +18,11 @@ export type Entorno = {
   supabaseUrl: string;
   clavePublica: string;
   claveSecreta: string;
+  /**
+   * Solo en local: el JWT del rol `career_site` (migración 0017) para el career site de
+   * `pnpm dev`. Contra un despliegue el career site ya trae la suya.
+   */
+  claveCareerSite: string | null;
   careerSite: string;
   panel: string;
   /** La cuenta que entra al panel en un despliegue. En local se crea una por corrida. */
@@ -59,6 +65,20 @@ function statusLocal(): Record<string, string> {
   return variables;
 }
 
+/**
+ * El JWT del rol `career_site`, firmado con el JWT_SECRET del Supabase local como lo
+ * firma `infra/vps/scripts/generar_secretos.py` en el servidor (HS256; role, iss, iat, exp).
+ */
+export function firmarCareerSite(secreto: string, ahora = Math.floor(Date.now() / 1000)): string {
+  const b64 = (texto: string) => Buffer.from(texto).toString("base64url");
+  const cabecera = b64(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const cuerpo = b64(
+    JSON.stringify({ role: "career_site", iss: "supabase", iat: ahora, exp: ahora + 3600 * 24 }),
+  );
+  const firma = createHmac("sha256", secreto).update(`${cabecera}.${cuerpo}`).digest("base64url");
+  return `${cabecera}.${cuerpo}.${firma}`;
+}
+
 let enMemoria: Entorno | null = null;
 
 export function entorno(): Entorno {
@@ -69,6 +89,7 @@ export function entorno(): Entorno {
       supabaseUrl: variable("E2E_SUPABASE_URL"),
       clavePublica: variable("E2E_SUPABASE_PUBLISHABLE_KEY"),
       claveSecreta: variable("E2E_SUPABASE_SECRET_KEY"),
+      claveCareerSite: null,
       careerSite: variable("E2E_CAREER_SITE_URL"),
       panel: variable("E2E_PANEL_URL"),
       correo: variable("E2E_CORREO"),
@@ -78,9 +99,14 @@ export function entorno(): Entorno {
     return enMemoria;
   }
   const s = statusLocal();
-  const falta = ["API_URL", "DB_URL", "MAILPIT_URL", "PUBLISHABLE_KEY", "SECRET_KEY"].filter(
-    (n) => !s[n],
-  );
+  const falta = [
+    "API_URL",
+    "DB_URL",
+    "MAILPIT_URL",
+    "PUBLISHABLE_KEY",
+    "SECRET_KEY",
+    "JWT_SECRET",
+  ].filter((n) => !s[n]);
   if (falta.length > 0) {
     throw new Error(`\`supabase status\` no trae ${falta.join(", ")}. ¿Cambió la CLI?`);
   }
@@ -89,6 +115,7 @@ export function entorno(): Entorno {
     supabaseUrl: s.API_URL as string,
     clavePublica: s.PUBLISHABLE_KEY as string,
     claveSecreta: s.SECRET_KEY as string,
+    claveCareerSite: firmarCareerSite(s.JWT_SECRET as string),
     // Los puertos de `pnpm dev`; el del panel es el `site_url` de infra/supabase/config.toml.
     careerSite: "http://localhost:3000",
     panel: "http://localhost:3001",

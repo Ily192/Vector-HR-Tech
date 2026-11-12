@@ -1,6 +1,7 @@
 """Lo que el e2e del plan gratis no ve del stack del VPS (pruebas/probar_en_local.sh).
 
     python humo.py <.env de prueba> borde
+    python humo.py <.env de prueba> career-site
     python humo.py <.env de prueba> foto <estado.json>
     python humo.py <.env de prueba> comparar <estado.json>
 
@@ -12,6 +13,10 @@
   - el panel es una SPA con caché larga en sus assets;
   - Auth usa las plantillas en español, que sirve Caddy (la del enlace mágico, en
     Mailpit).
+- `career-site`: la clave del career site (rol `career_site`, migración 0017) contra el
+  gateway y la Storage API de verdad: lee la vacante abierta y nada más, sube un CV, no
+  lista ni baja ninguno, y borra solo el que nombra en `x-cv-ruta`. Necesita una
+  vacante abierta: va después del e2e.
 - `foto` y `comparar`: lo que tiene que volver igual después de restaurar el respaldo.
   Son los conteos de empresas, cuentas, vacantes, aplicaciones y CVs, y un CV byte a
   byte.
@@ -138,6 +143,93 @@ def plantilla(correo: str) -> None:
     ok(False, f"llega el enlace mágico a {correo}")
 
 
+def career_site() -> None:
+    """Lo que puede y no puede la clave del career site (0017), por el gateway."""
+    clave = env["CAREER_SITE_KEY"]
+    # El gateway solo acepta la anon o la service_role como apikey; el rol va en el JWT.
+    suya = {"apikey": ANON, "Authorization": f"Bearer {clave}"}
+    r = http.get(f"{API}/rest/v1/vacantes", params={"select": "id"}, headers={"apikey": clave})
+    ok(r.status_code == 401, "el gateway no acepta la clave del career site como apikey")
+
+    # El e2e elimina su vacante al terminar: una abierta solo para esta prueba.
+    r = http.get(f"{API}/rest/v1/empresas", params={"select": "id", "limit": "1"}, headers=servicio)
+    ok(r.status_code == 200 and len(r.json()) == 1, "hay una empresa", r.text[:200])
+    slug = f"humo-career-site-{uuid.uuid4().hex[:8]}"
+    r = http.post(
+        f"{API}/rest/v1/vacantes",
+        headers={**servicio, "Prefer": "return=representation"},
+        json={
+            "empresa_id": r.json()[0]["id"],
+            "slug": slug,
+            "title": "Humo del career site",
+            "jd": "Vacante de la prueba de la clave del career site.",
+            "status": "open",
+        },
+    )
+    ok(r.status_code == 201, "una vacante abierta para la prueba", r.text[:200])
+    vacante = r.json()[0]
+    try:
+        _career_site_contra(suya, vacante)
+    finally:
+        http.patch(
+            f"{API}/rest/v1/vacantes",
+            params={"id": f"eq.{vacante['id']}"},
+            headers=servicio,
+            json={"status": "closed"},
+        )
+
+
+def _career_site_contra(suya: dict[str, str], vacante: dict) -> None:
+    r = http.get(
+        f"{API}/rest/v1/vacantes",
+        params={"select": "id,empresa_id", "slug": f"eq.{vacante['slug']}", "status": "eq.open"},
+        headers=suya,
+    )
+    ok(
+        r.status_code == 200
+        and r.json() == [{"id": vacante["id"], "empresa_id": vacante["empresa_id"]}],
+        "lee el id y la empresa de la vacante abierta",
+        r.text[:200],
+    )
+    empresa = vacante["empresa_id"]
+    for tabla, columnas in (("vacantes", "icp_text"), ("applications", "id"), ("empresas", "id")):
+        r = http.get(f"{API}/rest/v1/{tabla}", params={"select": columnas}, headers=suya)
+        ok(r.status_code in (401, 403), f"no lee {tabla}.{columnas}", r.status_code)
+
+    pdf = b"%PDF-1.4\n% humo del career site\n"
+    ruta = f"{empresa}/{uuid.uuid4()}.pdf"
+    subir = {**suya, "Content-Type": "application/pdf"}
+    r = http.post(f"{API}/storage/v1/object/cvs/{ruta}", headers=subir, content=pdf)
+    ok(r.status_code == 200, "sube un CV a la carpeta de la empresa", r.text[:200])
+    ajena = f"{uuid.uuid4()}/{uuid.uuid4()}.pdf"
+    r = http.post(f"{API}/storage/v1/object/cvs/{ajena}", headers=subir, content=pdf)
+    ok(r.status_code >= 400, "no a la carpeta de una empresa sin vacantes abiertas", r.status_code)
+    r = http.post(
+        f"{API}/storage/v1/object/list/cvs",
+        headers=suya,
+        json={"prefix": empresa, "limit": 100, "offset": 0},
+    )
+    ok(r.status_code == 200 and r.json() == [], "no lista los CVs", r.text[:200])
+    r = http.get(f"{API}/storage/v1/object/cvs/{ruta}", headers=suya)
+    ok(r.status_code >= 400, "no baja ni el que acaba de subir", r.status_code)
+
+    borrar = {"prefixes": [ruta]}
+    r = http.request("DELETE", f"{API}/storage/v1/object/cvs", headers=suya, json=borrar)
+    ok(r.status_code == 200 and r.json() == [], "sin x-cv-ruta no borra", r.text[:200])
+    r = http.get(f"{API}/storage/v1/object/cvs/{ruta}", headers=servicio)
+    ok(r.status_code == 200, "el CV sigue en el bucket", r.status_code)
+    r = http.request(
+        "DELETE", f"{API}/storage/v1/object/cvs", headers={**suya, "x-cv-ruta": ruta}, json=borrar
+    )
+    ok(
+        r.status_code == 200 and len(r.json()) == 1,
+        "con su ruta en x-cv-ruta lo borra",
+        r.text[:200],
+    )
+    r = http.get(f"{API}/storage/v1/object/cvs/{ruta}", headers=servicio)
+    ok(r.status_code >= 400, "y ya no está", r.status_code)
+
+
 def contar(tabla: str) -> int:
     r = http.get(
         f"{API}/rest/v1/{tabla}",
@@ -190,6 +282,8 @@ if __name__ == "__main__":
     if modo == "borde":
         borde()
         plantilla(sys.argv[3])
+    elif modo == "career-site":
+        career_site()
     elif modo == "foto":
         estado = foto()
         pathlib.Path(sys.argv[3]).write_text(json.dumps(estado))

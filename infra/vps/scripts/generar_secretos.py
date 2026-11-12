@@ -3,6 +3,7 @@
     python3 generar_secretos.py /opt/vortex/.env                 # crear o completar
     python3 generar_secretos.py --verificar /opt/vortex/.env     # ¿falta algo?
     python3 generar_secretos.py --clave-publica /opt/vortex/.env # ANON_KEY
+    python3 generar_secretos.py --clave-career-site /opt/vortex/.env | vercel env add …
 
 Parte de `infra/vps/.env.example`. Conserva todo valor que ya tenga el archivo, así que
 correrlo dos veces no cambia nada, y genera los que la plantilla deja vacíos en la
@@ -56,7 +57,14 @@ GENERADOS = {
     "HR_ENGINE_JWT_SECRET": _hex(32),
     "RESTIC_PASSWORD": _hex(32),
 }
-CLAVES = {"ANON_KEY": "anon", "SERVICE_ROLE_KEY": "service_role"}
+#: CAREER_SITE_KEY es la del career site en Vercel (rol `career_site`, migración 0017):
+#: secreta, pero sin la service_role. Sale por `--clave-career-site` hacia
+#: `vercel env add`, sin pasar por la pantalla.
+CLAVES = {
+    "ANON_KEY": "anon",
+    "SERVICE_ROLE_KEY": "service_role",
+    "CAREER_SITE_KEY": "career_site",
+}
 
 #: Lo que se llena a mano y sin lo cual el stack no sirve en producción.
 OBLIGATORIOS = (
@@ -191,17 +199,24 @@ def main() -> int:
     grupo = parser.add_mutually_exclusive_group()
     grupo.add_argument("--verificar", action="store_true", help="no escribe; falla si falta algo")
     grupo.add_argument("--clave-publica", action="store_true", help="imprime solo ANON_KEY")
+    grupo.add_argument(
+        "--clave-career-site",
+        action="store_true",
+        help="imprime solo CAREER_SITE_KEY, para pasarla con una tubería a `vercel env add`",
+    )
     parser.add_argument(
         "--local", action="store_true", help="para la prueba local: sin túnel, Resend ni R2"
     )
     args = parser.parse_args()
 
     actuales = leer(args.env)
-    if args.clave_publica:
-        if not actuales.get("ANON_KEY"):
-            print("todavía no hay ANON_KEY: corre primero sin opciones", file=sys.stderr)
+    if args.clave_publica or args.clave_career_site:
+        nombre = "ANON_KEY" if args.clave_publica else "CAREER_SITE_KEY"
+        if not actuales.get(nombre):
+            print(f"todavía no hay {nombre}: corre primero sin opciones", file=sys.stderr)
             return 1
-        print(actuales["ANON_KEY"])
+        # Sin salto de línea: `vercel env add` guarda lo que llega por la entrada tal cual.
+        print(actuales[nombre], end="" if args.clave_career_site else "\n")
         return 0
     if args.verificar:
         lista = problemas(actuales, produccion=not args.local)

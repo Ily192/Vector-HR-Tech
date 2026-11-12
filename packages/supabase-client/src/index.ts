@@ -1,4 +1,5 @@
 export { createBrowserClient } from "./browser";
+export { createCareerSiteClient, type OpcionesDelCareerSite } from "./career-site";
 export { createPublicClient } from "./public";
 export { createServerClient, type CookieAdapter } from "./server";
 export { createServiceRoleClient } from "./service-role";
