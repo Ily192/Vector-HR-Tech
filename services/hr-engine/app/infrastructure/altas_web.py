@@ -19,6 +19,7 @@ from limits.strategies import MovingWindowRateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.alta_web import SolicitudDeAltaWeb
+from app.domain.moderacion import AltaConfirmada
 from app.domain.puertos import (
     AltaPendiente,
     CodigoNoEnviadoError,
@@ -86,6 +87,25 @@ class SqlRepositorioDeAltasWeb:
         cuantas = await altas_web_repo.marcar_confirmadas(self._db)
         await self._db.commit()
         return cuantas
+
+    async def confirmadas_sin_marcar(self, limite: int) -> list[AltaConfirmada]:
+        """`RepositorioDeConfirmaciones` (ADR-022): lo que la insignia necesita."""
+        return [
+            AltaConfirmada(
+                alta_id=int(f.alta_id),
+                empresa_id=UUID(str(f.empresa_id)),
+                correo=f.correo,
+                publica_para=f.publica_para,
+                web=f.web_empresa,
+                linkedin=f.linkedin,
+                confirmado_en=f.confirmado,
+            )
+            for f in await altas_web_repo.confirmadas_sin_marcar(self._db, limite)
+        ]
+
+    async def marcar_confirmada(self, alta_id: int, confirmado_en: datetime) -> None:
+        await altas_web_repo.marcar_confirmada(self._db, alta_id=alta_id, confirmado=confirmado_en)
+        await self._db.commit()
 
     async def pendientes_desde(self, antes_de: datetime) -> list[AltaPendiente]:
         filas = await altas_web_repo.pendientes_desde(self._db, antes_de)

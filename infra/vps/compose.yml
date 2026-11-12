@@ -63,6 +63,17 @@ x-hr-engine: &hr-engine
     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     IA_PRESUPUESTO_MENSUAL_USD: ${IA_PRESUPUESTO_MENSUAL_USD:-25}
     SENTRY_DSN_BACKEND: ${SENTRY_DSN_BACKEND:-}
+    # La moderación de vacantes (ADR-022): firma los enlaces de la cola de revisión, que
+    # abren /moderacion/* en api., y manda el resumen a hola@ por el SMTP de Auth.
+    MODERACION_SECRETO: ${MODERACION_SECRETO:?}
+    API_PUBLICA_URL: *url-api
+    MODERACION_CORREO: ${MODERACION_CORREO:-hola@vectorhrtech.com}
+    SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+    SMTP_PORT: ${SMTP_PORT:-2587}
+    SMTP_USER: ${SMTP_USER:-resend}
+    SMTP_PASS: ${SMTP_PASS:-}
+    SMTP_REMITENTE: ${SMTP_ADMIN_EMAIL:?}
+    SMTP_NOMBRE: ${SMTP_SENDER_NAME:?}
 
 services:
   # ─── Supabase ────────────────────────────────────────────────────────────
@@ -324,8 +335,9 @@ services:
   hr-engine-api:
     <<: *hr-engine
     mem_limit: 192m
-    # Sin tráfico público: solo /ready, que Caddy expone como /salud/hr-engine. Un worker
-    # de uvicorn basta (en Fly eran dos).
+    # Poco tráfico público: /ready, que Caddy expone como /salud/hr-engine, y la página
+    # de revisión de la moderación (/moderacion/*, ADR-022). Un worker de uvicorn basta
+    # (en Fly eran dos).
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
   hr-engine-worker:

@@ -9,7 +9,8 @@
 #   4. corre contra el stack el e2e del plan gratis (`E2E_REMOTO=1 pnpm e2e:flujo`,
 #      packages/e2e): invitación, vacante, 7 aplicaciones con CV, el worker del stack,
 #      el gancho, el .zip y eliminar; y el alta desde la web con el código de Mailpit.
-#      Después humo.py prueba la clave del career site;
+#      Después humo.py prueba la clave del career site y la moderación (ADR-022): la
+#      policy de cvs de 0019, el resumen de la cola en Mailpit y la página de revisión;
 #   5. respalda (scripts/respaldar.sh), borra la base y los CVs, restaura
 #      (scripts/restaurar.sh), comprueba que volvió todo y corre el e2e otra vez;
 #   6. muestra la memoria de cada servicio y lo baja todo, volúmenes incluidos.
@@ -139,6 +140,9 @@ e2e() {
 correo="rh-$(date +%s)@andes.test"
 compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 	--empresa "Andes Logística" --correo "$correo" --nombre "Mariana Ruiz" --tamano 35
+# La insignia a mano, como la da Vector HR tras revisar la empresa (ADR-022): sin ella la
+# primera vacante del e2e esperaría una revisión humana en vez de publicarse sola.
+compose exec -T hr-engine-api python -m app.cli.moderacion verificar --correo "$correo" --forzar
 humo borde "$correo"
 log "el alta desde la web: secreto, datos y tope"
 humo alta
@@ -146,6 +150,19 @@ log "e2e del plan gratis contra el stack"
 e2e
 log "la clave del career site (rol career_site, migración 0017)"
 humo career-site
+log "la moderación (ADR-022): la policy de cvs, la cola a hola@ y la página de revisión"
+politica=$(compose exec -T db psql -U supabase_admin -d postgres -tAc \
+	"select with_check from pg_policies where schemaname = 'storage'
+	   and tablename = 'objects' and policyname = 'cvs_career_site_subir'")
+if [[ $politica != *moderacion* ]]; then
+	echo "✗ cvs_career_site_subir no mira la moderación: ${politica:-no existe}" >&2
+	exit 1
+fi
+echo "✓ cvs_career_site_subir (0019) solo deja subir CVs a vacantes publicadas"
+humo moderacion-preparar "$tmp/moderacion.json"
+compose exec -T hr-engine-worker python -c \
+	"from app.workers.moderacion import avisar; print('vacantes avisadas:', avisar())"
+humo moderacion-correo "$tmp/moderacion.json"
 
 humo foto "$tmp/foto.json"
 log "respaldo"

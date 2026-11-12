@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import alta, cv_evaluator, health, sourcer
+from app.api import alta, cv_evaluator, health, moderacion, sourcer
 from app.api.rate_limit import limiter
 from app.config import settings
 from app.monitoring import (
@@ -183,5 +183,7 @@ app.include_router(health.router)
 app.include_router(alta.router, tags=["alta"])
 app.include_router(sourcer.router, prefix="/api/sourcer", tags=["sourcer"])
 app.include_router(cv_evaluator.router, prefix="/api/cv-evaluator", tags=["cv-evaluator"])
+# La página de revisión de la cola de moderación (ADR-022); Caddy publica /moderacion/*.
+app.include_router(moderacion.router)
 
 instrument_fastapi(app)

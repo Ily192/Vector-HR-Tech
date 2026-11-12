@@ -149,6 +149,36 @@ class Settings(BaseSettings):
     alta_limite_por_ip: str = "5/hour"
     alta_limite_por_correo: str = "3/hour"
 
+    # ─── Moderación de vacantes (ADR-022) ────────────────
+    # Vacantes 'pendiente' por barrido (cada minuto).
+    moderacion_lote: int = Field(default=50, ge=1, le=500)
+    # Firma los enlaces de la cola de revisión. Sin él no se manda el resumen.
+    moderacion_secreto: str = ""
+    # Base pública del hr-engine para esos enlaces (https://DOMINIO_API).
+    api_publica_url: str = "http://localhost:8000"
+    # A quién va el resumen de la cola, cada cuántas horas como mucho y el tope en 24 h:
+    # Resend gratis da 100 correos al día y los comparte con los códigos de Auth.
+    moderacion_correo: str = "hola@vectorhrtech.com"
+    moderacion_horas_entre_resumenes: float = Field(default=6.0, gt=0)
+    moderacion_max_resumenes_24h: int = Field(default=6, ge=1, le=50)
+
+    # ─── SMTP (el mismo de Auth: Resend) ─────────────────
+    # Vacío = no se manda correo (desarrollo).
+    smtp_host: str = ""
+    smtp_port: int = 2587
+    smtp_user: str = ""
+    smtp_pass: str = ""
+    smtp_remitente: str = Field(
+        default="",
+        validation_alias=AliasChoices("SMTP_REMITENTE", "SMTP_ADMIN_EMAIL"),
+    )
+    smtp_nombre: str = Field(
+        default="Vector HR Tech",
+        validation_alias=AliasChoices("SMTP_NOMBRE", "SMTP_SENDER_NAME"),
+    )
+    # Resend pide STARTTLS en 2587; Mailpit (prueba local) no lo tiene.
+    smtp_starttls: bool = True
+
     # ─── Control plane ───────────────────────────────────
     paperclip_url: str = "http://localhost:4000"
     paperclip_api_key: str = ""

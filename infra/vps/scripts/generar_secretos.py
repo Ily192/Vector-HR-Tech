@@ -58,6 +58,8 @@ GENERADOS = {
     "HR_ENGINE_JWT_SECRET": _hex(32),
     # El alta desde la web (POST /alta/plan-gratis): lo comparten la web y el hr-engine.
     "ALTA_SECRETO": _hex(32),
+    # Los enlaces firmados de la cola de revisión de vacantes (ADR-022).
+    "MODERACION_SECRETO": _hex(32),
     "RESTIC_PASSWORD": _hex(32),
 }
 #: CAREER_SITE_KEY es la del career site en Vercel (rol `career_site`, migración 0017):

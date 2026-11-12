@@ -15,6 +15,12 @@ x-cors-de-prueba: &cors-de-prueba
   # El hr-engine en producción rechaza CORS con localhost (app/config.py). Nadie lo llama
   # desde el navegador, así que en la prueba basta un origen cualquiera.
   CORS_ALLOW_ORIGINS: https://panel.prueba-local.invalid
+  # El resumen de la cola de moderación (ADR-022) va a Mailpit, como los correos de Auth.
+  SMTP_HOST: mailpit
+  SMTP_PORT: 1025
+  SMTP_USER: ""
+  SMTP_PASS: ""
+  SMTP_STARTTLS: "false"
 
 services:
   hr-engine-api:

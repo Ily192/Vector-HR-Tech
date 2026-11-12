@@ -42,6 +42,19 @@ export function darDeAlta(empresa: string, correo: string, nombre: string): Prom
 }
 
 /**
+ * Vector HR le da la insignia de empresa verificada a mano (ADR-022): así su primera
+ * vacante se publica sola en vez de esperar una revisión humana.
+ */
+export function verificarEmpresa(correo: string): Promise<string> {
+  return enElHrEngine("-m", "app.cli.moderacion", "verificar", "--correo", correo, "--forzar");
+}
+
+/** Un barrido de la moderación de vacantes, el que Celery beat lanza cada minuto. */
+export function moderar(): Promise<string> {
+  return enElHrEngine("-m", "app.cli.moderacion", "barrer");
+}
+
+/**
  * Un barrido del worker de coincidencias: la misma tarea que Celery beat lanza cada
  * minuto, llamada en el proceso para no esperar al reloj.
  */

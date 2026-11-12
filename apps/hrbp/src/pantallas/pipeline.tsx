@@ -20,6 +20,7 @@ import type {
 } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
+import { AvisoDeModeracion, sinAplicaciones } from "./moderacion";
 
 /** Cuántos aplicados se listan antes de "Ver todos". */
 const APLICADOS_VISIBLES = 8;
@@ -415,6 +416,7 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
           )
         }
       />
+      <AvisoDeModeracion moderacion={vacante.moderacion} motivos={vacante.motivos} />
       <p aria-live="polite" className="text-sm text-mist-600 empty:hidden">
         {descarga.isError
           ? "No pudimos armar el .zip. Inténtalo de nuevo."
@@ -436,9 +438,7 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
             <span className="text-[13.5px] text-mist-600">Más recientes primero</span>
           </div>
           {aplicados.length === 0 ? (
-            <p className="py-6 text-sm text-mist-600">
-              Todavía no hay aplicaciones. La vacante ya está en el career site.
-            </p>
+            <p className="py-6 text-sm text-mist-600">{sinAplicaciones(vacante.moderacion)}</p>
           ) : (
             <table className="mt-2 w-full border-collapse text-[14.5px]">
               <thead>

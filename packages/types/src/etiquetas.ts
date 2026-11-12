@@ -5,7 +5,14 @@
  * nunca los pinta crudos. Tenerlos aquí evita que cada app traduzca a su manera
  * (y que un enum nuevo se quede sin texto: el tipo `Record` obliga a cubrirlos).
  */
-import type { ApplicationStatus, Modality, Seniority, SiguientePaso, VacanteStatus } from "./hr";
+import type {
+  ApplicationStatus,
+  Modality,
+  Moderacion,
+  Seniority,
+  SiguientePaso,
+  VacanteStatus,
+} from "./hr";
 
 export const ETIQUETA_ESTADO_VACANTE: Record<VacanteStatus, string> = {
   draft: "Borrador",
@@ -13,6 +20,15 @@ export const ETIQUETA_ESTADO_VACANTE: Record<VacanteStatus, string> = {
   paused: "En pausa",
   closed: "Cerrada",
   filled: "Cubierta",
+};
+
+/** Cómo ve la empresa la moderación de su vacante (0019, ADR-022). */
+export const ETIQUETA_MODERACION: Record<Moderacion, string> = {
+  pendiente: "Revisando",
+  publicada: "Publicada",
+  en_revision: "En revisión",
+  rechazada: "Rechazada",
+  oculta: "Oculta por reportes",
 };
 
 export const ETIQUETA_ESTADO_APLICACION: Record<ApplicationStatus, string> = {

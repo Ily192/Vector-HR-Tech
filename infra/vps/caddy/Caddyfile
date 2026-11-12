@@ -21,9 +21,14 @@
 }
 
 (comunes) {
+	# Con `-Server` estas operaciones van diferidas, al enviar la respuesta: sin el `?`,
+	# Referrer-Policy pisaba la del upstream. Con `?` es un valor por defecto, "only
+	# written if it doesn't yet exist" (caddyserver.com/docs/caddyfile/directives/header):
+	# la página de revisión de la moderación (ADR-022) manda no-referrer, porque su token
+	# va en la URL, y se respeta.
 	header {
 		X-Content-Type-Options nosniff
-		Referrer-Policy strict-origin-when-cross-origin
+		?Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
 }
@@ -42,6 +47,14 @@ http://{$DOMINIO_API} {
 	# El alta desde vectorhrtech.com/publicar-vacantes (ADR-017, 2026-11-12): la llama el
 	# servidor de la web con su secreto. Un registro es un JSON corto.
 	handle /alta/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy hr-engine-api:8000
+	}
+	# La revisión de la cola de moderación de vacantes (ADR-022): los enlaces firmados
+	# que llegan a hola@. El formulario es un token, una acción y un motivo corto.
+	handle /moderacion/* {
 		request_body {
 			max_size 16KB
 		}

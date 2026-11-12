@@ -14,6 +14,7 @@ import {
 import type { BorradorDeVacante, MotivoDeRechazo } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace, navegar } from "../navegacion/ruta";
+import { AvisoDeReclutador } from "./moderacion";
 
 const MODALIDADES = Object.keys(ETIQUETA_MODALIDAD) as Modality[];
 const NIVELES = Object.keys(ETIQUETA_SENIORITY) as Seniority[];
@@ -378,6 +379,7 @@ export function CrearEmpleo() {
         }
         titulo={titulo}
       />
+      {sesion?.publicaParaClientes && <AvisoDeReclutador />}
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <form
           onSubmit={alPublicar}

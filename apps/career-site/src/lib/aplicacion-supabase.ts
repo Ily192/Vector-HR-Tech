@@ -26,7 +26,7 @@ const VERIFICAR_TURNSTILE = "https://challenges.cloudflare.com/turnstile/v0/site
  * Sin `TURNSTILE_SECRET_KEY` no se verifica: queda el campo trampa, y el despliegue
  * tiene que configurarlo antes de abrir el formulario (runbook).
  */
-async function verificarHumano(token: string | null, ip: string | null): Promise<boolean> {
+export async function verificarHumano(token: string | null, ip: string | null): Promise<boolean> {
   const secreto = process.env.TURNSTILE_SECRET_KEY;
   if (!secreto) {
     console.warn(

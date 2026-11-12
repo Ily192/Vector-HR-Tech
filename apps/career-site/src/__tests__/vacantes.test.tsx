@@ -120,6 +120,20 @@ describe("career-site · /vacantes/[slug]", () => {
     expect(screen.getByText("Salario a convenir")).toBeInTheDocument();
   });
 
+  it("la empresa verificada lleva su insignia y todas el aviso de que no se cobra", async () => {
+    render(await detalle("coordinador-de-almacen"));
+    expect(screen.getByText("Empresa verificada")).toBeInTheDocument();
+    expect(
+      screen.getByText("Vector HR nunca te pedirá dinero para postularte."),
+    ).toBeInTheDocument();
+  });
+
+  it("sin verificar no lleva insignia; sin Supabase no ofrece reportar", async () => {
+    render(await detalle("senior-software-engineer"));
+    expect(screen.queryByText("Empresa verificada")).toBeNull();
+    expect(screen.queryByRole("form", { name: "Reportar la vacante" })).toBeNull();
+  });
+
   it("titula la pestaña con puesto y empresa", async () => {
     expect(await generateMetadata({ params: Promise.resolve({ slug: "data-analyst" }) })).toEqual({
       title: "Data Analyst · Grupo Cobalto",

@@ -9,6 +9,8 @@
 import type {
   ApplicationStatus,
   Modality,
+  Moderacion,
+  MotivoDeModeracion,
   Seniority,
   SiguientePaso,
   VacanteStatus,
@@ -23,6 +25,8 @@ export interface SesionEmpresa {
   /** Nombre del plan tal como se muestra, p. ej. "Career site · gratis". */
   plan: string;
   modulos: readonly Modulo[];
+  /** Reclutador(a) independiente: Vector HR revisa cada vacante antes de publicarla (ADR-022). */
+  publicaParaClientes: boolean;
 }
 
 /**
@@ -51,6 +55,10 @@ export interface VacanteDeLaEmpresa {
   aplicaciones: number;
   /** La vacante llegó al máximo de aplicaciones y dejó de recibirlas. */
   cupoCompleto: boolean;
+  /** Si ya está en el career site o qué le falta (0019, ADR-022). La decide el hr-engine. */
+  moderacion: Moderacion;
+  /** Por qué quedó en revisión, rechazada u oculta, con qué corregir. */
+  motivos: MotivoDeModeracion[];
 }
 
 export interface MisVacantes {
@@ -150,7 +158,10 @@ export interface EtapaVisible {
 }
 
 export interface PipelineDeVacante {
-  vacante: Pick<VacanteDeLaEmpresa, "id" | "titulo" | "publicadaEn" | "aplicaciones">;
+  vacante: Pick<
+    VacanteDeLaEmpresa,
+    "id" | "titulo" | "publicadaEn" | "aplicaciones" | "moderacion" | "motivos"
+  >;
   maxAplicaciones: number | null;
   etapas: EtapaVisible[];
   /** Los más recientes primero. */
