@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { montarPanel } from "../test/montar";
 
-const encabezado = () => screen.findByRole("heading", { level: 1 });
+// El primer render del archivo arranca en frío: en la CI llegó a tardar 1,2 s, más que
+// el segundo que espera findBy por defecto.
+const encabezado = () => screen.findByRole("heading", { level: 1 }, { timeout: 5_000 });
 
 describe("panel de empresa · plan gratis (ADR-017)", () => {
   it("entra a Mis vacantes con el cupo del plan y solo el módulo Career site", async () => {
