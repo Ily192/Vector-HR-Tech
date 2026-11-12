@@ -1,0 +1,452 @@
+# Set sintético del verificador de vacantes (PR 3). Vacantes inventadas de México y
+# Venezuela: ninguna empresa, persona, teléfono ni cuenta es real. Los números son de
+# relleno (55 0000 0000) y los usuarios de mensajería, de ejemplo.
+#
+# esperado:
+#   bajo  - oferta normal. Comisiones, trabajo remoto, pago por pieza o un WhatsApp
+#           junto a datos de la empresa NO son fraude por sí solos.
+#   medio - señales sin cobro: contacto solo por mensajería, enlace acortado, sueldo
+#           irreal con "sin experiencia" y "desde casa", "sé tu propio jefe" sin empresa.
+#   alto  - estafa o peligro: cobra al candidato, pide datos bancarios o documentos
+#           antes de entrevistar, inversión o multinivel con pago, mula de dinero,
+#           actividad ilegal, trata, suplantación de marca, tareas pagadas.
+# senal: lo que debería ver el verificador (para leer los fallos, no se puntúa).
+
+casos:
+  # ─── Legítimas (22) ──────────────────────────────────────────────────────
+  - id: leg-ventas-b2b-comision
+    pais: mx
+    esperado: bajo
+    senal: comisiones con sueldo base y prestaciones
+    titulo: Ejecutivo(a) de ventas B2B
+    descripcion: |
+      Distribuidora Industrial Norteña busca ejecutivo(a) de ventas para atender cuentas
+      de clientes industriales en Monterrey y su área metropolitana.
+      Ofrecemos: sueldo base de $12,000 MXN mensuales más comisiones de hasta 8% sobre
+      venta cobrada, prestaciones de ley, seguro de gastos médicos menores y auto
+      utilitario para visitas. Requisitos: 2 años de experiencia en venta consultiva,
+      licencia de manejo vigente y manejo de CRM. Envía tu CV por este medio; las
+      entrevistas son presenciales en nuestras oficinas de Apodaca.
+
+  - id: leg-call-center-bilingue
+    pais: mx
+    esperado: bajo
+    senal: call center con sueldo y capacitación pagada
+    titulo: Agente de atención telefónica bilingüe
+    descripcion: |
+      Centro de contacto en Zapopan contrata agentes con inglés conversacional (B2) para
+      soporte a clientes de una aerolínea. Sueldo de $14,500 MXN mensuales más bono de
+      productividad de hasta $2,000. Capacitación de 3 semanas pagada desde el primer
+      día. Turnos de 9 horas con dos días de descanso. Contratación directa, IMSS e
+      Infonavit. Aplica por esta plataforma y agenda tu evaluación de inglés en nuestro
+      edificio de Av. Vallarta.
+
+  - id: leg-repartidor-moto-propia
+    pais: ve
+    esperado: bajo
+    senal: pide moto propia pero paga por entrega y reconoce gasolina
+    titulo: Repartidor motorizado con moto propia
+    descripcion: |
+      Farmacias Del Ávila busca repartidores motorizados para la zona este de Caracas.
+      Debes tener moto propia en buen estado, licencia de quinto grado y certificado
+      médico vigente. Pagamos 3 USD por entrega dentro de la zona más bono semanal por
+      puntualidad, y reconocemos 10 USD semanales de gasolina. Horario de 8:00 a 17:00
+      de lunes a sábado. Las entrevistas son en nuestra sede de Los Ruices.
+
+  - id: leg-pasantia-academica
+    pais: ve
+    esperado: bajo
+    senal: pasantía curricular sin pago, con convenio universitario
+    titulo: Pasantía académica en contabilidad (requisito de grado)
+    descripcion: |
+      Firma de auditoría en Mérida recibe estudiantes de último año de Contaduría
+      Pública para pasantías curriculares de 12 semanas, dentro del convenio con la
+      universidad. La pasantía no es remunerada, como establece el reglamento
+      académico, e incluye tutor empresarial, constancia y evaluación para la
+      universidad. Se requiere carta de postulación de la escuela.
+
+  - id: leg-backend-remoto
+    pais: mx
+    esperado: bajo
+    senal: trabajo remoto real con proceso técnico
+    titulo: Desarrollador(a) backend Python, remoto
+    descripcion: |
+      Startup de logística con oficinas en CDMX busca desarrollador(a) backend con 3+
+      años en Python y FastAPI. Trabajo 100% remoto dentro de México, contrato por
+      tiempo indeterminado, sueldo de $55,000 a $70,000 MXN brutos según experiencia.
+      Proceso: entrevista con RH, prueba técnica pagada de 4 horas y entrevista con el
+      equipo por videollamada. Te damos laptop y apoyo de internet.
+
+  - id: leg-asistente-administrativa
+    pais: ve
+    esperado: bajo
+    senal: oferta administrativa estándar
+    titulo: Asistente administrativa
+    descripcion: |
+      Distribuidora de alimentos en Valencia (zona industrial Castillito) solicita
+      asistente administrativa para facturación y archivo. Experiencia mínima de 1
+      año, manejo de Excel y del sistema Profit. Sueldo de 280 USD mensuales más bono
+      de alimentación, horario de lunes a viernes de 8:00 a 17:00.
+
+  - id: leg-almacen-turno-rotativo
+    pais: mx
+    esperado: bajo
+    senal: puesto operativo con prestaciones
+    titulo: Auxiliar de almacén, turno rotativo
+    descripcion: |
+      Centro de distribución en Santa Catarina, N.L., contrata auxiliares de almacén
+      para surtido y carga. Turnos rotativos semanales, sueldo semanal de $2,900 MXN,
+      vales de despensa, comedor subsidiado y transporte de personal. Secundaria
+      terminada. Contratación directa con IMSS desde el primer día.
+
+  - id: leg-vendedor-piso-comision
+    pais: mx
+    esperado: bajo
+    senal: comisión por ventas en tienda física
+    titulo: Vendedor(a) de piso, línea blanca
+    descripcion: |
+      Tienda departamental en Puebla busca vendedores de piso para el departamento de
+      línea blanca. Sueldo base de $8,500 MXN más comisiones por venta (en promedio
+      $4,000 adicionales al mes), descuento de empleado y prestaciones superiores a la
+      ley. Horario mixto con un día de descanso entre semana.
+
+  - id: leg-cajero-farmacia
+    pais: ve
+    esperado: bajo
+    senal: puesto de tienda estándar
+    titulo: Cajero(a) de farmacia
+    descripcion: |
+      Cadena de farmacias en Maracaibo solicita cajeros(as) para sus sucursales de
+      Av. 5 de Julio y Bella Vista. Bachiller, experiencia en caja, buen trato con el
+      público. Pago de 220 USD mensuales más bonos de productividad. Horario por
+      turnos. Postúlate por esta vía o entrega tu CV en recursos humanos de la sede
+      principal.
+
+  - id: leg-atencion-home-office
+    pais: mx
+    esperado: bajo
+    senal: home office legítimo con equipo propio y sueldo realista
+    titulo: Representante de atención a clientes, home office
+    descripcion: |
+      Empresa de telecomunicaciones contrata representantes de atención por chat para
+      trabajar desde casa. Necesitas computadora propia, internet de al menos 20 Mbps y
+      un espacio silencioso. Sueldo de $11,000 MXN mensuales, prestaciones de ley y
+      capacitación remota pagada de dos semanas. Horario de 8 horas en turno matutino
+      o vespertino. Proceso: entrevista por videollamada con RH y prueba de redacción.
+
+  - id: leg-asesor-seguros
+    pais: mx
+    esperado: bajo
+    senal: venta de seguros con base, capacitación y cédula, sin cobro
+    titulo: Asesor(a) de seguros de vida
+    descripcion: |
+      Promotoría de una aseguradora en Querétaro busca asesores(as) de seguros de vida.
+      Ofrecemos beca económica de $9,000 MXN mensuales los primeros 12 meses, más
+      comisiones, y te acompañamos a obtener la cédula ante la CNSF (el trámite lo paga
+      la promotoría). Licenciatura terminada o trunca. Entrevista en nuestras oficinas
+      del centro.
+
+  - id: leg-chofer-vehiculo-empresa
+    pais: ve
+    esperado: bajo
+    senal: chofer con vehículo de la empresa
+    titulo: Chofer para empresa de mensajería
+    descripcion: |
+      Empresa de encomiendas en Barquisimeto contrata chofer con licencia de cuarto
+      grado para ruta Lara–Portuguesa. El vehículo, el combustible y los viáticos los
+      cubre la empresa. Pago de 300 USD mensuales más viáticos por ruta. Se requiere
+      experiencia comprobable de 2 años.
+
+  - id: leg-enfermera-nocturno
+    pais: mx
+    esperado: bajo
+    senal: puesto clínico estándar
+    titulo: Enfermera(o) general, turno nocturno
+    descripcion: |
+      Hospital privado en Mérida, Yucatán, solicita enfermeras(os) generales con
+      cédula profesional para turno nocturno (12x24). Sueldo de $16,800 MXN mensuales,
+      prestaciones superiores a la ley, uniformes y comedor. Experiencia mínima de 1
+      año en hospitalización.
+
+  - id: leg-contador-junior
+    pais: ve
+    esperado: bajo
+    senal: puesto profesional estándar
+    titulo: Contador(a) junior
+    descripcion: |
+      Despacho contable en Chacao, Caracas, busca contador(a) junior para declaraciones
+      de IVA e ISLR y conciliaciones bancarias. Licenciado(a) en Contaduría, manejo de
+      Excel avanzado y deseable Galac. Sueldo de 450 USD mensuales más beneficios.
+      Modalidad híbrida: tres días en oficina.
+
+  - id: leg-disenador-freelance
+    pais: mx
+    esperado: bajo
+    senal: freelance por proyecto con contrato de servicios
+    titulo: Diseñador(a) gráfico freelance por proyecto
+    descripcion: |
+      Agencia de publicidad en Guadalajara busca diseñadores(as) freelance para
+      campañas de redes sociales. Pago por proyecto ($3,000 a $8,000 MXN según
+      alcance), contrato de prestación de servicios y facturación por honorarios.
+      Envía tu portafolio; hacemos una entrevista por videollamada antes de asignar el
+      primer proyecto.
+
+  - id: leg-cocinero-cancun
+    pais: mx
+    esperado: bajo
+    senal: hotelería con propinas
+    titulo: Cocinero(a) de línea
+    descripcion: |
+      Restaurante de mariscos en la zona hotelera de Cancún busca cocineros de línea
+      con 2 años de experiencia. Sueldo de $10,500 MXN mensuales más propinas
+      repartidas, alimentos en turno y transporte de regreso en turno nocturno.
+      Entrevista y prueba de cocina en el restaurante.
+
+  - id: leg-profesor-ingles-online
+    pais: ve
+    esperado: bajo
+    senal: remoto con pago por hora razonable
+    titulo: Profesor(a) de inglés en línea
+    descripcion: |
+      Academia de idiomas en línea busca profesores(as) de inglés con nivel C1 y
+      experiencia dando clases. Pago de 6 USD por hora de clase, horarios flexibles
+      con mínimo 15 horas semanales. Las clases se dan en nuestra plataforma; la
+      selección incluye una clase de prueba de 20 minutos con nuestra coordinadora
+      académica.
+
+  - id: leg-tecnico-mantenimiento
+    pais: mx
+    esperado: bajo
+    senal: técnico industrial estándar
+    titulo: Técnico(a) de mantenimiento industrial
+    descripcion: |
+      Planta de autopartes en Silao, Guanajuato, contrata técnicos de mantenimiento
+      eléctrico y mecánico. Sueldo de $15,000 MXN mensuales, bono de puntualidad,
+      fondo de ahorro y transporte. Técnico o ingeniería trunca, lectura de diagramas
+      y PLC básico.
+
+  - id: leg-reclutador-junior
+    pais: mx
+    esperado: bajo
+    senal: comisión por colocación con base fija
+    titulo: Reclutador(a) junior
+    descripcion: |
+      Consultora de selección en CDMX busca reclutador(a) junior para perfiles
+      operativos. Sueldo base de $13,000 MXN más bono por colocación cerrada, IMSS y
+      capacitación. Experiencia de 6 meses en reclutamiento o recién egresado(a) de
+      Psicología o Administración.
+
+  - id: leg-celulares-whatsapp-y-tienda
+    pais: ve
+    esperado: bajo
+    senal: WhatsApp junto a tienda física y datos verificables
+    titulo: Vendedor(a) de tienda de celulares
+    descripcion: |
+      Tienda de celulares y accesorios en el C.C. Sambil de Barquisimeto busca
+      vendedor(a) con experiencia en ventas. Pago de 200 USD mensuales más comisión
+      por equipo vendido. Puedes escribirnos por WhatsApp al 0414-000-0000 para
+      agendar la entrevista o dejar tu CV directamente en el local 2-45 de lunes a
+      sábado.
+
+  - id: leg-encuestador-pago-por-pieza
+    pais: mx
+    esperado: bajo
+    senal: pago por pieza legítimo de empresa de investigación
+    titulo: Encuestador(a) de campo, temporal
+    descripcion: |
+      Empresa de investigación de mercados busca encuestadores(as) para un estudio de
+      6 semanas en Toluca. Pago de $45 MXN por encuesta completa y validada (en
+      promedio 15 a 20 al día), viáticos de transporte y capacitación de un día en
+      nuestras oficinas. Te damos tableta y credencial.
+
+  - id: leg-ayudante-construccion
+    pais: mx
+    esperado: bajo
+    senal: pago semanal en obra, legítimo
+    titulo: Ayudante general de construcción
+    descripcion: |
+      Constructora en Mérida, Yucatán, contrata ayudantes generales para obra de
+      vivienda. Pago semanal de $2,600 MXN, alta en IMSS, equipo de protección
+      personal y comida en obra. Presentarse con identificación en la oficina de obra
+      de lunes a viernes de 8:00 a 10:00.
+
+  # ─── Sospechosas (18) ────────────────────────────────────────────────────
+  - id: sos-kit-de-inicio
+    pais: mx
+    esperado: alto
+    senal: cobro por kit de inicio (multinivel)
+    titulo: Asesor(a) de bienestar, ingresos ilimitados
+    descripcion: |
+      Únete a nuestra red de asesores de bienestar. Trabaja a tu ritmo y genera
+      ingresos ilimitados recomendando nuestros suplementos. Para iniciar solo debes
+      adquirir tu kit de inicio de $1,500 MXN, que incluye productos y tu membresía.
+      Mientras más personas invites, más ganas.
+
+  - id: sos-deposito-capacitacion
+    pais: mx
+    esperado: alto
+    senal: depósito para apartar lugar
+    titulo: Auxiliar administrativo, contratación inmediata
+    descripcion: |
+      Contratación inmediata para auxiliar administrativo, sueldo de $14,000 MXN.
+      Para apartar tu lugar en la capacitación es necesario un depósito de $500 MXN a
+      la cuenta que te enviaremos, que se te reembolsa en tu primera quincena. Cupo
+      limitado.
+
+  - id: sos-datos-bancarios-antes
+    pais: mx
+    esperado: alto
+    senal: datos bancarios e identificación antes de la entrevista
+    titulo: Capturista de datos
+    descripcion: |
+      Se solicita capturista de datos. Para darte de alta en nómina antes de la
+      entrevista, envía foto de tu INE por ambos lados, tu CLABE interbancaria y una
+      captura de tu estado de cuenta al correo de reclutamiento. Una vez dado de alta
+      te contactamos para la entrevista.
+
+  - id: sos-cripto-inversion
+    pais: ve
+    esperado: alto
+    senal: inversión en cripto con promesa de duplicar
+    titulo: Gana desde casa con trading
+    descripcion: |
+      Trabaja desde casa con nuestro sistema automático de trading en criptomonedas.
+      Con una inversión inicial de 100 USD en USDT duplicas tu dinero en 15 días.
+      Te enseñamos todo, no necesitas experiencia. Cupos limitados esta semana.
+
+  - id: sos-suplantacion-marca
+    pais: mx
+    esperado: alto
+    senal: suplanta a una marca conocida, cobra activación y usa enlace acortado
+    titulo: Amazon México contrata evaluadores de productos
+    descripcion: |
+      Amazon México contrata personal desde casa para evaluar productos: $3,000 MXN
+      diarios. Regístrate en bit.ly/evalua-amz-mx y paga $299 de activación de tu
+      cuenta de evaluador. Pagos diarios por transferencia.
+
+  - id: sos-paquetes-frontera
+    pais: mx
+    esperado: alto
+    senal: actividad ilegal disfrazada (traslado de paquetes sin saber contenido)
+    titulo: Chofer de logística, pago alto por viaje
+    descripcion: |
+      Se buscan jóvenes con auto propio para logística: llevar paquetes a la frontera
+      norte, $15,000 MXN por viaje. No es necesario saber qué llevas, solo ser
+      discreto y no hacer preguntas. Interesados mandar mensaje directo.
+
+  - id: sos-mula-de-dinero
+    pais: ve
+    esperado: alto
+    senal: mula de dinero (recibir y reenviar transferencias)
+    titulo: Asistente financiero remoto
+    descripcion: |
+      Empresa internacional busca asistente financiero remoto. Tu trabajo será recibir
+      transferencias de clientes en tu cuenta bancaria personal y reenviarlas a las
+      cuentas que te indiquemos. Te quedas con el 10% de cada operación. Solo
+      necesitas una cuenta bancaria activa y discreción.
+
+  - id: sos-ensobretado-material
+    pais: mx
+    esperado: alto
+    senal: cobro por material de trabajo desde casa
+    titulo: Ensobretado de cartas desde casa
+    descripcion: |
+      Trabajo desde casa ensobretando cartas publicitarias. Gana hasta $9,000 MXN por
+      semana. Solo compra tu material de trabajo por $350 MXN y empieza hoy mismo.
+      Sin experiencia, sin horario.
+
+  - id: sos-trabajo-exterior-tramites
+    pais: ve
+    esperado: alto
+    senal: trabajo en el exterior con cobro por trámites (posible trata)
+    titulo: Trabajo en España sin papeles, todo gestionado
+    descripcion: |
+      Trabaja en España en restaurantes y hoteles, no necesitas papeles: nosotros
+      gestionamos la visa y el pasaje. Solo debes pagar 400 USD de trámites por Zelle
+      para reservar tu cupo. Salida en 3 semanas.
+
+  - id: sos-modelos-telegram
+    pais: ve
+    esperado: alto
+    senal: señales de trata (viaje pagado, fotos de cuerpo, contacto solo por Telegram)
+    titulo: Modelos para trabajo en el exterior, todo pagado
+    descripcion: |
+      Se buscan chicas de 18 a 25 años para trabajo de modelaje en el exterior, todo
+      pagado: pasaje, hospedaje y comida. Envía fotos de cuerpo completo y tu número
+      por Telegram a @modelos_exterior_ejemplo. La entrevista es solo por Telegram.
+
+  - id: sos-examen-medico-clinica
+    pais: mx
+    esperado: alto
+    senal: cobro por examen médico en clínica indicada
+    titulo: Operador(a) de producción
+    descripcion: |
+      Fábrica en Tlalnepantla contrata operadores(as) de producción, sueldo de $2,800
+      semanales. Para continuar en el proceso debes realizarte el examen médico en
+      nuestra clínica afiliada, con costo de $800 MXN que pagas en la recepción de la
+      clínica. Después del examen se agenda tu ingreso.
+
+  - id: sos-tarjeta-y-cvv
+    pais: mx
+    esperado: alto
+    senal: pide datos de tarjeta y CVV
+    titulo: Promotor(a) de ventas, alta inmediata
+    descripcion: |
+      Alta inmediata para promotores(as). Para registrar el pago de tu nómina llena el
+      formulario con tu RFC, CURP, número de tarjeta, fecha de vencimiento y código de
+      seguridad (CVV). Sin entrevista, empiezas mañana.
+
+  - id: sos-likes-pagados-usdt
+    pais: ve
+    esperado: alto
+    senal: estafa de tareas (pagan por dar likes, en cripto)
+    titulo: Trabajo fácil en redes sociales
+    descripcion: |
+      Gana dinero dando likes y siguiendo cuentas en redes sociales desde tu celular.
+      Pagamos en USDT por cada tarea completada, hasta 50 USD al día. Escríbenos por
+      WhatsApp al +58 000 0000000 para recibir tus primeras tareas.
+
+  - id: sos-solo-whatsapp-sin-empresa
+    pais: mx
+    esperado: medio
+    senal: contacto solo por WhatsApp, sin empresa identificable
+    titulo: Auxiliar administrativo
+    descripcion: |
+      Se solicita auxiliar administrativo, buen sueldo y prestaciones. Interesados
+      mandar WhatsApp al 55 0000 0000. No llamadas, no correo.
+
+  - id: sos-enlace-acortado
+    pais: mx
+    esperado: medio
+    senal: enlace acortado y sin datos de la empresa
+    titulo: Recepcionista
+    descripcion: |
+      Importante empresa busca recepcionista. Excelente ambiente laboral y
+      crecimiento. Postúlate aquí: tinyurl.com/recep-empleo-2026 y llena tus datos.
+
+  - id: sos-sueldo-irreal-desde-casa
+    pais: mx
+    esperado: medio
+    senal: sueldo irreal + sin experiencia + desde casa, sin cobro explícito
+    titulo: Gana $45,000 al mes desde casa
+    descripcion: |
+      Gana $45,000 MXN al mes desde casa trabajando solo 2 horas al día. No necesitas
+      experiencia ni estudios. Te explicamos todo en una llamada.
+
+  - id: sos-se-tu-propio-jefe
+    pais: ve
+    esperado: medio
+    senal: «sé tu propio jefe» vago, sin empresa ni puesto
+    titulo: Emprende con nosotros
+    descripcion: |
+      ¿Cansado de tu trabajo? Sé tu propio jefe, ingresos ilimitados y horario libre.
+      Buscamos personas con ganas de crecer. Escríbenos y te contamos la oportunidad.
+
+  - id: sos-solo-telegram-digitador
+    pais: ve
+    esperado: medio
+    senal: contacto solo por Telegram
+    titulo: Digitador(a) desde casa
+    descripcion: |
+      Se buscan digitadores(as) para trabajar desde casa, pago semanal. Contacto solo
+      por Telegram: @digitadores_ejemplo. Cupos limitados.
