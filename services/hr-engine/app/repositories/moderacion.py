@@ -65,16 +65,14 @@ _GUARDAR = text(
     """
 )
 
-_EN_COLA = """
+# Las tres consultas de la cola repiten el mismo select a propósito: son literales
+# completos (sin concatenar), como el resto de los repositorios.
+_COLA_SIN_AVISAR = text(
+    """
     select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
            e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
       from public.vacantes v
       join public.empresas e on e.id = v.empresa_id
-"""
-
-_COLA_SIN_AVISAR = text(
-    _EN_COLA
-    + """
      where v.moderacion in ('en_revision', 'oculta')
        and v.status = 'open'
        and v.revision_avisada_en is null
@@ -83,11 +81,22 @@ _COLA_SIN_AVISAR = text(
     """
 )
 
-_UNA = text(_EN_COLA + " where v.id = :id")
+_UNA = text(
+    """
+    select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
+           e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
+      from public.vacantes v
+      join public.empresas e on e.id = v.empresa_id
+     where v.id = :id
+    """
+)
 
 _COLA_COMPLETA = text(
-    _EN_COLA
-    + """
+    """
+    select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
+           e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
+      from public.vacantes v
+      join public.empresas e on e.id = v.empresa_id
      where v.moderacion in ('en_revision', 'oculta')
        and v.status = 'open'
      order by (v.moderacion = 'oculta') desc, v.moderada_en nulls last, v.created_at

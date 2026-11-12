@@ -55,6 +55,14 @@ _ESTADOS = {
     EstadoDeModeracion.OCULTA: "Oculta por reportes",
 }
 
+#: La respuesta cuando la vacante ya no estaba en la cola. Son textos fijos: el estado
+#: solo elige cuál, así ningún dato de la petición se arma dentro del HTML.
+_SIN_CAMBIOS = {
+    estado: f"<h1>No se cambió nada</h1><p>La vacante está en: {escape(etiqueta)}.</p>"
+    for estado, etiqueta in _ESTADOS.items()
+}
+_SIN_CAMBIOS_NO_EXISTE = "<h1>No se cambió nada</h1><p>La vacante ya no existe.</p>"
+
 _ESTILO = """
 body{font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;
 color:#0b1020;line-height:1.5}h1{font-size:1.5rem;margin:.2rem 0}
@@ -173,10 +181,6 @@ async def decidir(request: Request, db: DbSession) -> HTMLResponse:
 
     if not hecho:
         vacante = await repositorio.vacante_en_cola(vacante_id)
-        estado = _ESTADOS[vacante.estado] if vacante else "ya no existe"
-        return _pagina(
-            "Sin cambios",
-            f"<h1>No se cambió nada</h1><p>La vacante está en: {escape(estado)}.</p>",
-            409,
-        )
+        sin_cambios = _SIN_CAMBIOS[vacante.estado] if vacante else _SIN_CAMBIOS_NO_EXISTE
+        return _pagina("Sin cambios", sin_cambios, 409)
     return _pagina("Listo", mensaje)
