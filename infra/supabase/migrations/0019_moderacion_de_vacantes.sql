@@ -16,7 +16,10 @@
 --      policy de UPDATE en `empresas` (0001), así que no puede darse la insignia.
 --   2. `vacantes.moderacion` y sus motivos. El panel no las puede escribir: las
 --      fija un trigger. Al crearla queda 'pendiente'; si se edita lo que el
---      candidato ve, vuelve a 'pendiente'.
+--      candidato ve, vuelve a 'pendiente'. Con un trigger y no con privilegios de
+--      columna porque el panel tiene UPDATE sobre toda la tabla, y "the table-level
+--      grant is unaffected by a column-level operation"
+--      (https://www.postgresql.org/docs/17/sql-grant.html).
 --   3. `vacantes_publicas`, `aplicar_a_vacante` y el rol `career_site` (0017) solo
 --      ven las 'publicada'. La vista suma la insignia y, para reclutadores
 --      independientes, quién publica.
@@ -174,8 +177,9 @@ revoke execute on function public.vacantes_moderacion_protegida() from public, a
 
 -- ─── 3. Lo público: solo las publicadas ─────────────────────────────────────
 
--- Igual que 0014, con `moderacion = 'publicada'` y tres columnas al final (create
--- or replace view solo deja agregar columnas al final).
+-- Igual que 0014, con `moderacion = 'publicada'` y tres columnas al final: create or
+-- replace view "may add additional columns to the end of the list"
+-- (https://www.postgresql.org/docs/17/sql-createview.html).
 create or replace view public.vacantes_publicas
     with (security_invoker = false)
 as

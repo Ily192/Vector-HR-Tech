@@ -24,6 +24,15 @@ está verificado y de los reclutadores independientes, y un botón para reportar
    también la da a mano tras revisar LinkedIn y la web (`app.cli.moderacion verificar
    --forzar`). Un reclutador independiente (`publica_para = 'clientes'`) nunca la lleva
    y su vacante sale a su nombre, con su LinkedIn.
+
+   **Cómo se entera del código.** Auth pone `email_confirmed_at` cuando la persona
+   escribe el código (0018, PR 1). Al principio de cada barrido de la moderación
+   (`moderacion.barrer`, cada minuto) y antes de la limpieza diaria (`altas.limpiar`),
+   `ConfirmarAltasDeLaWeb` toma las altas de `privado.altas_web` con una cuenta
+   confirmada y sin `confirmado_en`, llama a `VerificarEmpresa` con el correo que
+   confirmó y lo que la empresa dio al registrarse (cómo publica, web y LinkedIn), y
+   pone `confirmado_en`: la misma marca que lee la limpieza de 7 días. Así la primera
+   vacante de una empresa que acaba de confirmar ya se modera con su insignia.
 2. **Moderación antes de publicar.** `vacantes.moderacion` (0019): la del panel nace
    `pendiente` y no sale al career site (`vacantes_publicas`, `aplicar_a_vacante`, el
    rol `career_site`) hasta que el hr-engine la decide. El panel la lee pero no la
@@ -67,6 +76,19 @@ está verificado y de los reclutadores independientes, y un botón para reportar
 **Neutras:**
 - Lo que inserta el rol dueño (seed, CLI) nace publicado: la moderación es para lo que
   llega del panel.
+
+## Fuentes
+
+- Postgres 17, GRANT: "the table-level grant is unaffected by a column-level
+  operation". Por eso la moderación la protege un trigger y no un `revoke` de columna:
+  https://www.postgresql.org/docs/17/sql-grant.html
+- Postgres 17, CREATE VIEW: `create or replace view` exige las mismas columnas y deja
+  agregar al final: https://www.postgresql.org/docs/17/sql-createview.html
+- Caddy, `request_body`: con `max_size`, un cuerpo más grande se rechaza con 413:
+  https://caddyserver.com/docs/caddyfile/directives/request_body. Y `handle` acepta
+  cualquier directiva de handler HTTP; `request_body` va antes que `reverse_proxy` en el
+  orden de las directivas: https://caddyserver.com/docs/caddyfile/directives/handle y
+  https://caddyserver.com/docs/caddyfile/directives#directive-order
 
 ## Alternatives considered
 

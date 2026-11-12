@@ -337,6 +337,11 @@ lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
 
 - **Reportes:** con dos reportes de IPs distintas desde el career site, la vacante se
   oculta y entra a la cola como urgente.
+- **La insignia del alta desde la web:** el mismo barrido de cada minuto da la insignia
+  a las empresas cuyo dueño acaba de escribir el código, si el dominio de su correo
+  coincide con el de su web, y pone `altas_web.confirmado_en`, que es lo que mira la
+  limpieza de 7 días. En los logs del worker sale como `altas_confirmadas` dentro de
+  `moderacion.barrido`.
 
 ## Día a día
 
