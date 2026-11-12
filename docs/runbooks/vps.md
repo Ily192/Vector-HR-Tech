@@ -312,6 +312,32 @@ por la web que nadie confirmó en 7 días, con su cuenta de Auth. Nunca toca una
 con una cuenta confirmada o con vacantes. El resultado sale en los logs del worker
 (`altas.limpieza`).
 
+### 11. La moderación de vacantes (ADR-022)
+
+Una vacante del panel no sale al career site hasta que el hr-engine la modera: el beat
+la revisa cada minuto con reglas fijas (cobros, datos bancarios, WhatsApp, multinivel…).
+Una empresa verificada sin señales de riesgo queda publicada en el siguiente barrido;
+lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
+
+- **La cola llega a hola@:** un resumen como mucho cada 6 horas
+  (`MODERACION_HORAS_ENTRE_RESUMENES`), antes si hay una vacante oculta por reportes, y
+  nunca más de 6 en 24 horas (`MODERACION_MAX_RESUMENES_24H`): comparte la cuota de
+  Resend con los códigos de Auth. Cada vacante trae un enlace firmado a
+  `https://<DOMINIO_API>/moderacion/revisar`, que vence en 7 días, con los botones
+  Aprobar y Rechazar. El rechazo pide un motivo, que la empresa ve en su panel.
+- **Desde la terminal:**
+
+  ```bash
+  vortex exec hr-engine-api python -m app.cli.moderacion cola
+  vortex exec hr-engine-api python -m app.cli.moderacion aprobar --vacante <id>
+  vortex exec hr-engine-api python -m app.cli.moderacion rechazar --vacante <id> --motivo "…"
+  # La insignia a mano, tras revisar su LinkedIn y su web:
+  vortex exec hr-engine-api python -m app.cli.moderacion verificar --correo <correo> --forzar
+  ```
+
+- **Reportes:** con dos reportes de IPs distintas desde el career site, la vacante se
+  oculta y entra a la cola como urgente.
+
 ## Día a día
 
 - **Desplegar:** el workflow, desde `main`.
@@ -392,6 +418,7 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 | Secreto | Cómo |
 |---|---|
 | `REDIS_PASSWORD`, `HR_ENGINE_JWT_SECRET`, `DASHBOARD_PASSWORD`, `PG_META_CRYPTO_KEY` | Vaciar su valor en el `.env`, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d` |
+| `MODERACION_SECRETO` | Lo mismo. Firma los enlaces de la cola de revisión (ADR-022): los de los resúmenes ya enviados dejan de servir; la cola sale entera con `app.cli.moderacion cola` |
 | `JWT_SECRET` | Lo mismo, y regenera `ANON_KEY`, `SERVICE_ROLE_KEY` y `CAREER_SITE_KEY`. Hay que actualizar la `ANON_KEY` en los dos proyectos de Vercel y la `CAREER_SITE_KEY` en el career site (fila siguiente), y volver a desplegarlos (el panel lleva la pública dentro del bundle). Cierra todas las sesiones |
 | `CAREER_SITE_KEY` | La clave del career site, con el rol `career_site` (migración 0017): no es la service_role, solo lee la vacante abierta y sube CVs. Vaciarla y correr `generar_secretos.py ~/vortex/.env` la vuelve a firmar. Va al career site en Vercel como `SUPABASE_CAREER_SITE_KEY`, de tipo Secret, sin pasar por la pantalla: `ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-career-site ~/vortex/.env' \| vercel env add SUPABASE_CAREER_SITE_KEY --environment production --type secret` (vercel.com/docs/cli/env, "Type"). Después, volver a desplegar el career site |
 | `POSTGRES_PASSWORD` | No basta con el `.env`: `roles.sql` solo corre al crear la base. Primero, en `vortex exec db psql -U supabase_admin`, `ALTER USER … WITH PASSWORD '<nueva>'` para `postgres`, `authenticator`, `pgbouncer`, `supabase_auth_admin`, `supabase_functions_admin` y `supabase_storage_admin`. Después, el `.env` y `vortex up -d` |

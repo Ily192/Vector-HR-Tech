@@ -5,7 +5,7 @@ import { type Page, expect, test } from "@playwright/test";
 import { nombresEnElZip, pdf } from "./apoyo/archivos";
 import { enlaceDelCorreo } from "./apoyo/correo";
 import { entorno } from "./apoyo/entorno";
-import { barrer, darDeAlta } from "./apoyo/hr-engine";
+import { barrer, darDeAlta, moderar, verificarEmpresa } from "./apoyo/hr-engine";
 import { enlaceParaEntrar } from "./apoyo/supabase";
 
 /**
@@ -60,6 +60,8 @@ test("plan gratis: alta, publicar, aplicar, gancho, .zip y eliminar", async ({ p
     if (e.remoto) return e.correo as string;
     const correoNuevo = `rh.${marca}@correo.test`;
     await darDeAlta(empresa, correoNuevo, "Mariana López");
+    // Contra un despliegue, la insignia la da probar_en_local.sh al crear la cuenta.
+    await verificarEmpresa(correoNuevo);
     return correoNuevo;
   });
 
@@ -86,8 +88,18 @@ test("plan gratis: alta, publicar, aplicar, gancho, .zip y eliminar", async ({ p
       .fill("Controlarás el inventario del almacén y los conteos cíclicos con el equipo de turno.");
     await formulario.getByRole("button", { name: "Publicar en el career site" }).click();
     await page.waitForURL(/\/vacantes\/[0-9a-f-]{36}$/);
-    await expect(page.getByText("La vacante ya está en el career site.")).toBeVisible();
     return page.url().split("/").at(-1) as string;
+  });
+
+  await test.step("la moderación la publica (empresa verificada, sin señales de riesgo)", async () => {
+    if (!e.remoto) await moderar();
+    // En un despliegue el beat modera cada minuto: se recarga hasta que aparezca.
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByText("La vacante ya está en el career site.")).toBeVisible({
+        timeout: 2_000,
+      });
+    }).toPass({ timeout: e.remoto ? 3 * 60_000 : 30_000, intervals: [1_000, 5_000, 15_000] });
   });
 
   const candidatos = await browser.newContext();

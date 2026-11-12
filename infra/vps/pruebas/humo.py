@@ -78,6 +78,12 @@ def borde() -> None:
             http.get(f"{API}{ruta}").status_code == 404,
             f"{ruta} no se publica (Studio y el resto del gateway)",
         )
+    # La página de revisión de la moderación (ADR-022): llega al hr-engine, con su secreto
+    # (503 si falta MODERACION_SECRETO) y sin enlace firmado no muestra nada.
+    r = http.get(f"{API}/moderacion/revisar", params={"t": "falso"})
+    ok(r.status_code == 403, "/moderacion/revisar sin enlace firmado responde 403", r.status_code)
+    r = http.post(f"{API}/moderacion/revisar", content=b"x" * 20_000)
+    ok(r.status_code == 413, "y Caddy corta un formulario de más de 16 KB", r.status_code)
     r = http.get(f"{API}/rest/v1/vacantes_publicas")
     ok(r.status_code == 401, "sin apikey el gateway responde 401", r.status_code)
     r = http.get(f"{API}/rest/v1/", headers={"apikey": ""})

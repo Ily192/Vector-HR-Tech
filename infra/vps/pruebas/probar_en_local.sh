@@ -139,6 +139,9 @@ e2e() {
 correo="rh-$(date +%s)@andes.test"
 compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 	--empresa "Andes Logística" --correo "$correo" --nombre "Mariana Ruiz" --tamano 35
+# La insignia a mano, como la da Vector HR tras revisar la empresa (ADR-022): sin ella la
+# primera vacante del e2e esperaría una revisión humana en vez de publicarse sola.
+compose exec -T hr-engine-api python -m app.cli.moderacion verificar --correo "$correo" --forzar
 humo borde "$correo"
 log "el alta desde la web: secreto, datos y tope"
 humo alta
