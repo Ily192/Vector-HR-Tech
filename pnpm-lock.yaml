@@ -8,6 +8,7 @@ overrides:
   source-map-js@<1.2.2: ^1.2.2
   fast-uri@<3.1.9: ^3.1.9
   postcss-selector-parser@<6.1.5: ^6.1.5
+  seroval@<1.6.8: ~1.6.9
 
 importers:
 
@@ -66,7 +67,7 @@ importers:
         version: 0.460.0(react@19.3.1)
       next:
         specifier: ^16.4.1
-        version: 16.4.1(@babel/core@7.29.7)(@playwright/test@1.63.0)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.1(@playwright/test@1.63.0)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -97,7 +98,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^4.3.3
-        version: 4.7.0(vite@7.3.7(@types/node@20.19.43)(jiti@1.21.7)(yaml@2.9.1))
+        version: 4.7.0(vite@7.3.7(@types/node@20.19.43)(jiti@2.7.0)(yaml@2.9.1))
       '@vitest/coverage-v8':
         specifier: ^4.1.12
         version: 4.1.12(vitest@4.1.12)
@@ -121,7 +122,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.1.12
-        version: 4.1.12(@types/node@20.19.43)(@vitest/coverage-v8@4.1.12)(jsdom@26.1.0)(vite@7.3.7(@types/node@20.19.43)(jiti@1.21.7)(yaml@2.9.1))
+        version: 4.1.12(@types/node@20.19.43)(@vitest/coverage-v8@4.1.12)(jsdom@26.1.0)(vite@7.3.7(@types/node@20.19.43)(jiti@2.7.0)(yaml@2.9.1))
 
   apps/hrbp:
     dependencies:
@@ -179,7 +180,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^4.3.3
-        version: 4.7.0(vite@7.3.7(@types/node@20.19.43)(jiti@2.7.0)(yaml@2.9.1))
+        version: 4.7.0(vite@7.3.7(@types/node@20.19.43)(jiti@1.21.7)(yaml@2.9.1))
       '@vitest/coverage-v8':
         specifier: ^4.1.12
         version: 4.1.12(vitest@4.1.12)
@@ -203,10 +204,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^7.3.7
-        version: 7.3.7(@types/node@20.19.43)(jiti@2.7.0)(yaml@2.9.1)
+        version: 7.3.7(@types/node@20.19.43)(jiti@1.21.7)(yaml@2.9.1)
       vitest:
         specifier: ^4.1.12
-        version: 4.1.12(@types/node@20.19.43)(@vitest/coverage-v8@4.1.12)(jsdom@26.1.0)(vite@7.3.7(@types/node@20.19.43)(jiti@2.7.0)(yaml@2.9.1))
+        version: 4.1.12(@types/node@20.19.43)(@vitest/coverage-v8@4.1.12)(jsdom@26.1.0)(vite@7.3.7(@types/node@20.19.43)(jiti@1.21.7)(yaml@2.9.1))
 
   packages/design-tokens:
     devDependencies:
@@ -2524,10 +2525,10 @@ packages:
     resolution: {integrity: sha512-YJIec8RyWI5ZZzZF9Sj2G1gM7p2ua4f8O2Fi/qYDwR7/fQd1dhEM6mBOl9s9DZ9hyJo5SN5jKRhtsV1pkV7Qng==}
     engines: {node: '>=10'}
     peerDependencies:
-      seroval: ^1.0
+      seroval: ~1.6.9
 
-  seroval@1.6.5:
-    resolution: {integrity: sha512-sNG8dL93a6zoDfB/+fw8d6Ovg01ydncHmPefPS54oS/3lk96EAFFWBcH79NrrHuP3Zzcb/w1lXZ5jfRabL2lHw==}
+  seroval@1.6.12:
+    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
     engines: {node: '>=10'}
 
   sharp@0.35.5:
@@ -3818,8 +3819,8 @@ snapshots:
     dependencies:
       '@tanstack/history': 1.162.2
       cookie-es: 3.1.1
-      seroval: 1.6.5
-      seroval-plugins: 1.6.5(seroval@1.6.5)
+      seroval: 1.6.12
+      seroval-plugins: 1.6.5(seroval@1.6.12)
 
   '@tanstack/store@0.9.3': {}
 
@@ -4667,7 +4668,7 @@ snapshots:
     dependencies:
       picocolors: 1.1.1
 
-  next@16.4.1(@babel/core@7.29.7)(@playwright/test@1.63.0)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  next@16.4.1(@playwright/test@1.63.0)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@next/env': 16.4.1
       '@swc/helpers': 0.5.23
@@ -4676,7 +4677,7 @@ snapshots:
       postcss: 8.5.23
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
-      styled-jsx: 5.1.6(@babel/core@7.29.7)(react@19.3.1)
+      styled-jsx: 5.1.6(react@19.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.4.1
       '@next/swc-darwin-x64': 16.4.1
@@ -4918,11 +4919,11 @@ snapshots:
 
   semver@7.8.5: {}
 
-  seroval-plugins@1.6.5(seroval@1.6.5):
+  seroval-plugins@1.6.5(seroval@1.6.12):
     dependencies:
-      seroval: 1.6.5
+      seroval: 1.6.12
 
-  seroval@1.6.5: {}
+  seroval@1.6.12: {}
 
   sharp@0.35.5(@types/node@20.19.43):
     dependencies:
@@ -5029,12 +5030,10 @@ snapshots:
     dependencies:
       min-indent: 1.0.1
 
-  styled-jsx@5.1.6(@babel/core@7.29.7)(react@19.3.1):
+  styled-jsx@5.1.6(react@19.3.1):
     dependencies:
       client-only: 0.0.1
       react: 19.3.1
-    optionalDependencies:
-      '@babel/core': 7.29.7
 
   sucrase@3.35.1:
     dependencies:
