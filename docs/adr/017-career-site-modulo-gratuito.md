@@ -20,6 +20,35 @@ describe (la empresa se inscribe en la web y publica gratis). La venta sigue en 
 lugares del punto 6. Los nombres internos (paquetes `@vortex/*`, rutas y llaves de
 `localStorage`) no cambian.
 
+*Enmienda del 2026-11-12: alta al instante con un código, en lugar de la invitación
+manual.* Ilyra decidió que quien se registra en `vectorhrtech.com/publicar-vacantes` quede
+con su empresa y su cuenta en el momento, y entre al panel sin esperar a que Vector HR la
+invite. Cambia el punto 2:
+
+1. La web guarda el registro en su base y llama al hr-engine de servidor a servidor:
+   `POST /alta/plan-gratis` en `api.`, con un secreto compartido (`ALTA_SECRETO` en el
+   VPS, `FLUVE_ALTA_SECRETO` en Vercel). Turnstile lo valida la web antes.
+2. El hr-engine crea la empresa con plan gratis y su invitación, y pide a Supabase Auth
+   un código de 6 dígitos (`POST /auth/v1/otp` con `create_user` y el token de la
+   invitación en `data`). `handle_new_user` (0003) liga la cuenta a la empresa igual que
+   con una invitación. Si el correo ya tiene cuenta, solo sale un código de entrada.
+3. La web lleva a `panel./verificar#correo=…`. El correo va en el fragmento, que no llega
+   a ningún servidor. Ahí se escribe el código y se entra. El panel entra siempre con un
+   código, sin enlaces ni contraseñas: un filtro de correo que abre enlaces gastaría el
+   código antes que la persona.
+4. La respuesta es la misma tenga o no cuenta el correo: desde afuera no se sabe quién
+   usa el panel.
+5. Las empresas cuyo dueño no escribe el código en 7 días se borran (tarea diaria
+   `altas.limpiar`). La cuenta queda sin confirmar hasta que escribe el código
+   (`GOTRUE_MAILER_AUTOCONFIRM=false`), y eso es lo que separa a quien sí entró.
+6. Topes: 5 registros por hora por IP (con hash) y 3 por correo, además del de Auth por
+   IP. El registro queda en `privado.altas_web` (0018) con lo que pide la verificación de
+   la empresa del siguiente PR (sitio web, LinkedIn y cargo).
+
+Las invitaciones por la terminal (`app.cli.alta_empresa`) siguen para los casos que Vector
+HR lleva a mano. Sin invitación ni registro de la web sigue sin haber alta: el
+`/auth/v1/signup` abierto choca con `handle_new_user`.
+
 ## Context
 
 Hoy el career-site mezcla dos públicos con objetivos distintos:
@@ -56,6 +85,9 @@ El código vive en `apps/hrbp`, que pasa a ser la app de la empresa. El nombre d
 paquete se puede cambiar más adelante.
 
 ### 2. Alta por invitación
+
+*Reemplazado por el alta con código de la enmienda del 2026-11-12 (arriba). La
+invitación queda para los casos a mano.*
 
 1. La empresa se inscribe al career site desde la web de Vector HR.
 2. Vortex le envía una invitación por correo.
