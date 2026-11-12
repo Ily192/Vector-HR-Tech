@@ -3,6 +3,8 @@
     python humo.py <.env de prueba> borde <correo invitado>
     python humo.py <.env de prueba> alta
     python humo.py <.env de prueba> career-site
+    python humo.py <.env de prueba> moderacion-preparar <estado.json>
+    python humo.py <.env de prueba> moderacion-correo <estado.json>
     python humo.py <.env de prueba> foto <estado.json>
     python humo.py <.env de prueba> comparar <estado.json>
 
@@ -20,6 +22,11 @@
   gateway y la Storage API de verdad: lee la vacante abierta y nada más, sube un CV, no
   lista ni baja ninguno, y borra solo el que nombra en `x-cv-ruta`. Necesita una
   vacante abierta: va después del e2e.
+- `moderacion-preparar` y `moderacion-correo` (ADR-022): una vacante en revisión de una
+  empresa sin verificar; entre los dos, probar_en_local.sh corre `moderacion.avisar` en
+  el worker. Después: el resumen llega a hola@ (Mailpit) con el motivo y un enlace
+  firmado; el enlace abre la página de revisión, "Aprobar" la publica, y la vacante
+  aparece en `vacantes_publicas`.
 - `foto` y `comparar`: lo que tiene que volver igual después de restaurar el respaldo.
   Son los conteos de empresas, cuentas, vacantes, aplicaciones y CVs, y un CV byte a
   byte.
@@ -42,6 +49,7 @@ import sys
 import time
 import uuid
 from datetime import datetime
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 
@@ -342,6 +350,94 @@ def foto() -> dict:
     }
 
 
+def moderacion_preparar(ruta: str) -> None:
+    """Una vacante en revisión de una empresa sin verificar, como la deja el barrido."""
+    marca = uuid.uuid4().hex[:8]
+    con_fila = {**servicio, "Prefer": "return=representation"}
+    r = http.post(
+        f"{API}/rest/v1/empresas",
+        headers=con_fila,
+        json={"name": f"Revisión humo {marca}", "slug": f"revision-humo-{marca}"},
+    )
+    ok(r.status_code == 201, "una empresa sin verificar, con la clave secreta", r.text[:200])
+    empresa = r.json()[0]["id"]
+    titulo = f"Promotor de ventas {marca}"
+    r = http.post(
+        f"{API}/rest/v1/vacantes",
+        headers=con_fila,
+        json={
+            "empresa_id": empresa,
+            "slug": f"revision-humo-{marca}",
+            "title": titulo,
+            "jd": "Escríbenos por WhatsApp para más información.",
+            "status": "open",
+            "moderacion": "en_revision",
+            "motivos_moderacion": [
+                {
+                    "regla": "contacto_externo",
+                    "senal": "Manda a contactar por WhatsApp",
+                    "gravedad": "media",
+                    "cita": "WhatsApp",
+                    "corregir": None,
+                }
+            ],
+        },
+    )
+    ok(r.status_code == 201, "una vacante en revisión", r.text[:200])
+    vacante = r.json()[0]["id"]
+    r = http.get(
+        f"{API}/rest/v1/vacantes_publicas",
+        params={"id": f"eq.{vacante}", "select": "id"},
+        headers={"apikey": ANON},
+    )
+    ok(r.status_code == 200 and r.json() == [], "en revisión no está en vacantes_publicas")
+    pathlib.Path(ruta).write_text(json.dumps({"vacante": vacante, "titulo": titulo}))
+
+
+def moderacion_correo(ruta: str) -> None:
+    """El resumen en hola@, su enlace firmado y la aprobación."""
+    datos = json.loads(pathlib.Path(ruta).read_text())
+    texto = ""
+    for _ in range(30):
+        lista = httpx.get(
+            f"{MAILPIT}/api/v1/search",
+            params={"query": 'to:"hola@vectorhrtech.com"'},
+            timeout=10,
+        ).json()
+        for mensaje in lista.get("messages", []):
+            cuerpo = httpx.get(f"{MAILPIT}/api/v1/message/{mensaje['ID']}", timeout=10).json()
+            if datos["titulo"] in cuerpo.get("Text", ""):
+                texto = cuerpo["Text"]
+                break
+        if texto:
+            break
+        time.sleep(2)
+    ok(bool(texto), "el resumen de la cola de revisión llega a hola@ (Mailpit)")
+    ok("Manda a contactar por WhatsApp" in texto, "con el motivo de la vacante")
+    enlace = re.search(r"Revisar: (\S+)", texto)
+    ok(enlace is not None, "y su enlace de revisión")
+    assert enlace is not None
+    partes = urlsplit(enlace.group(1))
+    ok(partes.path == "/moderacion/revisar", "el enlace va a /moderacion/revisar", partes.path)
+    token = parse_qs(partes.query)["t"][0]
+
+    r = http.get(f"{API}/moderacion/revisar", params={"t": token})
+    ok(
+        r.status_code == 200 and "Aprobar y publicar" in r.text,
+        "el enlace abre la página de revisión por Caddy",
+        r.status_code,
+    )
+    ok(r.headers.get("referrer-policy") == "no-referrer", "sin Referer: el token va en la URL")
+    r = http.post(f"{API}/moderacion/revisar", data={"t": token, "accion": "aprobar"})
+    ok(r.status_code == 200 and "Aprobada" in r.text, "Aprobar por POST", r.status_code)
+    r = http.get(
+        f"{API}/rest/v1/vacantes_publicas",
+        params={"id": f"eq.{datos['vacante']}", "select": "id"},
+        headers={"apikey": ANON},
+    )
+    ok(r.status_code == 200 and len(r.json()) == 1, "y ya está en vacantes_publicas")
+
+
 if __name__ == "__main__":
     modo = sys.argv[2]
     if modo == "borde":
@@ -351,6 +447,10 @@ if __name__ == "__main__":
         alta()
     elif modo == "career-site":
         career_site()
+    elif modo == "moderacion-preparar":
+        moderacion_preparar(sys.argv[3])
+    elif modo == "moderacion-correo":
+        moderacion_correo(sys.argv[3])
     elif modo == "foto":
         estado = foto()
         pathlib.Path(sys.argv[3]).write_text(json.dumps(estado))
