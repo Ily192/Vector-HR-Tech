@@ -20,6 +20,8 @@ celery_app = Celery(
         "app.workers.coincidencias",
         # Evaluación con IA del plan de pago (ADR-021).
         "app.workers.evaluaciones",
+        # Alta desde la web: limpieza de las que nadie confirmó (ADR-017).
+        "app.workers.altas",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -78,6 +80,11 @@ celery_app.conf.update(
         "coincidencias-purgar": {
             "task": "coincidencias.purgar",
             "schedule": crontab(hour=4, minute=0),
+        },
+        # Las empresas registradas por la web que nadie confirmó en 7 días (ADR-017).
+        "altas-limpiar": {
+            "task": "altas.limpiar",
+            "schedule": crontab(hour=4, minute=30),
         },
         # El score visible en menos de 2 minutos desde que el candidato aplica (ADR-021).
         "evaluaciones-barrer": {

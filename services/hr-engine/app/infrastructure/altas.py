@@ -94,13 +94,13 @@ class InvitacionesSupabase:
             raise InvitacionNoEnviadaError(f"Auth no responde: {type(exc).__name__}") from exc
         if respuesta.status_code == 200:
             return
-        codigo = _codigo_de_error(respuesta)
+        codigo = codigo_de_error(respuesta)
         if codigo == "email_exists":
             raise CuentaYaExisteError(f"{correo} ya tiene cuenta en el panel")
         raise InvitacionNoEnviadaError(f"Auth respondió {respuesta.status_code} ({codigo})")
 
 
-def _codigo_de_error(respuesta: httpx.Response) -> str:
+def codigo_de_error(respuesta: httpx.Response) -> str:
     try:
         cuerpo = respuesta.json()
     except json.JSONDecodeError:
