@@ -251,11 +251,11 @@ otp_expiry = 3600
 # Correos del panel en español. En Supabase Cloud se configuran igual en
 # Auth → Email Templates (runbook, paso 2.2).
 [auth.email.template.invite]
-subject = "Te invitaron al panel de Vortex Ops"
+subject = "Te invitaron al panel de Vector HR Tech"
 content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
-subject = "Tu enlace para entrar a Vortex Ops"
+subject = "Tu enlace para entrar al panel de Vector HR Tech"
 content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template

@@ -5,6 +5,21 @@
 - **Decider:** Ilyra
 - **Tags:** producto, career-site, hrbp, multi-tenant
 
+*Enmienda del 2026-11-11: la marca es Vector HR Tech.* Ilyra decidió que lo que ven las
+empresas y los candidatos diga "Vector HR Tech", no "Vortex Ops" ni "Vortex Empleos". La
+bolsa de empleo y el panel son de Vector HR Tech, y Fluve AI no se menciona mientras se
+reformula. Cambia también el punto 5: el pie de la bolsa de empleo tiene dos enlaces para
+empresas en vez de uno.
+
+- "¿Contratas? Publica tus vacantes gratis" lleva al registro de la web
+  (`vectorhrtech.com/publicar-vacantes`).
+- "¿Ya publicas? Entra a tu panel" sigue igual.
+
+El primero no es un CTA de venta: es la misma puerta de entrada gratuita que este ADR
+describe (la empresa se inscribe en la web y publica gratis). La venta sigue en los dos
+lugares del punto 6. Los nombres internos (paquetes `@vortex/*`, rutas y llaves de
+`localStorage`) no cambian.
+
 ## Context
 
 Hoy el career-site mezcla dos públicos con objetivos distintos:
@@ -105,10 +120,11 @@ Los aplica el backend; la UI solo los muestra.
 
 ### 5. El career site público es uno solo
 
-- **Para candidatos** ("Vortex Empleos"): ven **todas** las vacantes publicadas
-  por todas las empresas, con filtros, el salario cuando la empresa lo da, y la
-  aplicación. No tiene CTAs de venta a empresas. El único enlace para empresas
-  es "¿Publicas vacantes? Entra a tu panel".
+- **Para candidatos** ("Vortex Empleos"; desde la enmienda, "Empleos Vector HR
+  Tech"): ven **todas** las vacantes publicadas por todas las empresas, con
+  filtros, el salario cuando la empresa lo da, y la aplicación. No tiene CTAs de
+  venta a empresas. El único enlace para empresas era "¿Publicas vacantes? Entra a
+  tu panel"; desde la enmienda del 2026-11-11 se suma el registro gratis.
 - **Para cada empresa:** en su panel ve "su" career site, es decir, sus vacantes
   tal como las ven los candidatos. No hay página pública por empresa.
 

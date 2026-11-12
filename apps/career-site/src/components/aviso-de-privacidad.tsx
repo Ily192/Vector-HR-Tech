@@ -12,8 +12,8 @@ export function AvisoDePrivacidad({ empresa, conIa }: { empresa: string; conIa: 
       <summary className="cursor-pointer font-bold text-ink-900">Aviso de privacidad</summary>
       <div className="mt-2 space-y-2">
         <p>
-          {empresa} (responsable) usa Vortex, de Vector HR Tech (encargado), para recibir tu
-          aplicación. Tu CV y tus datos llegan a {empresa} y solo se usan para este proceso.
+          {empresa} (responsable) usa la bolsa de empleo de Vector HR Tech (encargado) para recibir
+          tu aplicación. Tu CV y tus datos llegan a {empresa} y solo se usan para este proceso.
         </p>
         {conIa ? (
           <p>
@@ -24,17 +24,17 @@ export function AvisoDePrivacidad({ empresa, conIa }: { empresa: string; conIa: 
           </p>
         ) : (
           <p>
-            Vortex compara las palabras de tu CV con las skills que pide la vacante y le da a{" "}
-            {empresa} solo un conteo de cuántos CVs las mencionan, sin decirle cuáles. Eso no usa IA
-            ni decide nada. Si {empresa} contrata los servicios de IA, tu CV se evalúa con IA y una
-            persona decide.
+            La bolsa de empleo compara las palabras de tu CV con las skills que pide la vacante y le
+            da a {empresa} solo un conteo de cuántos CVs las mencionan, sin decirle cuáles. Eso no
+            usa IA ni decide nada. Si {empresa} contrata los servicios de IA, tu CV se evalúa con IA
+            y una persona decide.
           </p>
         )}
         <p>
           Puedes oponerte marcando «Evaluar mi CV sin procesos automatizados». Para acceder a tus
           datos, corregirlos o pedir que se borren, escribe a{" "}
-          <a className="font-bold text-aqua-700 underline" href="mailto:hola@vectorhr.tech">
-            hola@vectorhr.tech
+          <a className="font-bold text-aqua-700 underline" href="mailto:hola@vectorhrtech.com">
+            hola@vectorhrtech.com
           </a>
           .
         </p>

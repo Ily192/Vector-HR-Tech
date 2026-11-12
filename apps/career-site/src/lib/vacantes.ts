@@ -82,7 +82,7 @@ const VACANTES_DE_EJEMPLO: VacantePublica[] = VacantePublicaSchema.array().parse
     id: "00000000-0000-4000-8000-0000000000a3",
     slug: "hr-business-partner",
     title: "HR Business Partner",
-    jd: "Serás el puente entre los líderes técnicos y el ciclo de talento. Operarás Vortex Ops como producto interno, definiendo ICPs, validando a los candidatos que preseleccionan los agentes y cerrando contrataciones.",
+    jd: "Serás el puente entre los líderes técnicos y el ciclo de talento. Operarás la plataforma de reclutamiento como producto interno, definiendo ICPs, validando a los candidatos que preseleccionan los agentes y cerrando contrataciones.",
     seniority: "semi-senior",
     modality: "hybrid",
     location: "CDMX",

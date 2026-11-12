@@ -1,4 +1,4 @@
-import { Button } from "@vortex/ui";
+import { Button, Wordmark } from "@vortex/ui";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 import { useEntrar, useSalir } from "../datos/consultas";
@@ -25,9 +25,7 @@ function Tarjeta({ titulo, children }: { titulo: string; children: ReactNode }) 
   return (
     <main className="grid min-h-screen place-items-center bg-mist-50 px-4 py-10 text-ink-900">
       <section className="flex w-full max-w-md flex-col gap-4 rounded-[22px] border border-mist-200 bg-white p-6 md:p-8">
-        <span className="text-lg font-black tracking-[-0.03em]">
-          VORTEX <i className="font-extrabold text-aqua-600">OPS</i>
-        </span>
+        <Wordmark brand="vector" size="sm" tone="light" />
         <h1 className="text-[28px] leading-tight tracking-[-0.02em]">{titulo}</h1>
         {children}
       </section>
@@ -36,10 +34,13 @@ function Tarjeta({ titulo, children }: { titulo: string; children: ReactNode }) 
 }
 
 const CONTACTO = (
-  <a href="mailto:hola@vectorhr.tech" className="font-bold text-aqua-700 hover:underline">
-    hola@vectorhr.tech
+  <a href="mailto:hola@vectorhrtech.com" className="font-bold text-aqua-700 hover:underline">
+    hola@vectorhrtech.com
   </a>
 );
+
+/** El registro gratis para publicar vacantes, en la web de Vector HR Tech. */
+const PUBLICAR_VACANTES_URL = "https://vectorhrtech.com/publicar-vacantes";
 
 /**
  * Entrar al panel con un enlace al correo, sin contraseña. Las cuentas las crea
@@ -58,8 +59,9 @@ export function Entrar() {
     return (
       <Tarjeta titulo="Revisa tu correo">
         <output className="block text-[15px] text-mist-700">
-          Si <b className="text-ink-900">{correo.trim()}</b> tiene una cuenta en Vortex Ops, te
-          llegó un enlace para entrar. Dura una hora y sirve una vez. Si no lo ves, busca en spam.
+          Si <b className="text-ink-900">{correo.trim()}</b> tiene una cuenta en el panel de Vector
+          HR Tech, te llegó un enlace para entrar. Dura una hora y sirve una vez. Si no lo ves,
+          busca en spam.
         </output>
         <button
           type="button"
@@ -112,7 +114,11 @@ export function Entrar() {
         </Button>
       </form>
       <p className="text-sm text-mist-600">
-        ¿Tu empresa aún no usa Vortex Ops? Escríbenos a {CONTACTO}.
+        ¿Aún no publicas con nosotros?{" "}
+        <a href={PUBLICAR_VACANTES_URL} className="font-bold text-aqua-700 hover:underline">
+          Regístrate gratis
+        </a>
+        .
       </p>
     </Tarjeta>
   );
@@ -127,8 +133,8 @@ export function ErrorDeSesion({ error, reintentar }: { error: Error; reintentar:
       <p className="text-[15px] text-mist-700">
         {sinAcceso ? (
           <>
-            El panel es para HR y Dirección de las empresas que usan Vortex Ops. Si crees que es un
-            error, escríbenos a {CONTACTO}.
+            El panel es para HR y Dirección de las empresas que publican con Vector HR Tech. Si
+            crees que es un error, escríbenos a {CONTACTO}.
           </>
         ) : (
           "Revisa tu conexión y vuelve a intentarlo."

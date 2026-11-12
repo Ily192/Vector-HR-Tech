@@ -1,4 +1,4 @@
-import { Badge } from "@vortex/ui";
+import { Badge, Wordmark } from "@vortex/ui";
 import { Briefcase, LayoutGrid, type LucideIcon, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -126,12 +126,10 @@ export function Marco({
         <Enlace
           href="/"
           className="flex items-center gap-2.5 rounded-xl px-2"
-          aria-label="Vortex Ops, inicio"
+          aria-label="Vector HR Tech, inicio"
         >
           <Logo />
-          <span className="text-lg font-black tracking-[-0.03em]">
-            VORTEX <i className="font-extrabold text-aqua-300">OPS</i>
-          </span>
+          <Wordmark brand="vector" size="sm" tone="dark" />
         </Enlace>
         {grupos.map((grupo) => (
           <nav key={grupo.modulo} aria-label={grupo.titulo} className="flex flex-col gap-0.5">
