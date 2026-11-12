@@ -81,6 +81,11 @@ def ok(condicion: bool, paso: str, detalle: object = "") -> None:
 def borde() -> None:
     r = http.get(f"{API}/salud/hr-engine")
     ok(r.status_code == 200 and r.text == "ok", "/salud/hr-engine para el monitoreo")
+    ok(
+        r.headers.get("referrer-policy") == "strict-origin-when-cross-origin",
+        "Caddy pone Referrer-Policy por defecto donde el upstream no la manda",
+        r.headers.get("referrer-policy"),
+    )
     for ruta in ("/", "/pg/tables", "/functions/v1/x", "/realtime/v1/api"):
         ok(
             http.get(f"{API}{ruta}").status_code == 404,
