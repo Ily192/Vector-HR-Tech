@@ -51,8 +51,8 @@ Por dominio (los tres en el `.env`; en GitHub solo `DOMINIO_API`):
 
 | Dominio | Dónde | Qué sirve |
 |---|---|---|
-| `DOMINIO_EMPLEOS` | Vercel (`vortex-career-site`) | El career site |
-| `DOMINIO_PANEL` | Vercel (`vortex-hrbp`) | El panel de la empresa |
+| `DOMINIO_EMPLEOS` | Vercel (`vectorhrtech-empleos`) | El career site |
+| `DOMINIO_PANEL` | Vercel (`vectorhrtech-panel`) | El panel de la empresa |
 | `DOMINIO_API` | Este servidor, por el túnel | Solo `/auth/v1`, `/rest/v1`, `/storage/v1` y `/salud/hr-engine` (para el monitoreo) |
 
 Los dos primeros siguen en el `.env` aunque no se sirvan aquí: el CORS del hr-engine y las
@@ -64,8 +64,11 @@ Cuentas, todas con 2FA. Las crea Ilyra: Claude no crea cuentas ni escribe creden
 
 - **Contabo:** el servidor.
 - **Cloudflare:** el dominio, el túnel (Zero Trust, plan Free), Turnstile y R2.
-- **Vercel:** los proyectos `vortex-career-site` y `vortex-hrbp`, en el equipo
-  `proyectos-ilys-projects`. Hobby no permite uso comercial: el plan lo decide Ilyra.
+- **Vercel:** los proyectos `vectorhrtech-empleos`, `vectorhrtech-panel` y
+  `vectorhrtech-web` (la web, en su propio repo), en el equipo Pro de Andres. Se publica
+  con un token de ese equipo, sin sumar miembros, y el token vive fuera del repo. Los
+  proyectos viejos de `proyectos-ilys-projects` (`vortex-career-site` y `vortex-hrbp`,
+  Hobby) siguen conectados a GitHub solo para las vistas previas de los PR.
 - **Resend:** el correo, con el dominio verificado.
 - **GitHub:** el repo ya existe; solo faltan sus variables y secrets.
 
@@ -224,9 +227,10 @@ En el servidor: `vortex ps` muestra todo `healthy` (el beat no tiene healthcheck
 
 ### Vercel: el career site y el panel
 
-Los dos proyectos ya existen en `proyectos-ilys-projects` (`vortex-career-site` y
-`vortex-hrbp`) y construyen desde el monorepo con el `vercel.json` de cada app. Lo de
-producción se cambia solo con el OK de Ilyra.
+Los proyectos viven en el equipo de Andres, sin Git conectado: `vectorhrtech-empleos` (el
+career site) y `vectorhrtech-panel` (el panel) construyen desde el monorepo con el
+`vercel.json` de cada app, y `vectorhrtech-web` es la web. Lo de producción se cambia solo
+con el OK de Ilyra.
 
 1. **Variables de entorno**, en *Production*. Las públicas como *Config* y las secretas
    como *Secret*, que no se pueden volver a leer
@@ -234,16 +238,16 @@ producción se cambia solo con el OK de Ilyra.
 
    | Proyecto | Variable | Valor | Tipo |
    |---|---|---|---|
-   | `vortex-career-site` | `NEXT_PUBLIC_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
+   | `vectorhrtech-empleos` | `NEXT_PUBLIC_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
    | | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | la salida de `generar_secretos.py --clave-publica ~/vortex/.env` | Config |
    | | `NEXT_PUBLIC_SITE_URL` | `https://<DOMINIO_EMPLEOS>` | Config |
    | | `NEXT_PUBLIC_PANEL_EMPRESAS_URL` | `https://<DOMINIO_PANEL>` | Config |
    | | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | la *site key* del widget | Config |
    | | `TURNSTILE_SECRET_KEY` | la *secret key* del widget | Secret |
    | | `SUPABASE_CAREER_SITE_KEY` | `CAREER_SITE_KEY` del `.env`, con la tubería de la fila `CAREER_SITE_KEY` de "Rotar secretos" para que no pase por la pantalla. La service_role no va en Vercel | Secret |
-   | `vortex-hrbp` | `VITE_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
+   | `vectorhrtech-panel` | `VITE_SUPABASE_URL` | `https://<DOMINIO_API>` | Config |
    | | `VITE_SUPABASE_ANON_KEY` | la misma clave pública | Config |
-   | `vector-hr-tech` (la web) | `FLUVE_ALTA_URL` | `https://<DOMINIO_API>/alta/plan-gratis` | Config |
+   | `vectorhrtech-web` (la web) | `FLUVE_ALTA_URL` | `https://<DOMINIO_API>/alta/plan-gratis` | Config |
    | | `FLUVE_ALTA_SECRETO` | `ALTA_SECRETO` del `.env`, con la tubería de la fila `ALTA_SECRETO` de "Rotar secretos" | Secret |
 
    La web solo lee `FLUVE_ALTA_*` al publicarse: después de cargarlas hay que volver a
@@ -252,10 +256,26 @@ producción se cambia solo con el OK de Ilyra.
    Las `NEXT_PUBLIC_*` y `VITE_*` se escriben en el bundle al construir: después de
    cambiarlas hay que volver a desplegar.
 2. **Dominios:** en cada proyecto, *Settings → Domains*, el subdominio que le toca. En
-   Cloudflare, el registro que pide Vercel (CNAME), en **DNS only** (nube gris), como el
-   resto de los registros de Vercel del dominio.
-3. **Desplegar** a producción desde `main` y comprobar que `https://<DOMINIO_EMPLEOS>/` y
-   `https://<DOMINIO_PANEL>/` respondan.
+   Cloudflare, el registro que pide Vercel (CNAME, el que da
+   `GET /v6/domains/<dominio>/config`), en **DNS only** (nube gris), como el resto de los
+   registros de Vercel del dominio. Si el dominio ya estuvo en otro equipo de Vercel,
+   también pide un TXT en `_vercel` para verificarlo.
+3. **Desplegar** a producción desde una copia limpia de `main`, nunca desde la carpeta de
+   trabajo. La CLI de Vercel no lee el `.gitignore`: sube como código fuente todo lo que
+   encuentra, y ese código lo ve cualquier miembro del equipo. El 2026-11-12 así se
+   subieron `var-local.env` y `.env`. El `.vercelignore` de la raíz es la segunda barrera.
+
+   ```bash
+   rm -rf /tmp/despliegue && mkdir -p /tmp/despliegue
+   git archive main | tar -x -C /tmp/despliegue      # solo lo versionado
+   cd /tmp/despliegue
+   VERCEL_ORG_ID=<equipo> VERCEL_PROJECT_ID=<proyecto> vercel deploy --prod --yes
+   ```
+
+   Con el token del equipo en `VERCEL_TOKEN`. Después, revisar qué se subió
+   (`GET /v6/deployments/<id>/files`) y comprobar que `https://<DOMINIO_EMPLEOS>/` y
+   `https://<DOMINIO_PANEL>/` respondan. El primer despliegue de un proyecto sale a
+   producción aunque no se pida.
 4. **El CV pesa 4 MB como máximo.** Vercel corta el cuerpo de una función en 4.5 MB
    ([docs](https://vercel.com/docs/functions/limitations#request-body-size)), y el CV
    viaja dentro de la Server Action (`apps/career-site/src/lib/tipos-de-aplicacion.ts`).
@@ -428,11 +448,11 @@ Cuando la memoria pasa del 75 % de forma sostenida, o con el primer cliente de p
 | `REDIS_PASSWORD`, `HR_ENGINE_JWT_SECRET`, `DASHBOARD_PASSWORD`, `PG_META_CRYPTO_KEY` | Vaciar su valor en el `.env`, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d` |
 | `MODERACION_SECRETO` | Lo mismo. Firma los enlaces de la cola de revisión (ADR-022): los de los resúmenes ya enviados dejan de servir; la cola sale entera con `app.cli.moderacion cola` |
 | `JWT_SECRET` | Lo mismo, y regenera `ANON_KEY`, `SERVICE_ROLE_KEY` y `CAREER_SITE_KEY`. Hay que actualizar la `ANON_KEY` en los dos proyectos de Vercel y la `CAREER_SITE_KEY` en el career site (fila siguiente), y volver a desplegarlos (el panel lleva la pública dentro del bundle). Cierra todas las sesiones |
-| `CAREER_SITE_KEY` | La clave del career site, con el rol `career_site` (migración 0017): no es la service_role, solo lee la vacante abierta y sube CVs. Vaciarla y correr `generar_secretos.py ~/vortex/.env` la vuelve a firmar. Va al career site en Vercel como `SUPABASE_CAREER_SITE_KEY`, de tipo Secret, sin pasar por la pantalla: `ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-career-site ~/vortex/.env' \| vercel env add SUPABASE_CAREER_SITE_KEY --environment production --type secret` (vercel.com/docs/cli/env, "Type"). Después, volver a desplegar el career site |
+| `CAREER_SITE_KEY` | La clave del career site, con el rol `career_site` (migración 0017): no es la service_role, solo lee la vacante abierta y sube CVs. Vaciarla y correr `generar_secretos.py ~/vortex/.env` la vuelve a firmar. Va al career site en Vercel como `SUPABASE_CAREER_SITE_KEY`, de tipo Secret, sin pasar por la pantalla y en dos tiempos, porque `vercel env add` toma lo que haya en la entrada a los 500 ms y no recorta el salto de línea final: `v=$(ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-career-site ~/vortex/.env' \| tr -d '\r\n') && printf '%s' "$v" \| vercel env add SUPABASE_CAREER_SITE_KEY production --type secret; unset v`, con la CLI apuntando a `vectorhrtech-empleos` (vercel.com/docs/cli/env, "Type"). Después, volver a desplegar el career site |
 | `POSTGRES_PASSWORD` | No basta con el `.env`: `roles.sql` solo corre al crear la base. Primero, en `vortex exec db psql -U supabase_admin`, `ALTER USER … WITH PASSWORD '<nueva>'` para `postgres`, `authenticator`, `pgbouncer`, `supabase_auth_admin`, `supabase_functions_admin` y `supabase_storage_admin`. Después, el `.env` y `vortex up -d` |
 | `CLOUDFLARE_TUNNEL_TOKEN`, `SMTP_PASS` y la llave de R2 | Rotarlos en su panel, cambiar el `.env` y `vortex up -d` |
 | `TURNSTILE_SECRET_KEY` | Rotarla en Cloudflare, cambiarla en el proyecto de Vercel del career site y volver a desplegarlo |
-| `ALTA_SECRETO` | El que comparten la web y el hr-engine para `POST /alta/plan-gratis`. Vaciarlo, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d hr-engine-api`. Después, cargarlo en la web sin que pase por la pantalla: `ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-alta ~/vortex/.env' \| vercel env add FLUVE_ALTA_SECRETO production --scope proyectos-ilys-projects --type secret` (vercel.com/docs/cli/env, "Type"), y volver a desplegar la web. Mientras no coinciden, el alta responde 401 y la web muestra su agradecimiento de respaldo |
+| `ALTA_SECRETO` | El que comparten la web y el hr-engine para `POST /alta/plan-gratis`. Vaciarlo, correr `generar_secretos.py ~/vortex/.env` y `vortex up -d hr-engine-api`. Después, cargarlo en la web sin que pase por la pantalla: `v=$(ssh … 'python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --clave-alta ~/vortex/.env' \| tr -d '\r\n') && printf '%s' "$v" \| vercel env add FLUVE_ALTA_SECRETO production --type secret; unset v`, desde la carpeta de la web enlazada a `vectorhrtech-web` y en dos tiempos por lo mismo que la fila `CAREER_SITE_KEY` (vercel.com/docs/cli/env, "Type"), y volver a desplegar la web. Mientras no coinciden, el alta responde 401 y la web muestra su agradecimiento de respaldo |
 | `RESTIC_PASSWORD` | `vortex run --rm respaldo key add`, después `key remove` de la vieja. Guardar la nueva en el gestor |
 | La llave de despliegue | Una nueva con `ssh-keygen`, `provisionar.sh` con la pública y el secret `VPS_SSH_KEY` |
 
