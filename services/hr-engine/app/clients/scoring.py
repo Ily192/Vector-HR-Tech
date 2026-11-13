@@ -2,8 +2,14 @@
 
 Migración (2026-09): `google.generativeai` está deprecado (el propio SDK emite
 aviso de fin de soporte) y `gemini-1.5-flash` es una generación retirada. Este
-módulo usa el SDK vigente **`google-genai`** (`from google import genai`) y
-`gemini-2.5-flash` como default.
+módulo usa el SDK vigente **`google-genai`** (`from google import genai`).
+
+Migración (2026-11): `gemini-2.5-flash` está deprecado (responde 404 a claves nuevas
+y desde el 2026-12-01 se redirige a 3.5 Flash-Lite). El default es
+`gemini-3.5-flash-lite`, al mismo precio. Gemini 3 razona con `thinking_level` y
+ya no acepta `temperature` ni `top_p`. Fuentes:
+https://ai.google.dev/gemini-api/docs/deprecations y
+https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6.
 
 Resiliencia:
 - Timeout explícito por request (`GEMINI_TIMEOUT_SECONDS`; el SDK lo toma en ms).
@@ -47,9 +53,12 @@ from app.domain.siguiente_paso import siguiente_paso
 from app.monitoring import hash_pii, logger
 from app.skills import load_skill
 
-#: Pricing USD por 1M tokens. Fuente: Google AI pricing (2026-09).
+#: Pricing USD por 1M tokens (nivel de pago, texto). La salida incluye el razonamiento.
+#: Fuente: https://ai.google.dev/gemini-api/docs/pricing (revisado el 2026-11-12).
 _PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     # modelo: (input, output)
+    "gemini-3.5-flash-lite": (0.30, 2.50),
+    "gemini-3.8-flash": (0.75, 3.75),
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
@@ -137,32 +146,53 @@ def reset_client_cache() -> None:
 
 
 def _generation_config(model: str) -> types.GenerateContentConfig:
+    # `temperature` y `top_p` solo para los 2.x: desde Gemini 3.5 Flash-Lite están
+    # deprecados, se ignoran y en generaciones futuras darán 400.
+    muestreo: dict[str, float] = (
+        {"temperature": 0.2, "top_p": 0.95} if model.startswith("gemini-2.") else {}
+    )
     return types.GenerateContentConfig(
         system_instruction=_system_instruction(),
         response_mime_type="application/json",
-        temperature=0.2,
-        top_p=0.95,
         max_output_tokens=1024,
         thinking_config=_thinking_config(model),
+        **muestreo,
     )
+
+
+_NIVELES = {
+    "minimal": types.ThinkingLevel.MINIMAL,
+    "low": types.ThinkingLevel.LOW,
+    "medium": types.ThinkingLevel.MEDIUM,
+    "high": types.ThinkingLevel.HIGH,
+}
 
 
 def _thinking_config(model: str) -> types.ThinkingConfig | None:
     """Cuánto razona el modelo antes de puntuar.
 
-    2.5 Flash razona por defecto ("dynamic thinking") y esos tokens se cobran como
-    salida y cuentan dentro de `max_output_tokens`: con 1024 puede agotarse
-    razonando y devolver el JSON cortado, cobrado igual. Se fija con
-    `SCORING_THINKING_BUDGET` (0 lo apaga). Los Gemini 3 usan `thinking_level` y no
-    aceptan este parámetro, y 2.5 Pro no permite apagarlo: con ellos se deja el
-    valor por defecto del modelo. Fuente: ai.google.dev/gemini-api/docs/thinking.
+    Los tokens de razonamiento se cobran como salida y cuentan dentro de
+    `max_output_tokens`: con 1024, mucho razonamiento puede dejar el JSON cortado y
+    cobrado igual.
+
+    - Gemini 3 (el default): `thinking_level` (`SCORING_THINKING_LEVEL`, "minimal").
+    - 2.5 Flash (solo si se configura a mano): `thinking_budget`
+      (`SCORING_THINKING_BUDGET`, 0 lo apaga). 2.5 Pro no permite apagarlo: con él se
+      deja el valor por defecto del modelo.
+
+    Fuente: https://ai.google.dev/gemini-api/docs/thinking ("Thinking levels").
     """
     if model.startswith("gemini-2.5-flash"):
         return types.ThinkingConfig(thinking_budget=settings.scoring_thinking_budget)
+    if model.startswith("gemini-2."):
+        return None
+    if model.startswith("gemini-"):
+        return types.ThinkingConfig(thinking_level=_NIVELES[settings.scoring_thinking_level])
     return None
 
 
-def _cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+    """USD de una llamada. `output_tokens` tiene que incluir los de razonamiento."""
     price_in, price_out = _PRICING_USD_PER_1M.get(model, _DEFAULT_PRICING)
     return (input_tokens / 1_000_000) * price_in + (output_tokens / 1_000_000) * price_out
 
@@ -238,7 +268,7 @@ async def _score_con_gemini(candidate: dict[str, Any], icp_text: str) -> Scoring
     # El razonamiento se cobra como salida aunque no venga en la respuesta.
     thinking_tokens = (usage.thoughts_token_count or 0) if usage else 0
     output_tokens = ((usage.candidates_token_count or 0) if usage else 0) + thinking_tokens
-    cost = _cost_usd(model_name, input_tokens, output_tokens)
+    cost = cost_usd(model_name, input_tokens, output_tokens)
     logger.debug(
         "scoring.score_candidate_fit",
         candidate_ref=candidate_ref,
@@ -303,7 +333,7 @@ async def _score_con_openai(candidate: dict[str, Any], icp_text: str) -> Scoring
         response=parsed,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        cost_usd=_cost_usd(model_name, input_tokens, output_tokens),
+        cost_usd=cost_usd(model_name, input_tokens, output_tokens),
         model=model_name,
     )
 

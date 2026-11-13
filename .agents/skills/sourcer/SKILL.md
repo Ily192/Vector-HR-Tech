@@ -1,6 +1,6 @@
 ---
 name: sourcer
-version: 0.1.1
+version: 0.1.2
 description: Encuentra y rankea candidatos según el ICP del HRBP. Devuelve top-N con score 0-10, rationale y gaps.
 owner: Vortex Ops · HR engine
 domain: hr
@@ -20,7 +20,7 @@ outputs:
 models:
   # Tiene que coincidir con DEFAULT_SCORING_MODEL del hr-engine. Sin fallback:
   # el código no tiene ninguno. Lo vigila services/hr-engine/tests/unit/test_skills.py.
-  default: gemini-2.5-flash
+  default: gemini-3.5-flash-lite
 # Sin tope: fase de medición de costes (2026-10). Ver ENFORCE_RUN_COST_CAP
 # y services/hr-engine/scripts/informe_costes.py.
 cost_cap_usd: null
@@ -109,11 +109,13 @@ sources: ["internal"]
 
 - Input tokens promedio: ~2,500 (vacante + ICP + 50 perfiles top-K).
 - Output tokens promedio: ~800 (50 candidatos × 16 tokens).
-- Costo: ~$0.0007/run, estimado con Gemini 1.5 Flash, ya retirado. Pendiente de re-medir con 2.5 Flash.
+- Costo: ~$0.0007/run, estimado con Gemini 1.5 Flash, ya retirado. Pendiente de re-medir con 3.5 Flash-Lite.
 - Costo embedding inicial: ~$0.0001 si vacante no embeddida.
 
 ## Changelog
 
+- **0.1.2 (2026-11-12):** modelo `gemini-2.5-flash` (deprecado, se apaga el 2026-12-01) →
+  `gemini-3.5-flash-lite`, el mismo del hr-engine.
 - **0.1.1 (2026-10-05):** modelo `gemini-1.5-flash` (retirado) → `gemini-2.5-flash`, fuera el
   fallback que el código no tiene, y la regla 7: la puntuación usa las reglas de `cv-evaluator`.
 - **0.1.0 (2026-05-08):** initial skill, internal source only.

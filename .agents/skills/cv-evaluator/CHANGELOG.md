@@ -3,6 +3,10 @@
 Va aparte del SKILL.md porque el cuerpo de ese fichero es el prompt: lo que se
 escriba ahí lo lee el modelo.
 
+- **0.3.1 (2026-11-12):** modelo `gemini-2.5-flash` (deprecado: responde 404 a claves
+  nuevas y desde el 2026-12-01 se redirige) → `gemini-3.5-flash-lite`, al mismo precio.
+  Razona con `thinking_level` minimal y ya no recibe `temperature` ni `top_p`. El cuerpo
+  (el prompt) no cambia.
 - **0.3.0 (2026-10-20):** el plan de pago evalúa el texto del CV, anonimizado por el
   hr-engine (ADR-021), contra el perfil completo de la vacante: puesto, nivel,
   modalidad, ubicación, skills y descripción. Explica las marcas `[nombre]`, `[correo]`,
