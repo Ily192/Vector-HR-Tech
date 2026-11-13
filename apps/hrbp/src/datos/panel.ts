@@ -44,6 +44,9 @@ export const eliminarVacante = async (vacanteId: string) =>
 export const obtenerPipeline = async (vacanteId: string) =>
   (await adaptador()).obtenerPipeline(vacanteId);
 
+export const marcarPostulacionesVistas = async (vacanteId: string) =>
+  (await adaptador()).marcarPostulacionesVistas(vacanteId);
+
 export const obtenerResumenCockpit = async () => (await adaptador()).obtenerResumenCockpit();
 
 export const descartar = async (aplicacionId: string, motivo: string) =>

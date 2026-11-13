@@ -7,6 +7,7 @@ import { anchoRelativo } from "../cockpit/embudo";
 import {
   useDescargarCvs,
   useDescartar,
+  useMarcarPostulacionesVistas,
   usePipeline,
   useRegistrarInteres,
 } from "../datos/consultas";
@@ -372,7 +373,8 @@ function Etapas({ pipeline }: { pipeline: PipelineDeVacante }) {
 
 /** Los aplicados de una vacante, con la descarga de todos sus CVs. */
 export function Pipeline({ vacanteId }: { vacanteId: string }) {
-  const { data: pipeline, isPending } = usePipeline(vacanteId);
+  const { data: pipeline, isPending, dataUpdatedAt } = usePipeline(vacanteId);
+  useMarcarPostulacionesVistas(vacanteId, pipeline ? dataUpdatedAt : 0);
   const descarga = useDescargarCvs();
 
   if (isPending) return null;

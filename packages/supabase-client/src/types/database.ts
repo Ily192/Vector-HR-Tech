@@ -307,6 +307,14 @@ export interface Database {
         Args: { p_origen: "pipeline" | "crear-empleo" };
         Returns: undefined;
       };
+      /**
+       * La empresa abrió las postulaciones de la vacante (0020, ADR-023). La empresa
+       * sale del JWT: con una vacante de otra no marca nada y devuelve false.
+       */
+      marcar_postulaciones_vistas: {
+        Args: { p_vacante: string };
+        Returns: boolean;
+      };
       submit_psicometrico: {
         Args: {
           p_token: string;

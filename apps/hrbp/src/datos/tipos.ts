@@ -311,6 +311,11 @@ export interface AdaptadorDelPanel {
   publicarVacante(borrador: BorradorDeVacante): Promise<ResultadoDePublicar>;
   eliminarVacante(vacanteId: string): Promise<void>;
   obtenerPipeline(vacanteId: string): Promise<PipelineDeVacante | null>;
+  /**
+   * La empresa abrió las postulaciones de la vacante (0020, ADR-023): lo que llegó
+   * antes ya no cuenta para el recordatorio de postulados sin revisar.
+   */
+  marcarPostulacionesVistas(vacanteId: string): Promise<void>;
   /** El "hoy" del cockpit; `null` si el plan de la empresa no lo tiene. */
   obtenerResumenCockpit(): Promise<ResumenCockpit | null>;
   /** Una persona descarta una aplicación y deja el motivo (ADR-021 §4). */

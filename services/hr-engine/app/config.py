@@ -180,6 +180,15 @@ class Settings(BaseSettings):
     # barrido, cada minuto).
     moderacion_max_intentos_ia: int = Field(default=5, ge=1, le=60)
 
+    # ─── Recordatorio de postulados sin revisar (ADR-023) ─
+    # Con más de `umbral` sin revisar, un correo `horas_de_espera` después de que llegó
+    # el que lo cruzó, si la empresa no entró a verlos. El enlace va a PANEL_URL.
+    recordatorio_umbral: int = Field(default=5, ge=1, le=100)
+    recordatorio_horas_de_espera: float = Field(default=24.0, gt=0)
+    # Correos de recordatorio en 24 horas, como mucho. Los 100 de Resend gratis son
+    # también los de los códigos de acceso de Auth, que van primero. 0 = apagado.
+    recordatorio_max_24h: int = Field(default=20, ge=0, le=100)
+
     # ─── SMTP (el mismo de Auth: Resend) ─────────────────
     # Vacío = no se manda correo (desarrollo).
     smtp_host: str = ""

@@ -11,6 +11,7 @@ import {
   eliminarVacante,
   entrar,
   listarMisVacantes,
+  marcarPostulacionesVistas,
   obtenerPipeline,
   obtenerResumenCockpit,
   obtenerSesion,
@@ -58,6 +59,19 @@ export const useMisVacantes = () =>
 
 export const usePipeline = (vacanteId: string) =>
   useQuery({ queryKey: CLAVES.pipeline(vacanteId), queryFn: () => obtenerPipeline(vacanteId) });
+
+/**
+ * Cada vez que llegan las postulaciones de la vacante a la pantalla, la base anota
+ * que la empresa las vio (0020, ADR-023): así el recordatorio de postulados sin
+ * revisar no le avisa de lo que ya revisó. `cargadaEn` es el `dataUpdatedAt` de la
+ * consulta, o 0 si todavía no hay datos. Si falla, la pantalla sigue igual: lo peor
+ * es un recordatorio de más.
+ */
+export function useMarcarPostulacionesVistas(vacanteId: string, cargadaEn: number) {
+  useEffect(() => {
+    if (cargadaEn > 0) void marcarPostulacionesVistas(vacanteId).catch(() => {});
+  }, [vacanteId, cargadaEn]);
+}
 
 export const useResumenCockpit = () =>
   useQuery({ queryKey: CLAVES.cockpit, queryFn: obtenerResumenCockpit });

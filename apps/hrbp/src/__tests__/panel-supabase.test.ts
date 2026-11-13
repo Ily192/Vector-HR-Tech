@@ -777,6 +777,18 @@ describe("pipeline", () => {
     });
   });
 
+  it("abrir las postulaciones las marca como vistas en la rpc de 0020", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/rpc/marcar_postulaciones_vistas" ? { filas: true } : undefined,
+    );
+    await adaptador.marcarPostulacionesVistas(VACANTE);
+    // Lo que no es un uuid no llega a la base, como en obtenerPipeline.
+    await adaptador.marcarPostulacionesVistas("coordinador-de-almacen");
+    expect(peticiones.map((p) => [p.metodo, p.ruta, p.cuerpo])).toEqual([
+      ["POST", "/rest/v1/rpc/marcar_postulaciones_vistas", { p_vacante: VACANTE }],
+    ]);
+  });
+
   it("el interés en la IA va a la rpc de 0013", async () => {
     const { adaptador, peticiones } = clienteDePrueba((p) =>
       p.ruta === "/rest/v1/rpc/registrar_interes_en_ia" ? { estado: 204 } : undefined,

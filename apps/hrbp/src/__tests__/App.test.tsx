@@ -1,6 +1,7 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { postulacionesVistasDelEjemplo } from "../datos/panel-ejemplo";
 import { montarPanel } from "../test/montar";
 
 // El primer render del archivo arranca en frío: en la CI llegó a tardar 1,2 s, más que
@@ -155,6 +156,19 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(
       await screen.findByText("Con datos de ejemplo no hay CVs que bajar."),
     ).toBeInTheDocument();
+  });
+
+  it("abrir las postulaciones las marca como vistas; Mis vacantes no (ADR-023)", async () => {
+    montarPanel("/vacantes");
+    await screen.findByText("Analista de inventarios");
+    expect(postulacionesVistasDelEjemplo()).toEqual([]);
+    cleanup();
+
+    montarPanel("/vacantes/coordinador-de-almacen");
+    expect(await encabezado()).toHaveTextContent("Coordinador de almacén");
+    await waitFor(() =>
+      expect(postulacionesVistasDelEjemplo()).toEqual(["coordinador-de-almacen"]),
+    );
   });
 
   it("las skills se agregan con Enter o coma, se quitan y llegan a la vacante", async () => {
