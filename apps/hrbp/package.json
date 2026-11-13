@@ -14,7 +14,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.46.0",
     "@tanstack/react-query": "^5.59.0",
-    "@tanstack/react-router": "^1.81.0",
+    "@tanstack/react-router": "^1.170.46",
     "@fluveai/design-tokens": "workspace:*",
     "@fluveai/supabase-client": "workspace:*",
     "@fluveai/types": "workspace:*",
