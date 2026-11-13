@@ -25,7 +25,7 @@ const GRUPOS: { modulo: Modulo; titulo: string; entradas: EntradaDelMenu[] }[] =
   },
   {
     modulo: "career-site",
-    titulo: "Career site",
+    titulo: "Bolsa de empleo",
     entradas: [
       { seccion: "mis-vacantes", href: "/vacantes", texto: "Mis vacantes", icono: Briefcase },
       { seccion: "crear-empleo", href: "/vacantes/nueva", texto: "Crear empleo", icono: Plus },

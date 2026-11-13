@@ -24,13 +24,13 @@ export function InsigniaDeModeracion({ moderacion }: { moderacion: Moderacion })
 
 const EXPLICACION: Record<Exclude<Moderacion, "publicada">, string> = {
   pendiente:
-    "La estamos revisando. Si no tiene señales de riesgo, aparece en el career site en un minuto.",
+    "La estamos revisando. Si no tiene señales de riesgo, aparece en la bolsa de empleo en un minuto.",
   en_revision:
-    "Una persona de Vector HR la revisa antes de publicarla. Mientras tanto no aparece en el career site.",
+    "Una persona de Vector HR la revisa antes de publicarla. Mientras tanto no aparece en la bolsa de empleo.",
   rechazada:
     "No la publicamos. Elimínala y publícala de nuevo con los cambios: una vacante rechazada no cuenta en tu cupo.",
   oculta:
-    "La ocultamos porque varias personas la reportaron desde el career site. Vector HR la revisa.",
+    "La ocultamos porque varias personas la reportaron desde la bolsa de empleo. Vector HR la revisa.",
 };
 
 /** Por qué no está en el career site y, si se rechazó, qué corregir. */
@@ -74,8 +74,8 @@ export function AvisoDeModeracion({
 export function AvisoDeReclutador() {
   return (
     <output className="block rounded-2xl bg-aqua-50 p-4 text-sm text-aqua-700">
-      Como reclutador(a) independiente, Vector HR revisa cada vacante antes de publicarla. En el
-      career site sale a tu nombre, con tu LinkedIn.
+      Como reclutador(a) independiente, Vector HR revisa cada vacante antes de publicarla. En la
+      bolsa de empleo sale a tu nombre, con tu LinkedIn.
     </output>
   );
 }
@@ -83,6 +83,6 @@ export function AvisoDeReclutador() {
 /** El texto de la lista vacía de aplicados, según si la vacante ya está publicada. */
 export function sinAplicaciones(moderacion: Moderacion): string {
   return moderacion === "publicada"
-    ? "Todavía no hay aplicaciones. La vacante ya está en el career site."
-    : "Todavía no hay aplicaciones: la vacante aún no está en el career site.";
+    ? "Todavía no hay aplicaciones. La vacante ya está en la bolsa de empleo."
+    : "Todavía no hay aplicaciones: la vacante aún no está en la bolsa de empleo.";
 }

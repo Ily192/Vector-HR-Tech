@@ -45,6 +45,8 @@ type Generated =
   | "created_at"
   | "updated_at"
   | "applied_at"
+  // Con default en la base (0001: 'USD'). El panel la manda solo si la empresa la eligió.
+  | "currency"
   // Con default en la base (0007 a 0010).
   | "plan"
   | "tamano_empleados"
