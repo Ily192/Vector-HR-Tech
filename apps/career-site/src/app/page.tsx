@@ -25,9 +25,9 @@ const PASOS = [
     textoClase: "text-[#C9CCF2]",
   },
   {
-    eyebrow: "02 · Seguimiento",
-    titulo: "Sabes en qué va",
-    texto: "Te avisamos por correo cuando tu aplicación cambia de estado.",
+    eyebrow: "02 · Contacto",
+    titulo: "La empresa te escribe",
+    texto: "Tu CV llega directo a la empresa. Si avanzas, te escribe al correo que dejaste.",
     clases: "bg-aqua-50",
     eyebrowClase: "text-aqua-700",
     textoClase: "text-aqua-800",
@@ -59,7 +59,7 @@ export default async function Home() {
             <em className="font-extrabold text-aqua-300">con el salario a la vista.</em>
           </h1>
           <p className="max-w-xl text-lg text-[#C9CCF2]">
-            Aplica en dos minutos y sigue el estado de cada aplicación desde tu correo.
+            Aplica en dos minutos y tu CV llega directo a la empresa que publica.
           </p>
           <div className="mt-2">
             <Buscador />
