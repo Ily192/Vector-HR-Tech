@@ -1,6 +1,6 @@
-import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@vortex/types/etiquetas";
-import { ETAPAS_DEL_PIPELINE, type EtapaDelPipeline } from "@vortex/types/reglas";
-import { Badge, buttonVariants } from "@vortex/ui";
+import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@fluveai/types/etiquetas";
+import { ETAPAS_DEL_PIPELINE, type EtapaDelPipeline } from "@fluveai/types/reglas";
+import { Badge, buttonVariants } from "@fluveai/ui";
 import { Plus } from "lucide-react";
 
 import { anchoRelativo, conversion } from "../cockpit/embudo";

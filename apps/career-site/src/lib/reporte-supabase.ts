@@ -8,7 +8,7 @@
  */
 import "server-only";
 
-import { createCareerSiteClient } from "@vortex/supabase-client";
+import { createCareerSiteClient } from "@fluveai/supabase-client";
 
 import { verificarHumano } from "./aplicacion-supabase";
 import type { PuertosDeReporte, RespuestaDeReportar } from "./reporte";

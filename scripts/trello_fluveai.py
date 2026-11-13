@@ -1,11 +1,11 @@
-"""Tablero Trello de Vortex Ops en Scrumban: llenarlo y operarlo a medida que avanzan los PRs.
+"""Tablero Trello de Fluve AI en Scrumban: llenarlo y operarlo a medida que avanzan los PRs.
 
 Uso (desde la raiz del repo):
-  python scripts/trello_vortex.py poblar     llena el tablero (tiene que estar sin tarjetas)
-  python scripts/trello_vortex.py estado
-  python scripts/trello_vortex.py mover     "<parte del nombre de la tarjeta>" "<parte del nombre de la lista>"
-  python scripts/trello_vortex.py comentar  "<parte del nombre de la tarjeta>" "<texto>"
-  python scripts/trello_vortex.py adjuntar  "<parte del nombre de la tarjeta>" <url-o-ruta> [nombre]
+  python scripts/trello_fluveai.py poblar     llena el tablero (tiene que estar sin tarjetas)
+  python scripts/trello_fluveai.py estado
+  python scripts/trello_fluveai.py mover     "<parte del nombre de la tarjeta>" "<parte del nombre de la lista>"
+  python scripts/trello_fluveai.py comentar  "<parte del nombre de la tarjeta>" "<texto>"
+  python scripts/trello_fluveai.py adjuntar  "<parte del nombre de la tarjeta>" <url-o-ruta> [nombre]
 
 Tablero: https://trello.com/b/Vxsv1fn7/vortexhr (se cambia con TRELLO_BOARD=<id o shortLink>).
 Credenciales: TRELLO_KEY y TRELLO_TOKEN en var-local.env (raiz del repo, ignorado por git).
@@ -55,7 +55,7 @@ ENV = _env()
 KEY, TOKEN = ENV.get("TRELLO_KEY"), ENV.get("TRELLO_TOKEN")
 BOARD_REF = ENV.get("TRELLO_BOARD", "Vxsv1fn7")
 BOARD_DESC = (
-    "Desarrollo de Vortex Ops (Vector HR Tech). Scrumban: flujo Kanban con límites de "
+    "Desarrollo de Fluve AI (Vector HR Tech). Scrumban: flujo Kanban con límites de "
     "trabajo en curso + sprints de dos semanas. Cada tarjeta es un PR. Reglas en la lista 📌."
 )
 
@@ -424,7 +424,7 @@ TARJETAS: list[dict] = [
         "nombre": "[S1] chore(pm): tablero de Trello como código",
         "labels": [PLAT],
         "desc": d("""
-            `scripts/trello_vortex.py` llena este tablero y lo opera: `estado`, `mover`, `comentar` y `adjuntar`. Lee las credenciales de `var-local.env` y nunca las imprime.
+            `scripts/trello_fluveai.py` llena este tablero y lo opera: `estado`, `mover`, `comentar` y `adjuntar`. Lee las credenciales de `var-local.env` y nunca las imprime.
 
             Rama `chore/trello-tablero` subida. La primera ejecución contra la API es su prueba.
         """),
@@ -512,9 +512,9 @@ TARJETAS: list[dict] = [
         "nombre": "[S2] chore(skills): SKILL.md de producto alineados con el estándar Agent Skills",
         "labels": [AGENTES, S2],
         "desc": d("""
-            Las skills de Vortex usan 8 campos fuera del estándar y el validador oficial las rechaza. `skills-sdk` no tiene consumidores, y ADR-006 promete `evals/`, `SKILL.md.tmpl` y `README.md` por skill que no existen.
+            Las skills de Fluve AI usan 8 campos fuera del estándar y el validador oficial las rechaza. `skills-sdk` no tiene consumidores, y ADR-006 promete `evals/`, `SKILL.md.tmpl` y `README.md` por skill que no existen.
 
-            Campos propios a `metadata` o a un sidecar `agents/vortex.yaml`, como ya existe `agents/openai.yaml`.
+            Campos propios a `metadata` o a un sidecar `agents/fluveai.yaml`, como ya existe `agents/openai.yaml`.
         """),
     },
     {

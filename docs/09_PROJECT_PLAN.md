@@ -100,7 +100,7 @@ Q4 (sem 37-48):   Enterprise tier + SSO/SAML + 25 clientes + $20k MRR
 1. **HR onboarding completo:** scheduler + interviewer + onboarder + constancia generator.
 2. **Multi-canal:** WhatsApp Business API + Telegram.
 3. **Sales-engine slim:** integrar SDR-prospection multi-tenant.
-4. **Org Chart Vortex:** UI mirror de Paperclip.
+4. **Org Chart Fluve AI:** UI mirror de Paperclip.
 
 **Apuesta:** #1 + #2 (HR completo + WhatsApp). Sales y orgchart se quedan en backlog priorizado.
 
@@ -133,7 +133,7 @@ Q4 (sem 37-48):   Enterprise tier + SSO/SAML + 25 clientes + $20k MRR
 
 ### Entregables
 
-- `services/sales-engine/` con todos los workers de SDR-prospection migrados a estructura Vortex (multi-tenant).
+- `services/sales-engine/` con todos los workers de SDR-prospection migrados a estructura Fluve AI (multi-tenant).
 - Skills `hunter`, `outreach`, `closer`.
 - UI: dashboard Sales en `apps/hrbp/sales/`.
 - Bundle pricing Pro+ con Sales activo.

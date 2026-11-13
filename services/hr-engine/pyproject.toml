@@ -1,7 +1,7 @@
 [project]
-name = "vortex-hr-engine"
+name = "fluveai-hr-engine"
 version = "0.1.0"
-description = "Vortex Ops · HR execution engine (FastAPI + Celery)"
+description = "Fluve AI · HR execution engine (FastAPI + Celery)"
 requires-python = ">=3.12"
 authors = [{ name = "Vector HR Tech", email = "ilyra.rivas@wearesiete.com" }]
 dependencies = [

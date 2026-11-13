@@ -1,4 +1,4 @@
-# @vortex/hrbp
+# @fluveai/hrbp
 
 El panel de la empresa: una SPA con Vite y React 19, desplegada en Vercel. Lo que ve cada empresa depende de los módulos de su plan ([ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md)):
 
@@ -12,9 +12,9 @@ Con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` el panel lee Supabase 
 Desde la raíz del monorepo:
 
 ```bash
-pnpm --filter @vortex/hrbp dev        # http://localhost:3001
-pnpm --filter @vortex/hrbp test       # Vitest + Testing Library
-pnpm --filter @vortex/hrbp build      # tsc -b + vite build
+pnpm --filter @fluveai/hrbp dev        # http://localhost:3001
+pnpm --filter @fluveai/hrbp test       # Vitest + Testing Library
+pnpm --filter @fluveai/hrbp build      # tsc -b + vite build
 pnpm exec size-limit                  # el bundle principal tiene un tope de 90 KB (brotli)
 ```
 
@@ -49,7 +49,7 @@ Ver [ADR-016](../../docs/adr/016-logica-de-negocio-fuera-de-la-ui.md).
 - **Indicadores del cockpit** (conteos, variaciones, % del tope, la decisión del día y el embudo): los calcula la base con `resumen_del_cockpit()` (migración 0016) y llegan con la forma de `ResumenCockpit` en `datos/tipos.ts`. El componente no suma nada; `cockpit/textos.ts` solo los pone en palabras.
 - **Límites del plan** (vacantes activas, publicaciones cada 30 días, aplicaciones por vacante, etapas habilitadas) y **números del gancho**: los aplica la base (migraciones 0008 y 0010; la dueña de las reglas es `domain/plan.py`) y llegan ya decididos en `datos/tipos.ts`. El adaptador de ejemplo los imita solo para que la demo se comporte como el producto.
 - **Módulos visibles**: `sesion.modulos`, que salen del plan de la empresa (`LIMITES_DEL_PLAN`, ADR-017).
-- **Etapas del embudo y su orden**: `ETAPAS_DEL_PIPELINE` de `@vortex/types/reglas`.
-- **Textos de estados, modalidades, niveles y siguiente paso**: `@vortex/types/etiquetas`.
-- **Formato de salario y de fechas**: `@vortex/ui` (`formatearSalario`, `haceCuanto`), el mismo que usa el career site.
-- **Importaciones**: se importa por subruta (`@vortex/types/reglas`, `/etiquetas`) y no desde la raíz, para no meter Zod en el bundle.
+- **Etapas del embudo y su orden**: `ETAPAS_DEL_PIPELINE` de `@fluveai/types/reglas`.
+- **Textos de estados, modalidades, niveles y siguiente paso**: `@fluveai/types/etiquetas`.
+- **Formato de salario y de fechas**: `@fluveai/ui` (`formatearSalario`, `haceCuanto`), el mismo que usa el career site.
+- **Importaciones**: se importa por subruta (`@fluveai/types/reglas`, `/etiquetas`) y no desde la raíz, para no meter Zod en el bundle.

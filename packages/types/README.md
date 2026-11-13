@@ -1,4 +1,4 @@
-# @vortex/types
+# @fluveai/types
 
 Tipos, esquemas Zod y reglas espejadas que comparten los frontends. Su contraparte en Python es el hr-engine.
 
@@ -6,13 +6,13 @@ Tipos, esquemas Zod y reglas espejadas que comparten los frontends. Su contrapar
 
 | Subruta | Qué tiene |
 |---|---|
-| `@vortex/types/hr` | Esquemas de vacante, candidato, aplicación, salida de `cv-evaluator` y `VacantePublica` (la fila de la vista pública) |
-| `@vortex/types/tenant` | Empresa, perfiles, roles y claims del JWT (ADR-015) |
-| `@vortex/types/sales` | Dominio del sales-engine |
-| `@vortex/types/reglas` | Reglas del backend que la UI muestra: `siguientePaso`, `UMBRALES_SIGUIENTE_PASO`, `ETAPAS_DEL_PIPELINE` |
-| `@vortex/types/etiquetas` | Texto en español de cada enum |
+| `@fluveai/types/hr` | Esquemas de vacante, candidato, aplicación, salida de `cv-evaluator` y `VacantePublica` (la fila de la vista pública) |
+| `@fluveai/types/tenant` | Empresa, perfiles, roles y claims del JWT (ADR-015) |
+| `@fluveai/types/sales` | Dominio del sales-engine |
+| `@fluveai/types/reglas` | Reglas del backend que la UI muestra: `siguientePaso`, `UMBRALES_SIGUIENTE_PASO`, `ETAPAS_DEL_PIPELINE` |
+| `@fluveai/types/etiquetas` | Texto en español de cada enum |
 
-`@vortex/types` (la raíz) reexporta todo. En el bundle de una SPA conviene importar por subruta: `reglas` y `etiquetas` no cargan Zod.
+`@fluveai/types` (la raíz) reexporta todo. En el bundle de una SPA conviene importar por subruta: `reglas` y `etiquetas` no cargan Zod.
 
 ## Contratos con el backend
 
@@ -32,6 +32,6 @@ Si cambias un límite o un umbral, cámbialo en el contrato y en los dos lados e
 - Todo lo que se exporta lleva TSDoc: qué es y quién es la dueña.
 
 ```bash
-pnpm --filter @vortex/types test
-pnpm --filter @vortex/types typecheck
+pnpm --filter @fluveai/types test
+pnpm --filter @fluveai/types typecheck
 ```

@@ -51,7 +51,7 @@ const estado = vi.hoisted(() => ({
 }));
 
 vi.mock("../lib/supabase", () => ({ supabaseConfigurado: () => true }));
-vi.mock("@vortex/supabase-client", () => {
+vi.mock("@fluveai/supabase-client", () => {
   const consulta = {
     select: () => consulta,
     order: () => consulta,

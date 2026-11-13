@@ -10,10 +10,10 @@ from app.config import Settings, settings
 PROD_OK: dict[str, object] = {
     "env": "production",
     "jwt_secret": "u" * 48,
-    "database_url": "postgresql+asyncpg://vortex:pw@db.internal.vortex:5432/vortex",
-    "redis_url": "redis://cache.internal.vortex:6379/0",
-    "cors_allow_origins": "https://app.vortex.io",
-    "rate_limit_storage_uri": "redis://cache.internal.vortex:6379/2",
+    "database_url": "postgresql+asyncpg://fluveai:pw@db.internal.fluveai:5432/fluveai",
+    "redis_url": "redis://cache.internal.fluveai:6379/0",
+    "cors_allow_origins": "https://app.fluveai.com",
+    "rate_limit_storage_uri": "redis://cache.internal.fluveai:6379/2",
 }
 
 
@@ -24,7 +24,7 @@ def _settings(**overrides: object) -> Settings:
 def test_production_config_is_valid_when_hardened() -> None:
     cfg = _settings()
     assert cfg.is_production
-    assert cfg.cors_origins == ["https://app.vortex.io"]
+    assert cfg.cors_origins == ["https://app.fluveai.com"]
 
 
 @pytest.mark.parametrize(
@@ -79,10 +79,10 @@ def test_sentry_dsn_legacy_alias_still_works(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_otel_endpoint_reads_standard_env_name(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otlp.vortex.io/v1/traces")
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://otlp.fluveai.com/v1/traces")
     monkeypatch.delenv("OTEL_ENDPOINT", raising=False)
     cfg = Settings(_env_file=None)
-    assert cfg.otel_exporter_otlp_endpoint == "https://otlp.vortex.io/v1/traces"
+    assert cfg.otel_exporter_otlp_endpoint == "https://otlp.fluveai.com/v1/traces"
 
 
 def test_conftest_env_reached_the_module_level_settings() -> None:

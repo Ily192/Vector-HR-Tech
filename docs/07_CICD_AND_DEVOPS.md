@@ -161,8 +161,8 @@ Runbook completo en `docs/runbooks/rollback.md`.
 
 ## 10. Versionado
 
-- **Semver** en paquetes (`@vortex/ui`, `@vortex/types`).
-- **CalVer** en producto (`vortex-ops-2026.05.0`).
+- **Semver** en paquetes (`@fluveai/ui`, `@fluveai/types`).
+- **CalVer** en producto (`fluveai-2026.05.0`).
 - **Changesets** para auto-changelog y bumps.
 
 ## 11. Cost monitoring

@@ -1,4 +1,4 @@
-"""Planes de Vortex y sus límites (ADR-017).
+"""Planes de Fluve AI y sus límites (ADR-017).
 
 El career site es el único módulo gratuito. A cambio de registrarse, la empresa
 publica vacantes sin costo, con tres límites:

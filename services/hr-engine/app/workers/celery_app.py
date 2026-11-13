@@ -10,7 +10,7 @@ from app.monitoring import init_monitoring, logger
 init_monitoring()
 
 celery_app = Celery(
-    "vortex_hr",
+    "fluveai_hr",
     broker=settings.redis_url,
     backend=settings.redis_url,
     include=[

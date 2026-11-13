@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { Wordmark } from "../wordmark";
 
 describe("Wordmark", () => {
-  it("por defecto renderiza la marca Vortex (VORTEX + OPS)", () => {
+  it("por defecto renderiza la marca Fluve AI (FLUVE + AI)", () => {
     render(<Wordmark />);
-    const wordmark = screen.getByLabelText("VORTEX OPS");
+    const wordmark = screen.getByLabelText("FLUVE AI");
     expect(wordmark).toBeInTheDocument();
-    expect(wordmark).toHaveTextContent("VORTEX");
-    expect(wordmark).toHaveTextContent("OPS");
+    expect(wordmark).toHaveTextContent("FLUVE");
+    expect(wordmark).toHaveTextContent("AI");
   });
 
   it('con brand="vector" renderiza VECTOR + HR TECH', () => {
@@ -20,18 +20,18 @@ describe("Wordmark", () => {
   });
 
   it("el aria-label describe la marca completa para lectores de pantalla", () => {
-    const { rerender } = render(<Wordmark brand="vortex" />);
-    expect(screen.getByLabelText("VORTEX OPS")).toBeInTheDocument();
+    const { rerender } = render(<Wordmark brand="fluve" />);
+    expect(screen.getByLabelText("FLUVE AI")).toBeInTheDocument();
 
     rerender(<Wordmark brand="vector" />);
     expect(screen.getByLabelText("VECTOR HR TECH")).toBeInTheDocument();
-    expect(screen.queryByLabelText("VORTEX OPS")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("FLUVE AI")).not.toBeInTheDocument();
   });
 
-  it("usa aqua como acento en Vortex y flame en Vector (tono claro por defecto)", () => {
-    const { rerender } = render(<Wordmark brand="vortex" />);
-    const acentoVortex = screen.getByLabelText("VORTEX OPS").querySelector("span:last-of-type");
-    expect(acentoVortex).toHaveClass("text-aqua-600");
+  it("usa aqua como acento en Fluve AI y flame en Vector (tono claro por defecto)", () => {
+    const { rerender } = render(<Wordmark brand="fluve" />);
+    const acentoFluve = screen.getByLabelText("FLUVE AI").querySelector("span:last-of-type");
+    expect(acentoFluve).toHaveClass("text-aqua-600");
 
     rerender(<Wordmark brand="vector" />);
     const acentoVector = screen.getByLabelText("VECTOR HR TECH").querySelector("span:last-of-type");
@@ -40,7 +40,7 @@ describe("Wordmark", () => {
 
   it("el acento es la firma de la marca: Figtree 800 en cursiva", () => {
     render(<Wordmark />);
-    const acento = screen.getByLabelText("VORTEX OPS").querySelector("span:last-of-type");
+    const acento = screen.getByLabelText("FLUVE AI").querySelector("span:last-of-type");
     expect(acento).toHaveClass("italic", "font-extrabold");
   });
 
@@ -51,23 +51,23 @@ describe("Wordmark", () => {
     ["xl", "text-6xl"],
   ] as const)('size="%s" mapea a %s', (size, expectedClass) => {
     render(<Wordmark size={size} />);
-    expect(screen.getByLabelText("VORTEX OPS")).toHaveClass(expectedClass);
+    expect(screen.getByLabelText("FLUVE AI")).toHaveClass(expectedClass);
   });
 
   it("por defecto usa el tamaño md", () => {
     render(<Wordmark />);
-    expect(screen.getByLabelText("VORTEX OPS")).toHaveClass("text-2xl");
+    expect(screen.getByLabelText("FLUVE AI")).toHaveClass("text-2xl");
   });
 
   it("mantiene la tipografía display en negra y el tracking apretado", () => {
     render(<Wordmark />);
-    const wordmark = screen.getByLabelText("VORTEX OPS");
+    const wordmark = screen.getByLabelText("FLUVE AI");
     expect(wordmark).toHaveClass("font-display", "font-black", "tracking-tighter");
   });
 
   it("fusiona className del consumidor pisando el tamaño", () => {
     render(<Wordmark className="text-8xl opacity-50" />);
-    const wordmark = screen.getByLabelText("VORTEX OPS");
+    const wordmark = screen.getByLabelText("FLUVE AI");
     expect(wordmark).toHaveClass("text-8xl", "opacity-50");
     expect(wordmark).not.toHaveClass("text-2xl");
   });

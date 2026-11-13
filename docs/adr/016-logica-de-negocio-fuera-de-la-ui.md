@@ -33,7 +33,7 @@ ningún test lo detecte.
    base de datos (RLS y vistas) para lo que es visibilidad. La UI no decide nada
    que cambie qué le pasa a un candidato, a una vacante o a una empresa.
 2. **Si la UI tiene que mostrar o anticipar una regla**, la usa desde
-   `@vortex/types`, nunca escrita en el componente:
+   `@fluveai/types`, nunca escrita en el componente:
    - `src/reglas.ts` contiene las reglas espejadas (`siguientePaso`,
      `UMBRALES_SIGUIENTE_PASO`, `ETAPAS_DEL_PIPELINE`);
    - cada regla espejada tiene un contrato JSON en `packages/types/contracts/`
@@ -45,7 +45,7 @@ ningún test lo detecte.
      `listarVacantes()` u `obtenerResumenCockpit()`.
    - Mientras no haya backend, esas funciones devuelven datos de ejemplo con la
      forma exacta de la respuesta real, validados con el esquema de
-     `@vortex/types` cuando existe. Cambiar a datos reales toca un solo fichero.
+     `@fluveai/types` cuando existe. Cambiar a datos reales toca un solo fichero.
    - Los cálculos de presentación (por ejemplo, el ancho de una barra) van en
      funciones puras con test, fuera del JSX.
 4. **Indicadores agregados** (conteos, variaciones, porcentajes) los calcula el
@@ -76,7 +76,7 @@ ningún test lo detecte.
 
 **Neutras:**
 
-- `@vortex/types` exporta subrutas (`/reglas`, `/etiquetas`, `/hr`) para que
+- `@fluveai/types` exporta subrutas (`/reglas`, `/etiquetas`, `/hr`) para que
   hrbp importe solo constantes y tipos, sin arrastrar Zod a su bundle.
 
 ## Alternatives considered

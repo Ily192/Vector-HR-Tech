@@ -1,4 +1,4 @@
-import { Button } from "@vortex/ui";
+import { Button } from "@fluveai/ui";
 import { MapPin, Search } from "lucide-react";
 import Form from "next/form";
 

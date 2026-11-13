@@ -12,7 +12,7 @@ de DigitalOcean (ver la enmienda de ADR-020); Ilyra eligió Contabo por tener m�
 Cloudflare (DNS, túnel, Turnstile y R2), Resend y UptimeRobot quedan en sus planes gratis
 mientras el volumen sea el del MVP.
 
-**El servidor es compartido.** Lo administra Andres y también corre Coolify. A Vortex le
+**El servidor es compartido.** Lo administra Andres y también corre Coolify. A Fluve AI le
 toca una cuenta sin root (`ilyra`): Docker sin root, sin sudo, topes de 6 GB de RAM, 4
 CPU y 30 GB de disco, y solo puertos desde el 20000. Lo de sistema (parches, fail2ban,
 ufw, swap, el demonio de Docker) es de Andres. Este runbook describe esa cuenta; en un
@@ -97,9 +97,9 @@ En el panel de Contabo (Cloud VPS):
 | Llave SSH | `contabo_vortex_ed25519.pub`, si el panel deja elegirla al crear o reinstalar |
 | Respaldo | Opcional: **Auto Backup** de Contabo (diario, 10 días). Es una segunda capa: el respaldo propio va a R2 |
 
-Anotar la IP pública. La de Vortex es `13.140.229.115`.
+Anotar la IP pública. La de Fluve AI es `13.140.229.115`.
 
-Este servidor es solo de Vortex (ADR-020): guarda CVs y no comparte máquina con los
+Este servidor es solo de Fluve AI (ADR-020): guarda CVs y no comparte máquina con los
 demás proyectos de Ilyra.
 
 ### 2. Acceso
@@ -386,7 +386,7 @@ lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
 
 ## Mantenimiento mensual (1 a 2 horas)
 
-1. **Sistema:** lo parcha Andres. Lo de Vortex son las imágenes: ver "Actualizar
+1. **Sistema:** lo parcha Andres. Lo de Fluve AI son las imágenes: ver "Actualizar
    versiones", y las alertas de seguridad de Node, Postgres y Supabase.
 2. **Respaldos:**
    - `journalctl --user -u vortex-respaldo --since "-7 days"`;
@@ -495,7 +495,7 @@ e2e (14 aplicaciones con CV) y una restauración:
 | **Total** | **2.3 GB** | **~0.85 GB** |
 
 Calculado para un servidor de 4 GB, con ~0.45 GB del sistema. En la cuenta de Contabo el
-tope es de 6 GB solo para Vortex, así que sobra:
+tope es de 6 GB solo para Fluve AI, así que sobra:
 
 - **Si todos llegaran a su tope a la vez:** queda ~1.2 GB libre, más 2 GB de swap.
 - **Uso real:** ~1.3 GB.
@@ -507,7 +507,7 @@ El career site (256 MB de tope, 54 MB medidos) salió de esta tabla con la enmie
 
 ## Servidor propio
 
-Si Vortex vuelve a un VPS solo suyo, con root (ADR-020 tal como se escribió), se usa
+Si Fluve AI vuelve a un VPS solo suyo, con root (ADR-020 tal como se escribió), se usa
 `provisionar.sh` en lugar de `preparar_cuenta.sh`:
 
 ```bash

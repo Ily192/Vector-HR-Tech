@@ -2,7 +2,7 @@ import type * as React from "react";
 import { cn } from "./utils";
 
 interface WordmarkProps extends React.HTMLAttributes<HTMLDivElement> {
-  brand?: "vector" | "vortex";
+  brand?: "vector" | "fluve";
   size?: "sm" | "md" | "lg" | "xl";
   /** Fondo sobre el que va: el acento cambia de tono para mantener el contraste. */
   tone?: "light" | "dark";
@@ -12,12 +12,12 @@ interface WordmarkProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * Wordmark de la marca v2 (docs/brand/branding-v2.md)
- *   "VORTEX" en Figtree 900 + "OPS" en Figtree 800 cursiva aqua
+ *   "FLUVE" en Figtree 900 + "AI" en Figtree 800 cursiva aqua
  *   "VECTOR" en Figtree 900 + "HR TECH" en Figtree 800 cursiva flame
  * Sobre tinta el acento va en aqua-300 / flame-500; sobre claro, en aqua-600 / flame-700.
  */
 export function Wordmark({
-  brand = "vortex",
+  brand = "fluve",
   size = "md",
   tone,
   withMark = false,
@@ -43,8 +43,8 @@ export function Wordmark({
       : tone === "light"
         ? "text-aqua-600"
         : "text-aqua-600 dark:text-aqua-300";
-  const primary = isVector ? "VECTOR" : "VORTEX";
-  const secondary = isVector ? "HR TECH" : "OPS";
+  const primary = isVector ? "VECTOR" : "FLUVE";
+  const secondary = isVector ? "HR TECH" : "AI";
 
   return (
     <div

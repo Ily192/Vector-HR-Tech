@@ -14,8 +14,8 @@ import type {
   Seniority,
   SiguientePaso,
   VacanteStatus,
-} from "@vortex/types/hr";
-import type { EtapaDelPipeline, Modulo } from "@vortex/types/reglas";
+} from "@fluveai/types/hr";
+import type { EtapaDelPipeline, Modulo } from "@fluveai/types/reglas";
 
 export type { Modulo };
 

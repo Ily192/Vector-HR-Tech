@@ -1,5 +1,5 @@
-import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@vortex/types/etiquetas";
-import { Button, buttonVariants, haceCuanto } from "@vortex/ui";
+import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@fluveai/types/etiquetas";
+import { Button, buttonVariants, haceCuanto } from "@fluveai/ui";
 import { Download, Lock } from "lucide-react";
 import { type FormEvent, useState } from "react";
 

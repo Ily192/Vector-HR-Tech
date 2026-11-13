@@ -46,7 +46,7 @@ export const ETAPAS_DEL_PIPELINE = [
 ] as const satisfies readonly ApplicationStatus[];
 export type EtapaDelPipeline = (typeof ETAPAS_DEL_PIPELINE)[number];
 
-/** Planes de Vortex. Viajan en el JWT como `app_metadata.plan` (ADR-017). */
+/** Planes de Fluve AI. Viajan en el JWT como `app_metadata.plan` (ADR-017). */
 export type Plan = "gratis" | "ia";
 /** Módulos que un plan habilita. Viajan como `app_metadata.modulos`. */
 export type Modulo = "career-site" | "cockpit";

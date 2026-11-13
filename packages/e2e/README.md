@@ -1,4 +1,4 @@
-# @vortex/e2e
+# @fluveai/e2e
 
 Dos suites de Playwright:
 
@@ -14,7 +14,7 @@ El flujo no corre en la CI: necesita Docker con Supabase y el hr-engine.
 Hace falta:
 - Docker Desktop y `pnpm db:start`.
 - El hr-engine con sus dependencias (`python -m uv sync` en `services/hr-engine`).
-- Chromium de Playwright (`pnpm --filter @vortex/e2e e2e:install`).
+- Chromium de Playwright (`pnpm --filter @fluveai/e2e e2e:install`).
 
 ```bash
 pnpm db:start

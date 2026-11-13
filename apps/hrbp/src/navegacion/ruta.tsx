@@ -35,7 +35,7 @@ export function resolverRuta(pathname: string): Ruta {
     : { pantalla: "pipeline", vacanteId: decodeURIComponent(segunda) };
 }
 
-const EVENTO_NAVEGAR = "vortex:navegar";
+const EVENTO_NAVEGAR = "fluveai:navegar";
 
 function suscribir(avisar: () => void) {
   window.addEventListener("popstate", avisar);

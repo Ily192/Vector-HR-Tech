@@ -1,4 +1,4 @@
-# Onboarding — Vortex Ops
+# Onboarding — Fluve AI
 
 Bienvenido. Esta guía te lleva de "repo recién clonado" a "primer commit verde" en ~30 minutos.
 
@@ -44,7 +44,7 @@ cp services/hr-engine/.env.example services/hr-engine/.env
 
 ```bash
 pnpm install
-pnpm tokens:build     # genera @vortex/design-tokens dist
+pnpm tokens:build     # genera @fluveai/design-tokens dist
 pnpm dev              # arranca apps en paralelo (career-site:3000, hrbp:3001)
 ```
 

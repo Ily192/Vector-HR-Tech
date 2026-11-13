@@ -4,7 +4,7 @@
 
 ## 1. Marca
 
-**Vector HR Tech** opera **Vortex Ops**.
+**Vector HR Tech** opera **Fluve AI**.
 
 - **Personalidad:** Autoridad + Rebeldía + Jovialidad.
 - **Slogan:** *"Hackeando la rutina, liberando el talento."*
@@ -67,7 +67,7 @@ Generada para escalas de UI completas (hover, disabled, error, success):
 **Reglas:**
 - Headers: Proxima Nova Black, tracking `-0.02em`.
 - Body: Lato Regular, line-height `1.6`.
-- "VORTEX OPS" como wordmark: Proxima Nova Black + Lato Bold Italic en "OPS".
+- "FLUVE AI" como wordmark: Proxima Nova Black + Lato Bold Italic en "AI".
 
 ## 5. Spacing, radii, shadows
 
@@ -165,7 +165,7 @@ Build genera:
 - `tokens.swift` / `tokens.kt` (futuro mobile)
 
 ```bash
-pnpm --filter @vortex/design-tokens build
+pnpm --filter @fluveai/design-tokens build
 ```
 
 ## 12. Wordmark y logo
@@ -177,8 +177,8 @@ VECTOR HR TECH
    blanco / dark        naranja vibrante
 
 
-VORTEX OPS
-══════════
+FLUVE AI
+════════
 [Proxima Nova Black] [Lato Bold Italic]
    blanco / dark        cian electric
 ```
@@ -186,8 +186,8 @@ VORTEX OPS
 Variantes en `packages/design-tokens/assets/`:
 - `logo-vector-hr-dark.svg` (sobre fondo claro)
 - `logo-vector-hr-light.svg` (sobre fondo dark)
-- `logo-vortex-ops-dark.svg`
-- `logo-vortex-ops-light.svg`
+- `logo-fluveai-dark.svg`
+- `logo-fluveai-light.svg`
 - `favicon.svg` (V mark)
 - `og-image.png` (1200×630 con slogan)
 

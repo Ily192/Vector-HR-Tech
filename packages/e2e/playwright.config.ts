@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Config Playwright de Vortex Ops.
+ * Config Playwright de Fluve AI.
  *
  * - `BASE_URL` definido  → se testea contra ese deploy (preview de Vercel, staging…)
  *   y Playwright NO levanta ningún servidor.
@@ -44,7 +44,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "pnpm --filter @vortex/career-site start",
+          command: "pnpm --filter @fluveai/career-site start",
           url: DEFAULT_BASE_URL,
           reuseExistingServer: !isCI,
           timeout: 120_000,

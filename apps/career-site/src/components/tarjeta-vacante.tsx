@@ -1,5 +1,5 @@
-import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@vortex/types/etiquetas";
-import type { VacantePublica } from "@vortex/types/hr";
+import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@fluveai/types/etiquetas";
+import type { VacantePublica } from "@fluveai/types/hr";
 import Link from "next/link";
 
 import { esNueva, formatearSalario, haceCuanto, iniciales } from "../lib/formato";

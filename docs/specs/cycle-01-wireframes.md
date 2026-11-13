@@ -1,6 +1,6 @@
 # Cycle 1 · Wireframes (markdown)
 
-> No usamos Figma para v0 (justifico: 1 dev FT, mejor invertir las horas en código). Estos wireframes en markdown son **suficientes para implementar** porque ya tenemos `@vortex/ui` + `@vortex/design-tokens` y referencias visuales en `apps/career-site/src/app/page.tsx` y `apps/hrbp/src/App.tsx`.
+> No usamos Figma para v0 (justifico: 1 dev FT, mejor invertir las horas en código). Estos wireframes en markdown son **suficientes para implementar** porque ya tenemos `@fluveai/ui` + `@fluveai/design-tokens` y referencias visuales en `apps/career-site/src/app/page.tsx` y `apps/hrbp/src/App.tsx`.
 >
 > Cuando haya recursos para diseño dedicado (post-Cycle 4), migrar a Figma con design tokens conectados via Tokens Studio.
 
@@ -24,7 +24,7 @@ Layout (mobile-first, container `max-w-2xl`):
 
 ```
 ┌──────────────────────────────────────────┐
-│ Wordmark Vortex                          │
+│ Wordmark Fluve AI                        │
 ├──────────────────────────────────────────┤
 │ ← Volver a la vacante                    │
 │                                          │
@@ -57,7 +57,7 @@ Layout (mobile-first, container `max-w-2xl`):
 
 **Comportamiento:**
 
-1. Validación client-side con Zod (`@vortex/types::ApplicationCreateSchema` — agregar).
+1. Validación client-side con Zod (`@fluveai/types::ApplicationCreateSchema` — agregar).
 2. Upload del CV a Supabase Storage bucket `cvs/` con path `{empresa_id}/{candidato_id}/{file.ext}`. RLS: anon puede insert solo en su propio path.
 3. Post: crear `candidatos` + `applications` row (status='applied'). Server Action de Next 16.
 4. Tras submit → redirect a `/aplicar/success?token={magic_link}` con magic link al portal candidato.
@@ -91,7 +91,7 @@ Layout (mobile-first, container `max-w-2xl`):
 
 ```
 ┌──────────────────────────────────────────┐
-│ Wordmark Vortex · avatar candidato · ⌄   │
+│ Wordmark Fluve AI · avatar candidato · ⌄ │
 ├──────────────────────────────────────────┤
 │ # Hola, {full_name} 👋                   │
 │ Estas son tus aplicaciones activas.      │

@@ -10,7 +10,7 @@
 El test psicométrico es uno de los pasos del HR pipeline. Existe ya como HTML estático en `Test-psicometricos/` del Portafolio. Opciones:
 
 1. **Embeber como iframe** — el HTML legacy se sirve desde Supabase Storage o desde `apps/candidate/public/test/index.html`, el portal le pasa el token vía query string.
-2. **Reescribir como React component nativo** — pull questions desde Supabase, render con `@vortex/ui`, persistir respuestas con RLS.
+2. **Reescribir como React component nativo** — pull questions desde Supabase, render con `@fluveai/ui`, persistir respuestas con RLS.
 
 Opción 1 es ~1h. Opción 2 es ~10-15h (mantener escala + scoring + branching logic + persistencia + tests).
 

@@ -39,7 +39,7 @@ Las dependencias apuntan hacia adentro: Infrastructure → Application → Domai
 - **No se refactoriza todo a la vez.** Se empieza por el caso de uso más valioso y se usa como plantilla para los demás.
 - **No se crea una abstracción sin un segundo uso previsible.**
 
-## Mapa de referencia para este repo (Vortex Ops)
+## Mapa de referencia para este repo (Fluve AI)
 
 ```
 services/hr-engine/app/

@@ -1,5 +1,5 @@
-import { ETIQUETA_MODALIDAD } from "@vortex/types/etiquetas";
-import { Badge, Button, buttonVariants, cn, haceCuanto } from "@vortex/ui";
+import { ETIQUETA_MODALIDAD } from "@fluveai/types/etiquetas";
+import { Badge, Button, buttonVariants, cn, haceCuanto } from "@fluveai/ui";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 

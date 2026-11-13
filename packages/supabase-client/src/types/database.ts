@@ -2,7 +2,7 @@
  * Tipos de la base — PLACEHOLDER escrito a mano.
  *
  * Cuando exista el Supabase Cloud project, regenerar con:
- *   pnpm --filter @vortex/supabase-client gen:types
+ *   pnpm --filter @fluveai/supabase-client gen:types
  *
  * (requiere `supabase` CLI + `SUPABASE_PROJECT_REF` env).
  *
@@ -10,7 +10,7 @@
  * apps tengan tipos básicos en sus consultas. Es **manual y puede divergir** —
  * cualquier query que falle en runtime indica que hay que regenerar.
  *
- * Cobertura actual: las 5 tablas del core HR que `@vortex/types` ya modela,
+ * Cobertura actual: las 5 tablas del core HR que `@fluveai/types` ya modela,
  * más la vista pública, las funciones del flujo de test psicométrico y el cupo
  * del plan (0008). Las
  * tablas de auditoría y las de 0002/0004 (`runs`, `activity_log`,
@@ -29,7 +29,7 @@ import type {
   Vacante,
   VacantePublica,
   VacanteStatus,
-} from "@vortex/types";
+} from "@fluveai/types";
 
 // Cada tabla y vista declara `Relationships`: postgrest-js 2.116 lo exige en su
 // `GenericSchema`, y sin él toda consulta tipada salía como `never`.
@@ -80,7 +80,7 @@ type Update<T> = Partial<Omit<T, "id" | "empresa_id">>;
  * Proyección pública de `vacantes` (0004, 0007 y 0008): sin ICP ni `empresa_id`
  * —publicar los uuids de tenant daba a cualquiera la lista de objetivos a los
  * que apuntar—, con el salario solo si la empresa lo publica y `cupo_completo`.
- * La forma vive en `@vortex/types` (`VacantePublicaSchema`).
+ * La forma vive en `@fluveai/types` (`VacantePublicaSchema`).
  */
 export type { VacantePublica };
 

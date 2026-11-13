@@ -32,7 +32,7 @@ _LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "host.docker.internal")
 
 
 class Settings(BaseSettings):
-    """Vortex hr-engine settings. Env > .env > defaults."""
+    """Fluve AI hr-engine settings. Env > .env > defaults."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     jwt_leeway_seconds: int = 10
 
     # ─── HTTP / CORS ─────────────────────────────────────
-    # CSV de orígenes permitidos. Ej: "https://app.vortex.io,https://admin.vortex.io".
+    # CSV de orígenes permitidos. Ej: "https://panel.vectorhrtech.com,https://empleos.vectorhrtech.com".
     cors_allow_origins: str = "http://localhost:3000,http://localhost:3001"
     cors_allow_credentials: bool = True
 

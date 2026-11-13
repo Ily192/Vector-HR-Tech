@@ -39,7 +39,7 @@ SEED_FILE = _REPO_ROOT / "infra" / "supabase" / "seed.sql"
 def _asyncpg_dsn() -> str:
     raw = os.environ.get(
         "DATABASE_URL",
-        "postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test",
+        "postgresql+asyncpg://fluveai:fluveai@localhost:5432/fluveai_test",
     )
     return raw.replace("postgresql+asyncpg://", "postgresql://")
 

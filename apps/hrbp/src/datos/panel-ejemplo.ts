@@ -9,14 +9,14 @@
  *
  * `?plan=ia` en la URL de entrada muestra el panel con los servicios de IA.
  */
-import type { EtapaDelPipeline } from "@vortex/types/reglas";
+import type { EtapaDelPipeline } from "@fluveai/types/reglas";
 import {
   ETAPAS_DEL_PIPELINE,
   LIMITES_DEL_PLAN,
   VENTANA_DE_PUBLICACIONES_DIAS,
   limiteDeVacantes,
   siguientePaso,
-} from "@vortex/types/reglas";
+} from "@fluveai/types/reglas";
 
 import type {
   AdaptadorDelPanel,

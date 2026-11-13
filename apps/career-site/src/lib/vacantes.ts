@@ -17,8 +17,8 @@
  */
 import "server-only";
 
-import { createPublicClient } from "@vortex/supabase-client";
-import { type VacantePublica, VacantePublicaSchema } from "@vortex/types/hr";
+import { createPublicClient } from "@fluveai/supabase-client";
+import { type VacantePublica, VacantePublicaSchema } from "@fluveai/types/hr";
 import { cache } from "react";
 
 import type { FiltrosVacantes } from "./filtros";

@@ -48,7 +48,7 @@ estructurales nuevas), migraciones 0001-0006 aplicadas desde cero sin errores.
 
 ## Ruta y pendientes (desde la sesión 6)
 
-La lista de trabajo vive en el tablero de Trello **https://trello.com/b/Vxsv1fn7/vortexhr** (lleno desde el 2026-10-01 con `scripts/trello_vortex.py`), donde cada PR es una tarjeta que avanza de columna. Esta sección queda como resumen de la ruta; el estado al día es el del tablero.
+La lista de trabajo vive en el tablero de Trello **https://trello.com/b/Vxsv1fn7/vortexhr** (lleno desde el 2026-10-01 con `scripts/trello_fluveai.py`), donde cada PR es una tarjeta que avanza de columna. Esta sección queda como resumen de la ruta; el estado al día es el del tablero.
 
 ### 🚧 Bloqueos
 
@@ -75,7 +75,7 @@ Scrumban desde el 2026-09-15: flujo Kanban con límites de trabajo en curso y sp
 | F0·3 | El prompt sale del SKILL.md, con calibración y regla anti-sesgo — ✅ #23 |
 | F0·4 | Política determinista del siguiente paso según el score — ✅ #40 |
 | F0·5 | Contrato de `CvEvaluation` igual en Zod y Pydantic — ✅ #41 |
-| F0·6 | Deriva docs↔código — ✅ #42 (ADR-008 con actualización, README, 03, 05, 12, docstring de `run_state`). Quedan las dependencias sin uso en hrbp (`@supabase/supabase-js`, `@tanstack/react-router`, `zustand`, `@vortex/types`): se mantienen porque las usará el kanban con Realtime |
+| F0·6 | Deriva docs↔código — ✅ #42 (ADR-008 con actualización, README, 03, 05, 12, docstring de `run_state`). Quedan las dependencias sin uso en hrbp (`@supabase/supabase-js`, `@tanstack/react-router`, `zustand`, `@fluveai/types`): se mantienen porque las usará el kanban con Realtime |
 | F0·7 | El runbook de la base de pruebas usa un puerto propio y falla si no arranca — ✅ #42 |
 
 **F1 · Clean Architecture** — el caso de uso `EvaluateCandidate` en capas Domain / Application / Infrastructure, como plantilla para el resto: dominio (F1·1), caso de uso (F1·2), adaptadores y worker fino (F1·3), sourcer (F1·4) y SKILL.md de producto alineados con el estándar Agent Skills (F1·5).
@@ -150,17 +150,17 @@ en línea no funcionan en PowerShell.
 #    `set -e` corta el bloque en el primer fallo. El `rm -f` lo hace
 #    reproducible: sin él, la segunda vez falla con "name already in use".
 set -e
-docker rm -f vortex-rls-pg 2>/dev/null || true
-docker run -d --name vortex-rls-pg \
-  -e POSTGRES_USER=vortex -e POSTGRES_PASSWORD=vortex -e POSTGRES_DB=vortex_test \
+docker rm -f fluveai-rls-pg 2>/dev/null || true
+docker run -d --name fluveai-rls-pg \
+  -e POSTGRES_USER=fluveai -e POSTGRES_PASSWORD=fluveai -e POSTGRES_DB=fluveai_test \
   -p 55432:5432 pgvector/pgvector:pg15
 # Esperar a que acepte conexiones (máx. 30 s) en vez de dar por hecho que arrancó.
-for i in $(seq 30); do docker exec vortex-rls-pg pg_isready -U vortex -d vortex_test >/dev/null 2>&1 && break; sleep 1; done
-docker exec vortex-rls-pg pg_isready -U vortex -d vortex_test
+for i in $(seq 30); do docker exec fluveai-rls-pg pg_isready -U fluveai -d fluveai_test >/dev/null 2>&1 && break; sleep 1; done
+docker exec fluveai-rls-pg pg_isready -U fluveai -d fluveai_test
 
 # 3. Correr la suite (aplica 0001..0006 desde cero en cada sesión de pytest)
 cd services/hr-engine
-DATABASE_URL="postgresql+asyncpg://vortex:vortex@localhost:55432/vortex_test" \
+DATABASE_URL="postgresql+asyncpg://fluveai:fluveai@localhost:55432/fluveai_test" \
 JWT_SECRET="test-secret-do-not-use-in-production" \
   uv run pytest tests/security -q
 set +e

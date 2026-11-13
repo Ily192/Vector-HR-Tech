@@ -1,4 +1,4 @@
-# Vortex Ops — line endings normalizadas a LF en todo el repo.
+# Fluve AI — line endings normalizadas a LF en todo el repo.
 # Evita ruido de CRLF en Windows + cache misses en CI (Linux).
 
 * text=auto eol=lf

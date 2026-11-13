@@ -1,11 +1,11 @@
 /**
- * Vortex Ops · Vector HR Tech — Tailwind preset
+ * Fluve AI · Vector HR Tech — Tailwind preset
  *
  * Importar en cada app:
  *
  *   // tailwind.config.ts
- *   import vortexPreset from "@vortex/design-tokens/tailwind.preset";
- *   export default { presets: [vortexPreset], content: [...] };
+ *   import fluvePreset from "@fluveai/design-tokens/tailwind.preset";
+ *   export default { presets: [fluvePreset], content: [...] };
  */
 
 const tokens = require("./tokens.json");

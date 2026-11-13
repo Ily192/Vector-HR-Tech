@@ -15,14 +15,14 @@ RUN corepack enable
 WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter "@vortex/hrbp..."
+    pnpm install --frozen-lockfile --filter "@fluveai/hrbp..."
 # Vite las mete en el bundle al construir (apps/hrbp/src/vite-env.d.ts). Sin ellas el
 # panel arrancaría con los datos de ejemplo, así que el build falla en vez de eso.
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" \
     || { echo "faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY" >&2; exit 1; }
-RUN pnpm --filter @vortex/hrbp build
+RUN pnpm --filter @fluveai/hrbp build
 
 FROM caddy:2.11.7-alpine
 COPY --from=panel /repo/apps/hrbp/dist /srv/panel

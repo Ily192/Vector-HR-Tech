@@ -1,4 +1,4 @@
-import { Wordmark } from "@vortex/ui";
+import { Wordmark } from "@fluveai/ui";
 
 import { PANEL_EMPRESAS_URL, PUBLICAR_VACANTES_URL } from "../lib/site-config";
 

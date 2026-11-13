@@ -134,7 +134,7 @@ e2e() {
 	for variable in "${variables[@]}"; do opciones+=(-e "$variable"); done
 	en_la_red_de_caddy "${opciones[@]}" -e CI=1 -v "$raiz:$raiz" -w "$raiz" --ipc=host \
 		"mcr.microsoft.com/playwright:v$version-noble" bash -c \
-		'corepack enable && pnpm install --frozen-lockfile --filter "@vortex/e2e..." && pnpm e2e:flujo'
+		'corepack enable && pnpm install --frozen-lockfile --filter "@fluveai/e2e..." && pnpm e2e:flujo'
 }
 
 correo="rh-$(date +%s)@andes.test"

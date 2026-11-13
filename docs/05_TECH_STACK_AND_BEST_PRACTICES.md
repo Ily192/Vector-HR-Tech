@@ -186,7 +186,7 @@ services/<engine>/
 - `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`.
 - No `any`. `unknown` + narrowing si necesario.
 - Zod schemas como single source of truth: TS types se infieren de Zod.
-- Imports absolutos con paths (`@vortex/ui`, `@vortex/types`).
+- Imports absolutos con paths (`@fluveai/ui`, `@fluveai/types`).
 - No barrel files masivos (rompen tree-shaking).
 
 ### Python
