@@ -71,7 +71,7 @@ está verificado y de los reclutadores independientes, y un botón para reportar
 - La primera vacante de una empresa sin verificar espera a Vector HR. Hay que revisar la
   cola a diario.
 - Las reglas son frases: se pueden esquivar escribiendo raro. Por eso la revisión humana
-  y el modelo del PR 3.
+  y el revisor con IA (enmienda del 2026-11-13).
 
 **Neutras:**
 - Lo que inserta el rol dueño (seed, CLI) nace publicado: la moderación es para lo que
@@ -89,6 +89,53 @@ está verificado y de los reclutadores independientes, y un botón para reportar
   cualquier directiva de handler HTTP; `request_body` va antes que `reverse_proxy` en el
   orden de las directivas: https://caddyserver.com/docs/caddyfile/directives/handle y
   https://caddyserver.com/docs/caddyfile/directives#directive-order
+
+## Enmienda del 2026-11-13: el revisor con IA (PR 3)
+
+Ilyra eligió Gemini para el revisor ("perfecto, entonces gemini para la verificación"),
+después de la prueba de modelos (`evals/verificador/RESULTADOS.md`).
+
+1. **Modelo:** `gemini-3.5-flash-lite` (`MODERACION_MODELO`), con `thinking_level` low.
+   - En la prueba, con 40 vacantes inventadas, detectó el 100% de las de riesgo alto, no
+     dejó pasar ninguna sospechosa como baja y no marcó ninguna legítima.
+   - Cuesta unos US$0,0004 por vacante (0,30 / 2,50 USD por millón de tokens).
+   - `gemini-3.8-flash` dio lo mismo al doble de precio. `gemini-2.5-flash` responde 404 a
+     claves nuevas.
+   - Los modelos de Claude quedaron en la prueba (`--con-claude`), pero no se corrieron:
+     no hay créditos en la API de Anthropic.
+2. **Qué ve el modelo:** solo el título y la descripción de la vacante. Nada de la
+   empresa, de quien la publicó ni de candidatos. El prompt
+   (`app/infrastructure/verificador_de_vacantes.md`) y el esquema
+   (`app/domain/verificador.py`) son los mismos que usa la prueba de modelos.
+3. **Cómo decide:** el veredicto (riesgo, frases y categorías) se convierte en marcas
+   `ia`, y `decidir()` no cambia.
+   - Riesgo alto → rechazada, con qué corregir según la categoría.
+   - Riesgo medio → revisión.
+   - Riesgo bajo → deciden las reglas y el contexto.
+   - Las frases citadas se comprueban contra el texto: el modelo no puede inventarlas.
+4. **Falla segura:**
+   - Sin `GOOGLE_API_KEY`, o con `MODERACION_IA_ACTIVA=false`, la moderación sigue solo
+     con las reglas y el worker lo avisa una vez en el log (`moderacion.sin_ia`).
+   - Si Gemini no responde (timeout, 429, 5xx) o la salida no cumple el esquema, la
+     vacante NO se publica: queda `pendiente` y se reintenta en el siguiente barrido.
+   - Después de `MODERACION_MAX_INTENTOS_IA` fallos (5 por defecto, uno por minuto), va a
+     revisión con el motivo "No se pudo verificar automáticamente". Los fallos se
+     cuentan en Redis por vacante y por texto: una edición empieza de cero.
+   - Si Gemini se niega o bloquea el texto por seguridad, va a revisión.
+5. **Costo auditable:** cada llamada deja en el log `moderacion.ia` los tokens de entrada,
+   salida y razonamiento, el costo en USD y la latencia, sin el texto de la vacante.
+6. **Sigue siendo moderación interna** (punto 6): la empresa no recibe nada de IA, así
+   que ADR-019 se mantiene para lo que ve el cliente. El aviso de privacidad de la web
+   tiene que nombrar a Google como encargado del texto de las vacantes; lo cambia la
+   sesión de la web.
+
+Fuentes, revisadas el 2026-11-12:
+- https://ai.google.dev/gemini-api/docs/models
+- https://ai.google.dev/gemini-api/docs/thinking ("Thinking levels")
+- https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6 ("Migrate to
+  gemini-3.5-flash-lite" y "API changes and parameter updates")
+- https://ai.google.dev/gemini-api/docs/pricing
+- https://ai.google.dev/api/generate-content (`responseJsonSchema`, `thinkingLevel`)
 
 ## Alternatives considered
 

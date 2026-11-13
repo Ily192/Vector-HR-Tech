@@ -183,6 +183,22 @@ Menos que con ADR-018, porque el plan gratis ya no trata datos con IA:
 
 - 0010 deshace parte de 0009. Ninguna de las dos se aplicó en producción.
 
+## Enmienda del 2026-11-13: la moderación de vacantes usa un modelo, y no contradice esta ADR
+
+Desde el PR 3 (ADR-022, enmienda del 2026-11-13), la moderación de vacantes pasa el
+título y la descripción de cada vacante nueva por `gemini-3.5-flash-lite` para detectar
+estafas. Eso **no** es una función de IA para la empresa del plan gratis:
+
+- No toca CVs ni candidatos: el modelo solo lee el anuncio de la empresa.
+- La empresa no recibe nada de la IA salvo, si su vacante se rechaza, qué corregir. El
+  gancho hacia el plan de pago sigue siendo la coincidencia de skills sin IA (§ Decision).
+- Es protección del career site, como un filtro antiabuso. Sin `GOOGLE_API_KEY` la
+  moderación sigue solo con reglas fijas.
+
+Lo que esta ADR decide para el plan gratis (sin evaluación de CVs con IA, .zip y
+coincidencia sin IA) no cambia. El aviso de privacidad de la web nombra a Google como
+encargado del texto de las vacantes.
+
 ## Alternatives considered
 
 | Alternativa | Por qué descartada |

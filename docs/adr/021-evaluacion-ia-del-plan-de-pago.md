@@ -84,7 +84,7 @@
 
 ### 5. Modelo y datos
 
-- **`gemini-2.5-flash` sin razonamiento** (ADR-018 §1). Cuesta unos US$0,0025 por CV: ~5.000 tokens de entrada y ~400 de salida.
+- **`gemini-3.5-flash-lite` con `thinking_level` minimal** (desde el 2026-11-13; antes `gemini-2.5-flash` sin razonamiento, deprecado: ver ADR-008). Mismo precio: unos US$0,0025 por CV, ~5.000 tokens de entrada y ~400 de salida.
 - **Solo con la key del nivel de pago.** En el gratuito, Google usa los prompts para mejorar sus productos.
 - **Respaldo de OpenAI**, que no entrena con lo que recibe su API.
 - **Los dos figuran como subencargados** en el contrato con la empresa.
@@ -135,12 +135,12 @@
 
 Son las de ADR-018, puestas al día:
 
-- [ ] Key de Gemini del nivel de pago, probada con `gemini-2.5-flash`.
+- [ ] Key de Gemini del nivel de pago, probada con `gemini-3.5-flash-lite` (2.5 Flash da 404 a claves nuevas).
 - [ ] Términos del plan de pago y contrato de encargo, con los LLM como subencargados.
 - [x] Aviso al candidato con IA en el career site (§7): #82.
 - [x] Descartar con acción humana y motivo en el panel (§4): #85, y la base lo exige (0015).
 - [ ] Acceso del candidato a su evaluación (portal del candidato).
-- [ ] Evaluación de impacto con las pruebas de sesgo (§9).
+- [ ] Evaluación de impacto con las pruebas de sesgo (§9). **El 2026-11-13, con `gemini-3.5-flash-lite` y el set sintético, el acierto pasa (Pearson 0,99) pero el sesgo NO: 4 de 24 pares se movieron 1 punto, sobre todo por edad. Con `gemini-3.8-flash` pasa (0 de 24), al doble de costo.** Ver la enmienda de ADR-008 y la decisión pendiente.
 
 ## Implementación
 

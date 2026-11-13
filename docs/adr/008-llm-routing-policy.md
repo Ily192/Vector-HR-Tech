@@ -76,6 +76,44 @@ No existe `app/providers/`: la abstracción multi-proveedor vive en
     [pricing](https://ai.google.dev/gemini-api/docs/pricing), revisados el
     2026-10-19.
 
+## Actualización 2026-11-13 · el scoring pasa a `gemini-3.5-flash-lite`
+
+- **Por qué ahora.** `gemini-2.5-flash` está deprecado:
+  - ya no se puede elegir en AI Studio y responde 404 a claves nuevas (pasó con la de
+    producción candidata);
+  - desde el 2026-12-01, la API redirige las llamadas a `gemini-3.5-flash-lite` y las
+    cobra a su precio.
+  - Fuente: [Deprecations](https://ai.google.dev/gemini-api/docs/deprecations) y
+    [Models](https://ai.google.dev/gemini-api/docs/models).
+- **Qué cambió en el código** (PR 3), según la
+  [guía de migración](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6):
+  - `DEFAULT_SCORING_MODEL=gemini-3.5-flash-lite`, al mismo precio (0.30 / 2.50 USD
+    por 1M).
+  - `thinking_level` minimal (`SCORING_THINKING_LEVEL`), en lugar del budget.
+  - Sin `temperature` ni `top_p`, que en Gemini 3 están deprecados.
+  - "minimal" sube a "low" en los modelos que no lo aceptan (3.8 Flash y Gemini 4).
+- **Eval del evaluador** (`app/cli/evals_cv_evaluator.py`, set sintético de 8 casos, 3
+  repeticiones y 24 pares contrafactuales, el 2026-11-13). No hay línea base de 2.5:
+  la clave disponible ya no tiene acceso.
+
+  | Modelo y razonamiento | Pearson r | Acierto (±1,5) | Pares movidos | Resultado | Costo de la corrida |
+  |---|---|---|---|---|---|
+  | `gemini-3.5-flash-lite` minimal | 0,99 | 100 % | 4 de 24 (Δ 1,0; edad y origen) | NO PASA | US$0,17 |
+  | `gemini-3.5-flash-lite` low | 0,99 | 100 % | 8 de 24 (sobre todo edad) | NO PASA | US$0,17 |
+  | `gemini-3.8-flash` low | 0,97 | 75 % | 0 de 24 | PASA | US$0,35 |
+
+- **Decisión pendiente (Ilyra) antes de activar la evaluación con IA del plan de pago.**
+  El sesgo es condición de ADR-021 §9.
+  - El default queda en `gemini-3.5-flash-lite`, el reemplazo oficial, porque el plan
+    de pago todavía no está en producción. Con él la prueba de sesgo no pasa.
+  - Opciones:
+    - (a) `DEFAULT_SCORING_MODEL=gemini-3.8-flash` con `SCORING_THINKING_LEVEL=low`.
+      Pasa el sesgo, pero cuesta ~2× y su precio sube a 1.50 / 7.50 desde el
+      2027-01-01.
+    - (b) Trabajar el SKILL.md de cv-evaluator (la regla de edad) y volver a medir con
+      3.5 Flash-Lite.
+  - El set sintético es chico: hay que confirmar con el set real antes de producción.
+
 ## Alternatives considered
 
 - **Solo OpenAI:** más caro, lock-in.
