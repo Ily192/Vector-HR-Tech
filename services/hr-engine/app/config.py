@@ -164,10 +164,11 @@ class Settings(BaseSettings):
     # Base pública del hr-engine para esos enlaces (https://DOMINIO_API).
     api_publica_url: str = "http://localhost:8000"
     # A quién va el resumen de la cola, cada cuántas horas como mucho y el tope en 24 h:
-    # Resend gratis da 100 correos al día y los comparte con los códigos de Auth.
+    # Resend gratis da 100 correos al día y los comparte con los códigos de Auth. Uno al
+    # día (Ilyra, 2026-11-13): la cuota queda para los códigos de acceso.
     moderacion_correo: str = "hola@vectorhrtech.com"
-    moderacion_horas_entre_resumenes: float = Field(default=6.0, gt=0)
-    moderacion_max_resumenes_24h: int = Field(default=6, ge=1, le=50)
+    moderacion_horas_entre_resumenes: float = Field(default=24.0, gt=0)
+    moderacion_max_resumenes_24h: int = Field(default=1, ge=1, le=50)
     # El revisor con IA (app/infrastructure/verificador_gemini.py). Sin GOOGLE_API_KEY, o
     # apagado, la moderación sigue solo con las reglas fijas. gemini-3.5-flash-lite ganó la
     # prueba de modelos (evals/verificador/RESULTADOS.md): ~US$0,0004 por vacante.

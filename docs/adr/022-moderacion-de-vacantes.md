@@ -49,6 +49,9 @@ está verificado y de los reclutadores independientes, y un botón para reportar
    - lo demás → `publicada`, en el siguiente barrido.
 4. **La cola de revisión** llega a hola@ en un resumen (como mucho cada 6 horas, antes si
    hay una vacante oculta por reportes, y un tope en 24 horas por la cuota de Resend).
+   *Enmienda del 2026-11-13 (Ilyra):* como mucho **un resumen al día**, para dejar la
+   cuota a los códigos de acceso; la web dejó de mandar correos ese mismo día. Una
+   vacante oculta por reportes ya no está a la vista, así que espera al siguiente.
    Cada vacante trae un enlace firmado con HMAC (`MODERACION_SECRETO`, 7 días) a
    `api./moderacion/revisar`: el GET solo muestra y el POST aprueba o rechaza con motivo.
 5. **"Reportar vacante"** en el career site, con Turnstile y campo trampa. Pasa por
