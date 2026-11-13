@@ -19,6 +19,7 @@ import httpx
 import openai
 import pytest
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 from app.clients import embeddings as emb_mod
 from app.clients import scoring as scoring_mod
@@ -213,6 +214,15 @@ def test_25_pro_razona_con_su_valor_por_defecto() -> None:
     assert scoring_mod._generation_config("gemini-2.5-pro").thinking_config is None
 
 
+def test_minimal_sube_a_low_donde_el_modelo_no_lo_acepta() -> None:
+    """gemini-3.8-flash y los Gemini 4 no aceptan "minimal" (docs, "Thinking levels")."""
+    nivel = scoring_mod.nivel_de_razonamiento
+    assert nivel("gemini-3.5-flash-lite", "minimal") is genai_types.ThinkingLevel.MINIMAL
+    assert nivel("gemini-3.8-flash", "minimal") is genai_types.ThinkingLevel.LOW
+    assert nivel("gemini-4-hydrogen", "minimal") is genai_types.ThinkingLevel.LOW
+    assert nivel("gemini-3.8-flash", "high") is genai_types.ThinkingLevel.HIGH
+
+
 @pytest.mark.parametrize("modelo", ["gemini-3.5-flash-lite", "gemini-3.8-flash"])
 def test_gemini_3_razona_con_thinking_level_y_sin_muestreo(modelo: str) -> None:
     """Gemini 3 usa `thinking_level` (no el budget) y ya no acepta temperature ni top_p."""
@@ -220,7 +230,9 @@ def test_gemini_3_razona_con_thinking_level_y_sin_muestreo(modelo: str) -> None:
     assert config.thinking_config is not None
     assert config.thinking_config.thinking_budget is None
     assert config.thinking_config.thinking_level is not None
-    assert config.thinking_config.thinking_level.value == settings.scoring_thinking_level.upper()
+    assert config.thinking_config.thinking_level is scoring_mod.nivel_de_razonamiento(
+        modelo, settings.scoring_thinking_level
+    )
     assert config.temperature is None
     assert config.top_p is None
 

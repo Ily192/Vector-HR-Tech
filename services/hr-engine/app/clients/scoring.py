@@ -167,6 +167,17 @@ _NIVELES = {
     "high": types.ThinkingLevel.HIGH,
 }
 
+#: Modelos que no aceptan `thinking_level` "minimal": gemini-3.8-flash y los Gemini 4
+#: (https://ai.google.dev/gemini-api/docs/thinking, "Thinking levels").
+_SIN_MINIMAL = ("gemini-3.8-flash", "gemini-4")
+
+
+def nivel_de_razonamiento(modelo: str, nivel: str) -> types.ThinkingLevel:
+    """El `thinking_level` para `modelo`: "minimal" sube a "low" donde no existe."""
+    if nivel == "minimal" and modelo.startswith(_SIN_MINIMAL):
+        nivel = "low"
+    return _NIVELES[nivel]
+
 
 def _thinking_config(model: str) -> types.ThinkingConfig | None:
     """Cuánto razona el modelo antes de puntuar.
@@ -187,7 +198,9 @@ def _thinking_config(model: str) -> types.ThinkingConfig | None:
     if model.startswith("gemini-2."):
         return None
     if model.startswith("gemini-"):
-        return types.ThinkingConfig(thinking_level=_NIVELES[settings.scoring_thinking_level])
+        return types.ThinkingConfig(
+            thinking_level=nivel_de_razonamiento(model, settings.scoring_thinking_level)
+        )
     return None
 
 

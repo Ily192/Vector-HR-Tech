@@ -34,7 +34,7 @@ from google import genai
 from google.genai import errors, types
 
 from app.clients.por_loop import por_event_loop
-from app.clients.scoring import cost_usd
+from app.clients.scoring import cost_usd, nivel_de_razonamiento
 from app.config import settings
 from app.domain.moderacion import Marca, VacanteAModerar
 from app.domain.verificador import (
@@ -58,12 +58,7 @@ MAX_TOKENS_DE_SALIDA = 4000
 #: Por qué Gemini corta una respuesta por seguridad (FinishReason) o bloquea el prompt.
 _BLOQUEOS = frozenset({"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"})
 
-_NIVELES = {
-    "minimal": types.ThinkingLevel.MINIMAL,
-    "low": types.ThinkingLevel.LOW,
-    "medium": types.ThinkingLevel.MEDIUM,
-    "high": types.ThinkingLevel.HIGH,
-}
+_NIVELES = ("minimal", "low", "medium", "high")
 
 
 def texto_de_la_vacante(titulo: str, descripcion: str) -> str:
@@ -80,7 +75,7 @@ def configuracion(modelo: str, nivel: str) -> types.GenerateContentConfig:
     if modelo.startswith("gemini-2."):
         pensar = types.ThinkingConfig(thinking_budget=0)
     else:
-        pensar = types.ThinkingConfig(thinking_level=_NIVELES[nivel])
+        pensar = types.ThinkingConfig(thinking_level=nivel_de_razonamiento(modelo, nivel))
     return types.GenerateContentConfig(
         system_instruction=INSTRUCCIONES,
         response_mime_type="application/json",
