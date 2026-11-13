@@ -16,18 +16,37 @@ export const DIAS_COMO_NUEVA = 3;
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Símbolo de las monedas que `Intl` en es-MX solo sabe escribir con su código.
+ * Sin esto, el bolívar sale "VES 22,000" y, con la etiqueta "VES / mes" que las
+ * pantallas ponen al lado, el código se lee dos veces. El de es-VE ("Bs.S") es
+ * el del bolívar soberano de 2018; en Venezuela hoy se escribe "Bs.".
+ */
+const SIMBOLO_PROPIO: Record<string, string> = { VES: "Bs." };
+
 /** `"$22,000 – $28,000"` en la moneda de la vacante, o `null` si no publica salario. */
 export function formatearSalario(v: SalarioPublicado): string | null {
   if (v.salario_min === null || !v.moneda) return null;
+  const moneda = v.moneda;
   const fmt = new Intl.NumberFormat("es-MX", {
     style: "currency",
-    currency: v.moneda,
+    currency: moneda,
     currencyDisplay: "narrowSymbol",
     maximumFractionDigits: 0,
   });
-  const desde = fmt.format(v.salario_min);
+  // El código de la moneda ya va en la etiqueta de al lado: si `Intl` no tiene
+  // símbolo para ella, se pone el propio o ninguno, nunca el código.
+  const cifra = (n: number) =>
+    fmt
+      .formatToParts(n)
+      .map((p) =>
+        p.type === "currency" && p.value === moneda ? (SIMBOLO_PROPIO[moneda] ?? "") : p.value,
+      )
+      .join("")
+      .trim();
+  const desde = cifra(v.salario_min);
   return v.salario_max !== null && v.salario_max !== v.salario_min
-    ? `${desde} – ${fmt.format(v.salario_max)}`
+    ? `${desde} – ${cifra(v.salario_max)}`
     : desde;
 }
 
