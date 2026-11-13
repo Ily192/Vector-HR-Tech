@@ -2059,7 +2059,6 @@ name = "vortex-hr-engine"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "anthropic" },
     { name = "asyncpg" },
     { name = "celery" },
     { name = "defusedxml" },
@@ -2090,6 +2089,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "anthropic" },
     { name = "celery-types" },
     { name = "mypy" },
     { name = "pytest" },
@@ -2102,7 +2102,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "anthropic", specifier = ">=2.3.0,<3" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "celery", specifier = ">=5.4.0" },
     { name = "defusedxml", specifier = ">=0.7.1" },
@@ -2133,6 +2132,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "anthropic", specifier = ">=2.3.0,<3" },
     { name = "celery-types", specifier = ">=0.22.0" },
     { name = "mypy", specifier = ">=1.13.0" },
     { name = "pytest", specifier = ">=8.3.0" },
