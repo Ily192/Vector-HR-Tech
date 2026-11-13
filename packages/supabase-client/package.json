@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.46.0",
+    "@supabase/supabase-js": "^2.119.0",
     "@fluveai/types": "workspace:*"
   },
   "devDependencies": {
