@@ -56,6 +56,10 @@ dev = [
     "types-pyyaml>=6.0",
     # Tipos de defusedxml para mypy (app/infrastructure/coincidencias.py).
     "types-defusedxml>=0.7.0",
+    # Solo la prueba de modelos del verificador (`app/cli/evals_verificador.py
+    # --con-claude`): la moderación usa Gemini, así que no entra en la imagen
+    # (`uv sync --no-dev`). 2.3.0 era la última con más de dos semanas.
+    "anthropic>=2.3.0,<3",
 ]
 
 [build-system]

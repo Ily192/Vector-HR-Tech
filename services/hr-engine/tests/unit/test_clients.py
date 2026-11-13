@@ -19,6 +19,7 @@ import httpx
 import openai
 import pytest
 from google.genai import errors as genai_errors
+from google.genai import types as genai_types
 
 from app.clients import embeddings as emb_mod
 from app.clients import scoring as scoring_mod
@@ -204,12 +205,36 @@ def test_25_flash_puntua_sin_razonar_por_defecto() -> None:
     config = scoring_mod._generation_config("gemini-2.5-flash")
     assert config.thinking_config is not None
     assert config.thinking_config.thinking_budget == settings.scoring_thinking_budget == 0
+    # Los 2.x siguen aceptando temperature y top_p.
+    assert config.temperature == 0.2
 
 
-@pytest.mark.parametrize("modelo", ["gemini-2.5-pro", "gemini-3.5-flash-lite", "gemini-3.8-flash"])
-def test_los_demas_modelos_razonan_con_su_valor_por_defecto(modelo: str) -> None:
-    """Gemini 3 usa `thinking_level` y 2.5 Pro no deja apagarlo: no se les manda el budget."""
-    assert scoring_mod._generation_config(modelo).thinking_config is None
+def test_25_pro_razona_con_su_valor_por_defecto() -> None:
+    """2.5 Pro no deja apagar el razonamiento: no se le manda nada."""
+    assert scoring_mod._generation_config("gemini-2.5-pro").thinking_config is None
+
+
+def test_minimal_sube_a_low_donde_el_modelo_no_lo_acepta() -> None:
+    """gemini-3.8-flash y los Gemini 4 no aceptan "minimal" (docs, "Thinking levels")."""
+    nivel = scoring_mod.nivel_de_razonamiento
+    assert nivel("gemini-3.5-flash-lite", "minimal") is genai_types.ThinkingLevel.MINIMAL
+    assert nivel("gemini-3.8-flash", "minimal") is genai_types.ThinkingLevel.LOW
+    assert nivel("gemini-4-hydrogen", "minimal") is genai_types.ThinkingLevel.LOW
+    assert nivel("gemini-3.8-flash", "high") is genai_types.ThinkingLevel.HIGH
+
+
+@pytest.mark.parametrize("modelo", ["gemini-3.5-flash-lite", "gemini-3.8-flash"])
+def test_gemini_3_razona_con_thinking_level_y_sin_muestreo(modelo: str) -> None:
+    """Gemini 3 usa `thinking_level` (no el budget) y ya no acepta temperature ni top_p."""
+    config = scoring_mod._generation_config(modelo)
+    assert config.thinking_config is not None
+    assert config.thinking_config.thinking_budget is None
+    assert config.thinking_config.thinking_level is not None
+    assert config.thinking_config.thinking_level is scoring_mod.nivel_de_razonamiento(
+        modelo, settings.scoring_thinking_level
+    )
+    assert config.temperature is None
+    assert config.top_p is None
 
 
 @pytest.mark.asyncio
@@ -225,7 +250,9 @@ async def test_el_razonamiento_se_cobra_como_salida(monkeypatch: pytest.MonkeyPa
 
 
 def test_default_scoring_model_is_current() -> None:
-    assert settings.default_scoring_model == "gemini-2.5-flash"
+    # 2.5 Flash está deprecado: responde 404 a claves nuevas y se apaga el 2026-12-01.
+    assert settings.default_scoring_model == "gemini-3.5-flash-lite"
+    assert not settings.default_scoring_model.startswith("gemini-2.")
     assert "1.5" not in settings.default_scoring_model
 
 
@@ -244,7 +271,7 @@ async def test_score_candidate_fit_parses_and_prices(monkeypatch: pytest.MonkeyP
     assert result.input_tokens == 1000
     # 1000/1M * 0.30 + 200/1M * 2.50
     assert result.cost_usd == pytest.approx(0.0003 + 0.0005)
-    assert result.model == "gemini-2.5-flash"
+    assert result.model == "gemini-3.5-flash-lite"
 
 
 @pytest.mark.asyncio

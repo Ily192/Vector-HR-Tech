@@ -1,4 +1,4 @@
-"""Moderación de vacantes y verificación de empresas, sin IA (ADR-022).
+"""Moderación de vacantes y verificación de empresas (ADR-022).
 
 El alta en el plan gratis es automática: cualquiera puede abrir una cuenta y
 publicar. Antes de que una vacante salga al career site, el hr-engine la pasa
@@ -12,8 +12,9 @@ la frase citada, para que la empresa sepa qué corregir y Vector HR vea por qué
 La duda se resuelve hacia la revisión humana, nunca hacia el rechazo: solo una
 señal de gravedad alta rechaza sin revisión.
 
-Moderación interna, no es una función de IA para el cliente. El PR 3 suma un
-modelo por el puerto `RevisorDeVacantes`: sus marcas se agregan a las de las
+Moderación interna, no es una función de IA para el cliente. Un modelo de IA se
+suma por el puerto `RevisorDeVacantes` (`app/domain/verificador.py`,
+`app/infrastructure/verificador_gemini.py`): sus marcas se agregan a las de las
 reglas y la decisión no cambia.
 """
 
@@ -636,9 +637,23 @@ class RepositorioDeConfirmaciones(Protocol):
 
 
 class RevisorDeVacantes(Protocol):
-    """Un revisor externo (el modelo del PR 3). Devuelve marcas como las reglas."""
+    """Un revisor externo (el modelo de IA, ADR-022). Devuelve marcas como las reglas.
+
+    Si no puede responder (timeout, 429, 5xx, salida inválida) lanza una excepción: la
+    vacante no se publica y se reintenta en el siguiente barrido.
+    """
 
     async def revisar(self, vacante: VacanteAModerar) -> Sequence[Marca]: ...
+
+
+class RegistroDeIntentos(Protocol):
+    """Cuántas veces falló el revisor con una vacante, para no reintentar para siempre."""
+
+    async def sumar(self, vacante: VacanteAModerar) -> int:
+        """Suma un fallo y devuelve el total."""
+        ...
+
+    async def limpiar(self, vacante: VacanteAModerar) -> None: ...
 
 
 class ServicioDeCorreo(Protocol):

@@ -1,9 +1,10 @@
 """Casos de uso de la moderación de vacantes (ADR-022).
 
 - `ModerarVacantesPendientes`: el barrido de cada minuto. Pasa cada vacante
-  'pendiente' por las reglas (y por un revisor externo, si hay) y guarda la
+  'pendiente' por las reglas (y por el revisor con IA, si hay) y guarda la
   decisión. Una empresa verificada sin señales de riesgo queda publicada en el
-  siguiente barrido.
+  siguiente barrido. Si el revisor falla, la vacante no se publica: espera al
+  barrido siguiente y, después de `max_intentos` fallos, va a revisión humana.
 - `AvisarColaDeRevision`: el resumen de la cola a hola@. Como mucho uno cada
   `horas_entre_resumenes`, salvo que haya una vacante oculta por reportes, y con
   un tope diario: Resend gratis da 100 correos al día y los comparte con los
@@ -15,6 +16,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -23,13 +25,16 @@ from app.domain.moderacion import (
     EstadoDeModeracion,
     Gravedad,
     Marca,
+    RegistroDeIntentos,
     RepositorioDeModeracion,
     RevisorDeVacantes,
     ServicioDeCorreo,
+    VacanteAModerar,
     VacanteEnCola,
     decidir,
     evaluar,
 )
+from app.domain.verificador import MARCA_SIN_VERIFICAR
 
 # ─────────────────────────────── el barrido ───────────────────────────────
 
@@ -43,6 +48,13 @@ class ResultadoDeLaModeracion:
     descartadas: int = 0
     #: El revisor externo falló: la vacante espera al siguiente barrido.
     en_espera: int = 0
+    #: El revisor falló `max_intentos` veces con la vacante: va a revisión humana.
+    sin_verificar: int = 0
+
+
+#: Fallos del revisor con una misma vacante antes de mandarla a revisión humana. Con
+#: un barrido por minuto, unos 5 minutos.
+MAX_INTENTOS = 5
 
 
 class ModerarVacantesPendientes:
@@ -50,9 +62,14 @@ class ModerarVacantesPendientes:
         self,
         repositorio: RepositorioDeModeracion,
         revisor: RevisorDeVacantes | None = None,
+        *,
+        intentos: RegistroDeIntentos | None = None,
+        max_intentos: int = MAX_INTENTOS,
     ) -> None:
         self._repositorio = repositorio
         self._revisor = revisor
+        self._intentos = intentos
+        self._max_intentos = max_intentos
 
     async def ejecutar(self, *, lote: int) -> ResultadoDeLaModeracion:
         resultado = ResultadoDeLaModeracion()
@@ -61,9 +78,14 @@ class ModerarVacantesPendientes:
             if self._revisor is not None:
                 try:
                     extra = tuple(await self._revisor.revisar(vacante))
-                except Exception:  # el revisor es opcional: no tumba el barrido
-                    resultado.en_espera += 1
-                    continue
+                except Exception:  # el revisor no tumba el barrido ni publica a ciegas
+                    if not await self._agoto_los_intentos(vacante):
+                        resultado.en_espera += 1
+                        continue
+                    extra = (MARCA_SIN_VERIFICAR,)
+                    resultado.sin_verificar += 1
+                else:
+                    await self._olvidar_intentos(vacante)
             decision = decidir(vacante, evaluar(vacante, extra))
             if not await self._repositorio.guardar(vacante.id, decision):
                 resultado.descartadas += 1
@@ -76,6 +98,21 @@ class ModerarVacantesPendientes:
                 case _:
                     resultado.en_revision += 1
         return resultado
+
+    async def _agoto_los_intentos(self, vacante: VacanteAModerar) -> bool:
+        """Suma el fallo. Sin registro (o si el registro falla) se sigue esperando."""
+        if self._intentos is None:
+            return False
+        try:
+            return await self._intentos.sumar(vacante) >= self._max_intentos
+        except Exception:
+            return False
+
+    async def _olvidar_intentos(self, vacante: VacanteAModerar) -> None:
+        if self._intentos is None:
+            return
+        with suppress(Exception):
+            await self._intentos.limpiar(vacante)
 
 
 # ─────────────────────────────── el resumen ───────────────────────────────

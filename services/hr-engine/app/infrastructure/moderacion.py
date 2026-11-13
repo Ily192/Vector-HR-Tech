@@ -5,11 +5,14 @@
   Confirma cada escritura.
 - `CorreoSmtp`: el resumen de la cola a hola@ por el mismo SMTP de Resend que usa
   Auth, con la biblioteca estándar.
+- `RegistroDeIntentosRedis`: cuántas veces falló el revisor con IA con cada vacante,
+  en Redis, para mandarla a revisión humana después de unos intentos.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import smtplib
 import ssl
@@ -19,6 +22,7 @@ from email.utils import formataddr
 from typing import Any
 from uuid import UUID
 
+import redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.moderacion import (
@@ -194,3 +198,33 @@ class CorreoSmtp:
             if self._usuario:
                 smtp.login(self._usuario, self._clave)
             smtp.send_message(mensaje)
+
+
+class RegistroDeIntentosRedis:
+    """Los fallos del revisor por vacante, en Redis, con vencimiento.
+
+    La clave lleva un hash del título y la descripción: si la empresa edita la
+    vacante, la cuenta empieza de cero. Redis se usa con un cliente síncrono (como
+    el circuit breaker): son operaciones de milisegundos y no se atan a ningún loop.
+    """
+
+    def __init__(self, cliente: redis.Redis, *, vence_s: int = 86_400) -> None:
+        self._redis = cliente
+        self._vence_s = vence_s
+
+    @staticmethod
+    def clave(vacante: VacanteAModerar) -> str:
+        texto = f"{vacante.titulo}\n{vacante.descripcion}"
+        huella = hashlib.sha256(texto.encode()).hexdigest()
+        return f"moderacion:ia:intentos:{vacante.id}:{huella[:16]}"
+
+    async def sumar(self, vacante: VacanteAModerar) -> int:
+        clave = self.clave(vacante)
+        canal = self._redis.pipeline()
+        canal.incr(clave)
+        canal.expire(clave, self._vence_s)
+        total, _ = canal.execute()
+        return int(total)
+
+    async def limpiar(self, vacante: VacanteAModerar) -> None:
+        self._redis.delete(self.clave(vacante))

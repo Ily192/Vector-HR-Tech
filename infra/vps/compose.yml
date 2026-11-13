@@ -57,8 +57,10 @@ x-hr-engine: &hr-engine
     # El secreto que comparte con la web para el alta desde publicar-vacantes (ADR-017,
     # 2026-11-12). En Vercel es FLUVE_ALTA_SECRETO del proyecto vector-hr-tech.
     ALTA_SECRETO: ${ALTA_SECRETO:?}
-    # La evaluación con IA del plan de pago (ADR-021). Sin key no se evalúa nada y las
-    # aplicaciones de las empresas con IA esperan; solo la key del nivel de pago de Gemini.
+    # La evaluación con IA del plan de pago (ADR-021) y el revisor de vacantes de la
+    # moderación (ADR-022). Sin key no se evalúa nada (las aplicaciones de las empresas
+    # con IA esperan) y la moderación sigue solo con las reglas fijas. Solo la key del
+    # nivel de pago de Gemini.
     GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
     OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     IA_PRESUPUESTO_MENSUAL_USD: ${IA_PRESUPUESTO_MENSUAL_USD:-25}

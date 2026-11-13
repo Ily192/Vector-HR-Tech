@@ -92,12 +92,19 @@ class Settings(BaseSettings):
     # ─── LLMs ────────────────────────────────────────────
     openai_api_key: str = ""
     google_api_key: str = ""
-    default_scoring_model: str = "gemini-2.5-flash"
-    # Tokens de razonamiento de 2.5 Flash al puntuar. 0 = apagado: se cobran como salida
-    # y comparten los 1024 de max_output_tokens (app/clients/scoring.py::_thinking_config).
+    # gemini-2.5-flash está deprecado y desde el 2026-12-01 Google lo redirige a
+    # gemini-3.5-flash-lite, al mismo precio (0.30/2.50 USD por 1M). Con claves nuevas
+    # responde 404. Fuente: https://ai.google.dev/gemini-api/docs/deprecations.
+    default_scoring_model: str = "gemini-3.5-flash-lite"
+    # Cuánto razona un Gemini 3 al puntuar (`thinking_level`). "minimal" es el
+    # predeterminado de 3.5 Flash-Lite y lo más parecido al razonamiento apagado de 2.5.
+    # Los tokens de razonamiento se cobran como salida y comparten los 1024 de
+    # max_output_tokens (app/clients/scoring.py::_thinking_config).
+    scoring_thinking_level: Literal["minimal", "low", "medium", "high"] = "minimal"
+    # Solo para un modelo 2.5 configurado a mano: su razonamiento va por budget (0 = apagado).
     scoring_thinking_budget: int = Field(default=0, ge=0, le=24576)
     # Respaldo de otro proveedor si Gemini cae o tiene el circuito abierto. gpt-5-mini
-    # (0.25/2.00 USD por 1M) es lo más parecido en precio a gemini-2.5-flash (0.30/2.50).
+    # (0.25/2.00 USD por 1M) es lo más parecido en precio a gemini-3.5-flash-lite (0.30/2.50).
     fallback_scoring_model: str = "gpt-5-mini"
     # Circuit breaker por proveedor (app/clients/circuit_breaker.py).
     llm_breaker_umbral: int = 5
@@ -133,7 +140,7 @@ class Settings(BaseSettings):
     evaluaciones_lote: int = Field(default=50, ge=1, le=500)
     evaluaciones_en_paralelo: int = Field(default=8, ge=1, le=32)
     # Tope de seguridad de toda la plataforma: al llegar, no se evalúa nada nuevo
-    # hasta el mes siguiente. US$25 son unos 10.000 CVs con gemini-2.5-flash.
+    # hasta el mes siguiente. US$25 son unos 10.000 CVs con gemini-3.5-flash-lite.
     ia_presupuesto_mensual_usd: float = Field(default=25.0, ge=0)
 
     # ─── Panel de la empresa ─────────────────────────────
@@ -161,6 +168,16 @@ class Settings(BaseSettings):
     moderacion_correo: str = "hola@vectorhrtech.com"
     moderacion_horas_entre_resumenes: float = Field(default=6.0, gt=0)
     moderacion_max_resumenes_24h: int = Field(default=6, ge=1, le=50)
+    # El revisor con IA (app/infrastructure/verificador_gemini.py). Sin GOOGLE_API_KEY, o
+    # apagado, la moderación sigue solo con las reglas fijas. gemini-3.5-flash-lite ganó la
+    # prueba de modelos (evals/verificador/RESULTADOS.md): ~US$0,0004 por vacante.
+    moderacion_ia_activa: bool = True
+    moderacion_modelo: str = "gemini-3.5-flash-lite"
+    moderacion_thinking_level: Literal["minimal", "low", "medium", "high"] = "low"
+    moderacion_timeout_s: float = Field(default=20.0, gt=0, le=120)
+    # Fallos del revisor con una vacante antes de mandarla a revisión humana (uno por
+    # barrido, cada minuto).
+    moderacion_max_intentos_ia: int = Field(default=5, ge=1, le=60)
 
     # ─── SMTP (el mismo de Auth: Resend) ─────────────────
     # Vacío = no se manda correo (desarrollo).

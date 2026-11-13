@@ -181,8 +181,11 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
    - `SMTP_PASS` y `SMTP_ADMIN_EMAIL` (un remitente del dominio verificado);
    - `CLOUDFLARE_TUNNEL_TOKEN`;
    - `RESTIC_REPOSITORY`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`;
-   - `GOOGLE_API_KEY`, la key de Gemini del **nivel de pago**, para la evaluación con IA
-     (ADR-021). Sin ella, las aplicaciones de las empresas con IA esperan;
+   - `GOOGLE_API_KEY`, la key de Gemini del **nivel de pago**. La usan la evaluación con
+     IA (ADR-021; sin ella, las aplicaciones de las empresas con IA esperan) y el revisor
+     de vacantes de la moderación (ADR-022; sin ella, la moderación sigue solo con las
+     reglas fijas). Las dos usan `gemini-3.5-flash-lite`: `gemini-2.5-flash` responde 404
+     a claves nuevas y se apaga el 2026-12-01;
    - opcional: `RESPALDO_PING_URL` y `OPENAI_API_KEY` (respaldo de Gemini).
 2. **Comprobar:**
    `python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar ~/vortex/.env`.
