@@ -342,12 +342,12 @@ la revisa cada minuto con reglas fijas (cobros, datos bancarios, WhatsApp, multi
 Una empresa verificada sin señales de riesgo queda publicada en el siguiente barrido;
 lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
 
-- **La cola llega a hola@:** un resumen como mucho cada 6 horas
-  (`MODERACION_HORAS_ENTRE_RESUMENES`), antes si hay una vacante oculta por reportes, y
-  nunca más de 6 en 24 horas (`MODERACION_MAX_RESUMENES_24H`): comparte la cuota de
-  Resend con los códigos de Auth. Cada vacante trae un enlace firmado a
-  `https://<DOMINIO_API>/moderacion/revisar`, que vence en 7 días, con los botones
-  Aprobar y Rechazar. El rechazo pide un motivo, que la empresa ve en su panel.
+- **La cola llega a hola@:** un resumen al día como mucho
+  (`MODERACION_HORAS_ENTRE_RESUMENES=24` y `MODERACION_MAX_RESUMENES_24H=1`), para dejarle
+  la cuota de Resend a los códigos de Auth. Una vacante oculta por reportes espera al
+  resumen siguiente: ya no está a la vista. Hay que revisar la cola a diario. Cada vacante
+  trae un enlace firmado a `https://<DOMINIO_API>/moderacion/revisar`, que vence en 7
+  días, con los botones Aprobar y Rechazar. El rechazo pide un motivo, que la empresa ve en su panel.
 - **Desde la terminal:**
 
   ```bash
