@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s · Empleos Vector HR Tech",
   },
   description:
-    "Vacantes de empresas en LATAM con el salario a la vista. Aplica en dos minutos y sigue tu aplicación por correo.",
+    "Vacantes de empresas en LATAM con el salario a la vista. Aplica en dos minutos, sin crear cuenta.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://empleos.vectorhrtech.com"),
   openGraph: {
     siteName: "Empleos Vector HR Tech",
