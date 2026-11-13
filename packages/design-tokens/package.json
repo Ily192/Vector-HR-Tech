@@ -1,8 +1,8 @@
 {
-  "name": "@vortex/design-tokens",
+  "name": "@fluveai/design-tokens",
   "version": "0.1.0",
   "private": true,
-  "description": "Vector HR Tech — design tokens for Vortex Ops",
+  "description": "Vector HR Tech — design tokens for Fluve AI",
   "type": "commonjs",
   "exports": {
     "./tailwind.preset": {

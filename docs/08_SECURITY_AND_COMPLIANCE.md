@@ -119,7 +119,7 @@ ABAC sobre RBAC: row-level via RLS + atributos `empresa_id`.
 - **Sin IA.** Para una empresa gratuita no se llama a ningún LLM: el hr-engine rechaza sus
   runs (403). El plan gratis no tiene subencargado de IA ni decisiones automatizadas.
 - **Qué se trata.** El texto del CV se compara con las skills de la vacante, por cuenta de
-  la empresa y con Vortex como encargado.
+  la empresa y con Vector HR Tech como encargado.
   - Solo se guarda qué skills menciona cada CV, en el esquema `privado`, fuera de la API.
   - La empresa solo ve el conteo agregado.
 - **Cuándo se borra:**

@@ -2,7 +2,7 @@ import matter from "gray-matter";
 import { z } from "zod";
 
 /**
- * Vortex SKILL.md schema — formato gstack (ver ADR-006).
+ * Fluve AI SKILL.md schema — formato gstack (ver ADR-006).
  *
  * Cada agente vive como `.agents/skills/<slug>/SKILL.md` + un manifest opcional
  * por proveedor (`agents/openai.yaml`, `agents/anthropic.yaml`, etc.). Este SDK

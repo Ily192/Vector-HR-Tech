@@ -2,8 +2,8 @@
  * Los textos del cockpit. Ponen en palabras lo que ya calculó la base
  * (`resumen_del_cockpit()`, 0016); no deciden ni cuentan nada.
  */
-import { ETIQUETA_SIGUIENTE_PASO } from "@vortex/types/etiquetas";
-import { siguientePaso } from "@vortex/types/reglas";
+import { ETIQUETA_SIGUIENTE_PASO } from "@fluveai/types/etiquetas";
+import { siguientePaso } from "@fluveai/types/reglas";
 
 import type { DecisionDelDia, EntradaDelRegistro } from "../datos/tipos";
 

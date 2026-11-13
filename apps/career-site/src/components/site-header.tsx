@@ -1,4 +1,4 @@
-import { Wordmark } from "@vortex/ui";
+import { Wordmark } from "@fluveai/ui";
 import Link from "next/link";
 
 // "Cómo aplicar" se oculta en móvil: no cabe junto al logo y la sección está en el inicio.

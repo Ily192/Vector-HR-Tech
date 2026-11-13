@@ -1,6 +1,6 @@
-# Marca Vortex Ops v2 · color y tipografía
+# Marca Fluve AI v2 · color y tipografía
 
-> Estado: **aplicada** (2026-10-15) en la demo de clima laboral y NOM-035 (`https://ily192.github.io/Vector-HR-Tech/`), career-site, hrbp y `@vortex/ui`. Fuente: `packages/design-tokens/brand-v2.css`; `tokens.json`, el preset de Tailwind (`ink`, `aqua`, `flame`, `mist`, `risk`) y `theme.css` salen de ella. La paleta `vector-*` queda en desuso.
+> Estado: **aplicada** (2026-10-15) en la demo de clima laboral y NOM-035 (`https://ily192.github.io/Vector-HR-Tech/`), career-site, hrbp y `@fluveai/ui`. Fuente: `packages/design-tokens/brand-v2.css`; `tokens.json`, el preset de Tailwind (`ink`, `aqua`, `flame`, `mist`, `risk`) y `theme.css` salen de ella. La paleta `vector-*` queda en desuso.
 
 Es una evolución, no un cambio de marca: se mantienen las tres familias (tinta índigo, naranja y cian) y la cursiva como firma. Lo que cambia es que cada color tiene escala, rol y contraste comprobado.
 
@@ -54,7 +54,7 @@ Contraste mínimo: AA (4,5:1) para todo el texto, AAA para el texto de lectura.
 
 ## Wordmark y monograma
 
-- Wordmark: **VORTEX** en Figtree 900 (tracking −0,03 em) + **OPS** en Figtree 800 cursiva. OPS va en `--aqua-300` sobre tinta y en `--aqua-600` sobre claro.
+- Wordmark: **FLUVE** en Figtree 900 (tracking −0,03 em) + **AI** en Figtree 800 cursiva. AI va en `--aqua-300` sobre tinta y en `--aqua-600` sobre claro.
 - Monograma (propuesta): una V en aqua sobre un cuadrado de tinta con esquinas de 9/30. Sirve como favicon e icono de app.
 
 ## Principios de UI (tendencias 2026 que adoptamos)

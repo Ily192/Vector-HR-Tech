@@ -23,12 +23,12 @@
 
     "baseUrl": ".",
     "paths": {
-      "@vortex/ui": ["packages/ui/src/index.ts"],
-      "@vortex/ui/*": ["packages/ui/src/*"],
-      "@vortex/types": ["packages/types/src/index.ts"],
-      "@vortex/types/*": ["packages/types/src/*"],
-      "@vortex/supabase-client": ["packages/supabase-client/src/index.ts"],
-      "@vortex/skills-sdk": ["packages/skills-sdk/src/index.ts"]
+      "@fluveai/ui": ["packages/ui/src/index.ts"],
+      "@fluveai/ui/*": ["packages/ui/src/*"],
+      "@fluveai/types": ["packages/types/src/index.ts"],
+      "@fluveai/types/*": ["packages/types/src/*"],
+      "@fluveai/supabase-client": ["packages/supabase-client/src/index.ts"],
+      "@fluveai/skills-sdk": ["packages/skills-sdk/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "dist", "build", ".next", ".turbo"]

@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@vortex/career-site",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@fluveai/career-site",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "ignoreCommand": "cd ../.. && npx --yes turbo-ignore@2 @vortex/career-site",
+  "ignoreCommand": "cd ../.. && npx --yes turbo-ignore@2 @fluveai/career-site",
   "outputDirectory": ".next",
   "regions": ["gru1"],
   "github": {

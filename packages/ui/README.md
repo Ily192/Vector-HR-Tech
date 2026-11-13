@@ -1,13 +1,13 @@
-# @vortex/ui
+# @fluveai/ui
 
-Componentes de interfaz compartidos, con la marca v2 ([guía](../../docs/brand/branding-v2.md)). Se apoyan en `@vortex/design-tokens` y en Tailwind.
+Componentes de interfaz compartidos, con la marca v2 ([guía](../../docs/brand/branding-v2.md)). Se apoyan en `@fluveai/design-tokens` y en Tailwind.
 
 | Export | Qué es |
 |---|---|
 | `Button`, `buttonVariants` | Botón en cápsula. Variantes `default` (flame), `ink`, `secondary`, `ghost`, `destructive` y `link`. |
 | `Card` y sus partes | Tarjeta `rounded-[20px]` con `shadow-soft` |
 | `Badge`, `badgeVariants` | Etiquetas; incluye `ai` y `brand` |
-| `Wordmark` | Logotipo VORTEX *OPS* / VECTOR *HR TECH*; props `brand`, `tone`, `withMark` |
+| `Wordmark` | Logotipo FLUVE *AI* / VECTOR *HR TECH*; props `brand`, `tone`, `withMark` |
 | `cn` | Une clases de Tailwind sin conflictos. Úsalo también con `buttonVariants()` en un enlace: sin él, `border-transparent` le gana al borde de `secondary`. |
 | `formatearSalario`, `haceCuanto`, `esNueva`, `iniciales` | Cómo se escriben el salario, la fecha de publicación y el monograma de una vacante. Las usan el career site y el panel de la empresa. |
 
@@ -17,5 +17,5 @@ Componentes de interfaz compartidos, con la marca v2 ([guía](../../docs/brand/b
 - Los colores salen de los tokens (`ink`, `aqua`, `flame`, `mist`, `risk`), nunca en hex.
 
 ```bash
-pnpm --filter @vortex/ui test
+pnpm --filter @fluveai/ui test
 ```

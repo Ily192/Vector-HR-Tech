@@ -1,5 +1,5 @@
-import { ETIQUETA_MODALIDAD } from "@vortex/types/etiquetas";
-import type { Modality } from "@vortex/types/hr";
+import { ETIQUETA_MODALIDAD } from "@fluveai/types/etiquetas";
+import type { Modality } from "@fluveai/types/hr";
 import Link from "next/link";
 
 import { type FiltrosVacantes, urlConFiltros } from "../lib/filtros";

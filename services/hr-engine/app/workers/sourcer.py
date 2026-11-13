@@ -10,7 +10,7 @@ Pipeline:
   6. Upsert en `applications` con fit_score / rationale / gaps.
   7. Track costo contra el cost_cap del run-token y lo persiste en `runs`.
 
-Patrón Vortex (heredado de SDR-prospection):
+Patrón Fluve AI (heredado de SDR-prospection):
   - `async def _run(...)` testeable — los side-effects son funciones importadas,
     los tests las monkeypatchean.
   - `@celery_app.task` wrapper hace `asyncio.run(_run(...))` y decide retry.

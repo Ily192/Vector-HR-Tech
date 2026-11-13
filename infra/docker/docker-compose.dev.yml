@@ -1,4 +1,4 @@
-# Vortex Ops · Stack local para desarrollo.
+# Fluve AI · Stack local para desarrollo.
 # Levanta Postgres + Redis + hr-engine (API y worker Celery).
 # (Los frontends corren fuera del compose, con `pnpm dev`.)
 

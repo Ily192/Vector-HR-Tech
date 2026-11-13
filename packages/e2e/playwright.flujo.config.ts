@@ -34,7 +34,7 @@ export default defineConfig({
     : {
         webServer: [
           {
-            command: "pnpm --filter @vortex/career-site dev",
+            command: "pnpm --filter @fluveai/career-site dev",
             url: e.careerSite,
             reuseExistingServer: true,
             timeout: 180_000,
@@ -47,7 +47,7 @@ export default defineConfig({
             },
           },
           {
-            command: "pnpm --filter @vortex/hrbp dev",
+            command: "pnpm --filter @fluveai/hrbp dev",
             url: e.panel,
             reuseExistingServer: true,
             timeout: 120_000,

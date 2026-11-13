@@ -1,4 +1,4 @@
-import { Badge, Wordmark } from "@vortex/ui";
+import { Badge, Wordmark } from "@fluveai/ui";
 import { Briefcase, LayoutGrid, type LucideIcon, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 

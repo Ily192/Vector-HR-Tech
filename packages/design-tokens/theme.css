@@ -1,8 +1,8 @@
 /**
- * Vortex Ops — shadcn/ui CSS variables (modo light + dark), marca v2.
+ * Fluve AI — shadcn/ui CSS variables (modo light + dark), marca v2.
  * Valores de brand-v2.css en HSL; guía en docs/brand/branding-v2.md.
  * Importar en cada app:
- *   import "@vortex/design-tokens/theme.css";
+ *   import "@fluveai/design-tokens/theme.css";
  */
 
 @layer base {

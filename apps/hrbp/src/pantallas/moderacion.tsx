@@ -5,9 +5,9 @@
  * career site en el siguiente barrido (un minuto) si no tiene señales de riesgo; una
  * 'en_revision' la mira una persona de Vector HR; una 'rechazada' trae qué corregir.
  */
-import { ETIQUETA_MODERACION } from "@vortex/types/etiquetas";
-import type { Moderacion, MotivoDeModeracion } from "@vortex/types/hr";
-import { Badge } from "@vortex/ui";
+import { ETIQUETA_MODERACION } from "@fluveai/types/etiquetas";
+import type { Moderacion, MotivoDeModeracion } from "@fluveai/types/hr";
+import { Badge } from "@fluveai/ui";
 
 const VARIANTE = {
   pendiente: "manual",

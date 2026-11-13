@@ -1,5 +1,5 @@
 {
-  "name": "@vortex/supabase-client",
+  "name": "@fluveai/supabase-client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,7 +23,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.46.0",
-    "@vortex/types": "workspace:*"
+    "@fluveai/types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

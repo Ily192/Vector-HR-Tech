@@ -3,7 +3,7 @@
  * en ella. Viajan en la URL (`?q=&ubicacion=&modalidad=&salario=1`) para que una
  * búsqueda se pueda compartir y funcione sin JavaScript.
  */
-import { type Modality, ModalitySchema } from "@vortex/types/hr";
+import { type Modality, ModalitySchema } from "@fluveai/types/hr";
 import type { Route } from "next";
 
 export interface FiltrosVacantes {

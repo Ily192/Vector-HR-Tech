@@ -6,7 +6,7 @@
 Scaffold pendiente. El plan:
 
 1. Copiar `openclaw-main` del Portafolio como base.
-2. Reescribir adapters a TS ESM con tipos compartidos de `@vortex/types`.
+2. Reescribir adapters a TS ESM con tipos compartidos de `@fluveai/types`.
 3. Wire run-token (JWT 5 min de Paperclip) → toolgateway → `hr-engine`.
 4. Adapter Google Chat primero (gratis), WhatsApp/Telegram en Cycle 2.
 

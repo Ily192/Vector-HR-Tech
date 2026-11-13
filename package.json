@@ -1,8 +1,8 @@
 {
-  "name": "vortex-ops",
+  "name": "fluveai",
   "version": "0.1.0",
   "private": true,
-  "description": "Vortex Ops — Operations Engine agentic by Vector HR Tech",
+  "description": "Fluve AI — Operations Engine agentic by Vector HR Tech",
   "license": "UNLICENSED",
   "packageManager": "pnpm@9.7.0",
   "engines": {
@@ -21,9 +21,9 @@
     "test:watch": "turbo run test --parallel -- --watch",
     "e2e": "turbo run e2e --",
     "e2e:smoke": "turbo run e2e:smoke --",
-    "e2e:flujo": "pnpm --filter @vortex/e2e e2e:flujo",
+    "e2e:flujo": "pnpm --filter @fluveai/e2e e2e:flujo",
     "storybook": "turbo run storybook --parallel",
-    "tokens:build": "pnpm --filter @vortex/design-tokens build",
+    "tokens:build": "pnpm --filter @fluveai/design-tokens build",
     "db:start": "supabase start --workdir infra",
     "db:stop": "supabase stop --workdir infra",
     "db:reset": "supabase db reset --workdir infra",

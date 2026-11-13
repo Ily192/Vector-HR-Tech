@@ -1,4 +1,4 @@
-import { Button, Wordmark } from "@vortex/ui";
+import { Button, Wordmark } from "@fluveai/ui";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 
 import { useEntrar, useSalir, useVerificarCodigo } from "../datos/consultas";

@@ -1,4 +1,4 @@
-# Vortex Ops
+# Fluve AI
 
 > **Hackeando la rutina, liberando el talento.** — *Vector HR Tech*
 
@@ -39,7 +39,7 @@ vortex-ops/
 │   ├── career-site/         Next.js 16 — landing pública
 │   ├── candidate/           Vite + React — portal candidato + tests psicométricos
 │   ├── hrbp/                Vite + React — cockpit HRBP
-│   └── orgchart/            Next.js 16 — Org Chart Vortex (mirror Paperclip)
+│   └── orgchart/            Next.js 16 — Org Chart Fluve AI (mirror Paperclip)
 │
 ├── services/                Backends
 │   ├── control-plane/       Paperclip (Node.js) — governance
@@ -101,7 +101,7 @@ Empieza por **[docs/00_README.md](docs/00_README.md)**. El plan completo está e
 
 ## Brand
 
-**Vector HR Tech** opera **Vortex Ops**. Paleta:
+**Vector HR Tech** opera **Fluve AI**. Paleta:
 
 | Token | Hex | Rol |
 |---|---|---|

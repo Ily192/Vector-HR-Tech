@@ -1,6 +1,6 @@
-# @vortex/design-tokens
+# @fluveai/design-tokens
 
-> Single source of truth para la identidad visual de **Vector HR Tech / Vortex Ops**.
+> Single source of truth para la identidad visual de **Vector HR Tech / Fluve AI**.
 
 ## Contenido
 
@@ -16,17 +16,17 @@
 
 ```ts
 // tailwind.config.ts
-import vortexPreset from "@vortex/design-tokens/tailwind.preset";
+import fluvePreset from "@fluveai/design-tokens/tailwind.preset";
 
 export default {
-  presets: [vortexPreset],
+  presets: [fluvePreset],
   content: ["./src/**/*.{ts,tsx}"],
 };
 ```
 
 ```ts
 // app/layout.tsx (o main.tsx)
-import "@vortex/design-tokens/theme.css";
+import "@fluveai/design-tokens/theme.css";
 ```
 
 ## Paleta (marca v2)

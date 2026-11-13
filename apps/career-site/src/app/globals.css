@@ -1,6 +1,6 @@
 /* El import va PRIMERO: postcss-import lo inlinea antes de que corra Tailwind,
    de modo que los `@layer base` de theme.css encuentren su `@tailwind base`. */
-@import "@vortex/design-tokens/theme.css";
+@import "@fluveai/design-tokens/theme.css";
 
 @tailwind base;
 @tailwind components;

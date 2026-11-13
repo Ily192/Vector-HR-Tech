@@ -2,8 +2,8 @@ import {
   ETIQUETA_ESTADO_VACANTE,
   ETIQUETA_MODALIDAD,
   ETIQUETA_SENIORITY,
-} from "@vortex/types/etiquetas";
-import { Badge, Card, CardContent, CardHeader, CardTitle } from "@vortex/ui";
+} from "@fluveai/types/etiquetas";
+import { Badge, Card, CardContent, CardHeader, CardTitle } from "@fluveai/ui";
 import { ArrowLeft, BadgeCheck, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";

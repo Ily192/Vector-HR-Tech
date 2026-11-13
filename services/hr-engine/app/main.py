@@ -50,7 +50,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 init_monitoring()
 
 app = FastAPI(
-    title="Vortex Ops · HR Engine",
+    title="Fluve AI · HR Engine",
     version=settings.service_version,
     description=(
         "HR execution engine: workers, scoring, pipeline.\n\n"

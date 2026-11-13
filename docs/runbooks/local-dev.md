@@ -66,7 +66,7 @@ nueva no se aplica y no hay ningún aviso.
 
 La imagen Postgres oficial no trae pgvector. Estamos usando `pgvector/pgvector:pg15`. Verifica `infra/docker/docker-compose.dev.yml`.
 
-### `Module not found: Can't resolve '@vortex/ui'`
+### `Module not found: Can't resolve '@fluveai/ui'`
 
 Olvidaste correr `pnpm install` o el workspace no está en `pnpm-workspace.yaml`. Verifica:
 

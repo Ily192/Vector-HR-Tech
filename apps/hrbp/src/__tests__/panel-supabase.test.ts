@@ -4,8 +4,8 @@
  * hace la base. Lo que la base decide (RLS, topes, gancho) lo prueban los tests
  * de seguridad del hr-engine contra Postgres; aquí, que el panel lo traduzca bien.
  */
+import type { Database } from "@fluveai/supabase-client/types";
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@vortex/supabase-client/types";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {

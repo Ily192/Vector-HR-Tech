@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@vortex/ui";
+import { Button } from "@fluveai/ui";
 import { Send } from "lucide-react";
 import Script from "next/script";
 import { type ReactNode, useActionState, useEffect, useId } from "react";

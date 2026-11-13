@@ -20,10 +20,10 @@ const nextConfig = {
   ...standalone,
   reactStrictMode: true,
   transpilePackages: [
-    "@vortex/ui",
-    "@vortex/design-tokens",
-    "@vortex/types",
-    "@vortex/supabase-client",
+    "@fluveai/ui",
+    "@fluveai/design-tokens",
+    "@fluveai/types",
+    "@fluveai/supabase-client",
   ],
   typedRoutes: true,
   experimental: {

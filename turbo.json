@@ -38,13 +38,13 @@
       "outputs": ["coverage/**"]
     },
     "e2e": {
-      "dependsOn": ["@vortex/career-site#build"],
+      "dependsOn": ["@fluveai/career-site#build"],
       "cache": false,
       "env": ["BASE_URL", "CI"],
       "outputs": ["playwright-report/**", "test-results/**"]
     },
     "e2e:smoke": {
-      "dependsOn": ["@vortex/career-site#build"],
+      "dependsOn": ["@fluveai/career-site#build"],
       "cache": false,
       "env": ["BASE_URL", "CI"],
       "outputs": ["playwright-report/**"]

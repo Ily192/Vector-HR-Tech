@@ -6,8 +6,8 @@
 Scaffold pendiente. Stack alineado a `apps/hrbp/`:
 
 - Vite 5 + React 19 + TypeScript estricto
-- Tailwind con `@vortex/design-tokens` preset
-- `@vortex/ui` para componentes
+- Tailwind con `@fluveai/design-tokens` preset
+- `@fluveai/ui` para componentes
 - TanStack Query + Zustand
 - Supabase Auth (rol `cliente`/candidato sin sesión persistente — usa magic link)
 

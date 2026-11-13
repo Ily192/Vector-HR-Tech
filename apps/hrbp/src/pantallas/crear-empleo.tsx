@@ -1,7 +1,7 @@
-import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@vortex/types/etiquetas";
-import type { Modality, Seniority } from "@vortex/types/hr";
-import { MAX_LARGO_DE_SKILL, MAX_SKILLS_POR_VACANTE } from "@vortex/types/reglas";
-import { Button, buttonVariants, formatearSalario, iniciales } from "@vortex/ui";
+import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@fluveai/types/etiquetas";
+import type { Modality, Seniority } from "@fluveai/types/hr";
+import { MAX_LARGO_DE_SKILL, MAX_SKILLS_POR_VACANTE } from "@fluveai/types/reglas";
+import { Button, buttonVariants, formatearSalario, iniciales } from "@fluveai/ui";
 import { X } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
 

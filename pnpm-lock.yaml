@@ -50,16 +50,16 @@ importers:
 
   apps/career-site:
     dependencies:
-      '@vortex/design-tokens':
+      '@fluveai/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@vortex/supabase-client':
+      '@fluveai/supabase-client':
         specifier: workspace:^
         version: link:../../packages/supabase-client
-      '@vortex/types':
+      '@fluveai/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@vortex/ui':
+      '@fluveai/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
@@ -135,16 +135,16 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.81.0
         version: 1.170.33(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@vortex/design-tokens':
+      '@fluveai/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
-      '@vortex/supabase-client':
+      '@fluveai/supabase-client':
         specifier: workspace:*
         version: link:../../packages/supabase-client
-      '@vortex/types':
+      '@fluveai/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@vortex/ui':
+      '@fluveai/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       client-zip:
@@ -266,7 +266,7 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.46.0
         version: 2.116.0
-      '@vortex/types':
+      '@fluveai/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -307,7 +307,7 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.1.0
         version: 1.3.3(@types/react@19.3.0)(react@19.3.1)
-      '@vortex/design-tokens':
+      '@fluveai/design-tokens':
         specifier: workspace:*
         version: link:../design-tokens
       class-variance-authority:

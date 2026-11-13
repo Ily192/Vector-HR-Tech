@@ -14,7 +14,7 @@
  */
 import "server-only";
 
-import { createCareerSiteClient, createPublicClient } from "@vortex/supabase-client";
+import { createCareerSiteClient, createPublicClient } from "@fluveai/supabase-client";
 
 import type { PuertosDeAplicacion, RespuestaDeAplicar } from "./aplicacion";
 

@@ -5,7 +5,7 @@
  */
 import "server-only";
 
-import { getOptionalEnv } from "@vortex/supabase-client";
+import { getOptionalEnv } from "@fluveai/supabase-client";
 
 export function supabaseConfigurado(): boolean {
   return Boolean(getOptionalEnv("SUPABASE_URL") && getOptionalEnv("SUPABASE_ANON_KEY"));

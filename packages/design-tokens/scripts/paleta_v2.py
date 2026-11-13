@@ -1,4 +1,4 @@
-"""Paleta de marca v2 de Vortex Ops: escalas en OKLCH y contraste WCAG de cada uso.
+"""Paleta de marca v2 de Fluve AI: escalas en OKLCH y contraste WCAG de cada uso.
 
 OKLCH da pasos perceptualmente parejos (a igual L, igual claridad aparente entre
 tonos), que es lo que una escala de UI necesita. Si un color cae fuera de sRGB se

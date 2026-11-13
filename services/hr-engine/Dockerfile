@@ -31,8 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # non-root user
-RUN useradd -r -u 1000 -m vortex
-COPY --from=builder --chown=vortex:vortex /app /app
+RUN useradd -r -u 1000 -m fluveai
+COPY --from=builder --chown=fluveai:fluveai /app /app
 
 # Los SKILL.md de producto: su cuerpo es el system instruction que recibe el
 # modelo (app/skills.py). Viven fuera de este contexto, en .agents/skills de la
@@ -40,9 +40,9 @@ COPY --from=builder --chown=vortex:vortex /app /app
 # `additional_contexts` y CI con `build-contexts`. Un build sin él falla aquí
 # —con un error de pull de una imagen `skills` que no existe— en vez de dar una
 # imagen cuyo worker no sabe con qué reglas puntuar.
-COPY --from=skills --chown=vortex:vortex . /app/skills
+COPY --from=skills --chown=fluveai:fluveai . /app/skills
 ENV SKILLS_DIR=/app/skills
-USER vortex
+USER fluveai
 
 EXPOSE 8000
 

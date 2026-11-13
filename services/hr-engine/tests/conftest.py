@@ -29,7 +29,7 @@ for _key, _value in _FORCED_ENV.items():
 # ── Valores que CI puede querer sobreescribir (p. ej. DATABASE_URL para los
 #    tests de RLS, que necesitan un Postgres real).
 _DEFAULT_ENV = {
-    "DATABASE_URL": "postgresql+asyncpg://vortex:vortex@localhost:5432/vortex_test",
+    "DATABASE_URL": "postgresql+asyncpg://fluveai:fluveai@localhost:5432/fluveai_test",
     "REDIS_URL": "redis://localhost:6379/1",
     "OPENAI_API_KEY": "test-openai-key",
     "GOOGLE_API_KEY": "test-google-key",

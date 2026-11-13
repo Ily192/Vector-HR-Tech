@@ -1,6 +1,6 @@
 # hr-engine
 
-Vortex Ops · HR execution engine (FastAPI + Celery).
+Fluve AI · HR execution engine (FastAPI + Celery).
 
 ## Local dev
 

@@ -9,15 +9,15 @@
  * firmadas de Storage y el .zip se arma en el navegador, sin pasar por un
  * servidor nuestro.
  */
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@vortex/supabase-client/types";
+import type { Database } from "@fluveai/supabase-client/types";
 import {
   ETAPAS_DEL_PIPELINE,
   type EtapaDelPipeline,
   LIMITES_DEL_PLAN,
   siguientePaso,
-} from "@vortex/types/reglas";
-import { iniciales } from "@vortex/ui";
+} from "@fluveai/types/reglas";
+import { iniciales } from "@fluveai/ui";
+import { createClient } from "@supabase/supabase-js";
 
 import {
   type AdaptadorDelPanel,

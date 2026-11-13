@@ -12,7 +12,7 @@ Actúa como un **Investigador Técnico**. Antes de escribir o modificar una sola
 
 ## 1. Identificar la tecnología
 
-Detecta qué parte del stack técnico toca el cambio. En este repo (Vortex Ops) lo habitual es:
+Detecta qué parte del stack técnico toca el cambio. En este repo (Fluve AI) lo habitual es:
 
 - **Frontends:** Next.js (App Router), React, Vite, Tailwind CSS, TanStack Query.
 - **Backend:** FastAPI, SQLAlchemy async + asyncpg, Celery + Redis, Pydantic.

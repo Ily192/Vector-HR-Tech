@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-# Stack local de Vortex Ops: las migraciones de `migrations/` y `seed.sql` sobre las
+# Stack local de Fluve AI: las migraciones de `migrations/` y `seed.sql` sobre las
 # imágenes reales de Supabase (auth, storage, PostgREST). `pnpm db:start` lo levanta.
 project_id = "vortex-ops"
 

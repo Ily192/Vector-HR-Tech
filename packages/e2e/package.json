@@ -1,8 +1,8 @@
 {
-  "name": "@vortex/e2e",
+  "name": "@fluveai/e2e",
   "version": "0.1.0",
   "private": true,
-  "description": "Suite Playwright end-to-end de Vortex Ops",
+  "description": "Suite Playwright end-to-end de Fluve AI",
   "type": "module",
   "scripts": {
     "e2e": "playwright test",
