@@ -55,7 +55,7 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
         titulo: "Mis vacantes",
         migas: (
           <>
-            Career site / <b className="text-ink-900">Mis vacantes</b>
+            Bolsa de empleo / <b className="text-ink-900">Mis vacantes</b>
           </>
         ),
         contenido: <MisVacantes />,
@@ -66,7 +66,7 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
         titulo: "Crear empleo",
         migas: (
           <>
-            Career site / <b className="text-ink-900">Crear empleo</b>
+            Bolsa de empleo / <b className="text-ink-900">Crear empleo</b>
           </>
         ),
         contenido: <CrearEmpleo />,
@@ -77,7 +77,7 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
         titulo: "Aplicados",
         migas: (
           <>
-            Career site / {raiz("Mis vacantes")} / <b className="text-ink-900">Aplicados</b>
+            Bolsa de empleo / {raiz("Mis vacantes")} / <b className="text-ink-900">Aplicados</b>
           </>
         ),
         contenido: <Pipeline vacanteId={ruta.vacanteId} />,

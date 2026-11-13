@@ -198,7 +198,7 @@ describe("sesión", () => {
     expect(await adaptador.obtenerSesion()).toEqual({
       usuario: { nombre: "Mariana", iniciales: "MV" },
       empresa: { nombre: "Andes Logística" },
-      plan: "Career site · gratis",
+      plan: "Bolsa de empleo · gratis",
       modulos: ["career-site"],
       publicaParaClientes: false,
     });
@@ -336,10 +336,32 @@ describe("vacantes", () => {
       title: "Coordinador de almacén",
       jd: "Coordina el turno.",
       skills: ["Excel", "Inventarios"],
+      currency: "MXN",
       status: "open",
     });
     expect(inserts[0]?.slug).toMatch(/^coordinador-de-almacen-[0-9a-f]{6}$/);
     expect(inserts[1]?.slug).not.toBe(inserts[0]?.slug);
+  });
+
+  it("sin salario ni moneda no manda currency: la base pone la suya y no se muestra", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.metodo === "POST" && p.ruta === "/rest/v1/vacantes"
+        ? { estado: 201, filas: [{ id: VACANTE }] }
+        : undefined,
+    );
+    await adaptador.publicarVacante({
+      ...BORRADOR,
+      salarioMin: null,
+      salarioMax: null,
+      moneda: null,
+      skills: [],
+    });
+    const insert = peticiones.find((p) => p.ruta === "/rest/v1/vacantes")?.cuerpo as Record<
+      string,
+      unknown
+    >;
+    expect(insert).not.toHaveProperty("currency");
+    expect(insert).toMatchObject({ salary_min: null, salary_max: null });
   });
 
   it.each([

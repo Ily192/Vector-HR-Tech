@@ -2,16 +2,11 @@ import { ETIQUETA_MODALIDAD, ETIQUETA_SENIORITY } from "@vortex/types/etiquetas"
 import type { Modality, Seniority } from "@vortex/types/hr";
 import { MAX_LARGO_DE_SKILL, MAX_SKILLS_POR_VACANTE } from "@vortex/types/reglas";
 import { Button, buttonVariants, formatearSalario, iniciales } from "@vortex/ui";
-import { FileCheck2, ScanSearch, SquareCheckBig, X } from "lucide-react";
+import { X } from "lucide-react";
 import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
 
-import {
-  useMisVacantes,
-  usePublicarVacante,
-  useRegistrarInteres,
-  useSesion,
-} from "../datos/consultas";
-import type { BorradorDeVacante, MotivoDeRechazo } from "../datos/tipos";
+import { useMisVacantes, usePublicarVacante, useSesion } from "../datos/consultas";
+import { type BorradorDeVacante, MONEDAS, type Moneda, type MotivoDeRechazo } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace, navegar } from "../navegacion/ruta";
 import { AvisoDeReclutador } from "./moderacion";
@@ -27,7 +22,7 @@ const BORRADOR_VACIO: BorradorDeVacante = {
   descripcion: "",
   salarioMin: null,
   salarioMax: null,
-  moneda: "MXN",
+  moneda: null,
   salarioPublico: true,
   skills: [],
 };
@@ -196,124 +191,26 @@ function VistaPrevia({ borrador, empresa }: { borrador: BorradorDeVacante; empre
   );
 }
 
-const CLAVE_BROCHURE_OCULTO = "vortex:brochure-oculto";
-
-function leerOculto() {
-  try {
-    return localStorage.getItem(CLAVE_BROCHURE_OCULTO) === "1";
-  } catch {
-    return false;
-  }
-}
-
-const SERVICIOS = [
-  {
-    icono: SquareCheckBig,
-    titulo: "Evaluación a ciegas",
-    texto: "Cada CV llega con score y su porqué. El nombre no se usa.",
-  },
-  {
-    icono: ScanSearch,
-    titulo: "Búsqueda de perfiles",
-    texto: "Si llegan pocos, un agente busca candidatos fuera del sitio.",
-  },
-  {
-    icono: FileCheck2,
-    titulo: "Expediente de cada decisión",
-    texto: "Quién decidió qué y cuándo, listo para auditoría.",
-  },
-];
-
-/** La única venta del plan gratis: un brochure breve, que se puede ocultar (ADR-017). */
-function Brochure() {
-  const [oculto, setOculto] = useState(leerOculto);
-  const interes = useRegistrarInteres();
-  if (oculto) return null;
-
-  function ocultar() {
-    setOculto(true);
-    try {
-      localStorage.setItem(CLAVE_BROCHURE_OCULTO, "1");
-    } catch {
-      // Sin almacenamiento, se vuelve a mostrar en la próxima visita.
-    }
-  }
-
-  return (
-    <section
-      aria-label="Servicios de Vector HR"
-      className="flex flex-col gap-3.5 rounded-[22px] bg-ink-900 p-5 text-white"
-    >
-      <div className="flex items-center">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-aqua-300">
-          Cuando lleguen las aplicaciones
-        </span>
-        <button
-          type="button"
-          onClick={ocultar}
-          className="ml-auto rounded-lg px-2 py-1 text-xs font-bold text-mist-300 hover:text-white"
-        >
-          Ocultar
-        </button>
-      </div>
-      <h2 className="text-[21px] leading-tight tracking-[-0.02em]">
-        Vector HR puede leer los CVs por ti
-      </h2>
-      <ul className="flex flex-col gap-3">
-        {SERVICIOS.map((s) => (
-          <li key={s.titulo} className="flex gap-3">
-            <span
-              aria-hidden="true"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink-800 text-aqua-300"
-            >
-              <s.icono className="h-[18px] w-[18px]" />
-            </span>
-            <div className="text-sm">
-              <b className="block">{s.titulo}</b>
-              <span className="text-ink-200">{s.texto}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {interes.isSuccess ? (
-        <output className="block text-sm font-bold text-aqua-300">
-          Listo. Tu contacto en Vector HR te escribe pronto.
-        </output>
-      ) : (
-        <Button
-          size="sm"
-          className="self-start bg-aqua-300 shadow-none hover:bg-aqua-200"
-          disabled={interes.isPending}
-          onClick={() => interes.mutate("crear-empleo")}
-        >
-          Quiero saber más
-        </Button>
-      )}
-      {interes.isError && (
-        <p role="alert" className="text-sm font-bold text-flame-300">
-          No pudimos avisar a Vector HR. Inténtalo de nuevo.
-        </p>
-      )}
-      <span className="text-xs text-ink-300">
-        Te escribe tu contacto en Vector HR. Tu plan gratis no cambia.
-      </span>
-    </section>
-  );
-}
-
-/** Formulario para publicar una vacante en el career site, con su vista previa. */
+/** Formulario para publicar una vacante en la bolsa de empleo, con su vista previa. */
 export function CrearEmpleo() {
   const { data: sesion } = useSesion();
   const { data: mis } = useMisVacantes();
   const publicar = usePublicarVacante();
   const [borrador, setBorrador] = useState(BORRADOR_VACIO);
+  const [faltaMoneda, setFaltaMoneda] = useState(false);
 
   if (!sesion || !mis) return null;
   const { cupo } = mis;
   const editar = (cambio: Partial<BorradorDeVacante>) => setBorrador((b) => ({ ...b, ...cambio }));
+  // El salario es opcional; si la empresa pone un monto, tiene que decir en qué moneda.
+  const hayMonto = borrador.salarioMin !== null || borrador.salarioMax !== null;
 
   function alPublicar(evento: FormEvent) {
     evento.preventDefault();
+    if (hayMonto && !borrador.moneda) {
+      setFaltaMoneda(true);
+      return;
+    }
     publicar.mutate(borrador, {
       onSuccess: (resultado) => {
         if (resultado.ok) navegar(`/vacantes/${resultado.vacanteId}`);
@@ -332,7 +229,7 @@ export function CrearEmpleo() {
   if (cupo.publicacionesLibres === 0) {
     return (
       <>
-        <Encabezado etiqueta="Career site" titulo={titulo} />
+        <Encabezado etiqueta="Bolsa de empleo" titulo={titulo} />
         <section className="max-w-xl rounded-[22px] border border-mist-200 bg-white p-6">
           <h2 className="text-xl">Ya publicaste {cupo.limite} vacantes en 30 días</h2>
           <p className="mt-2 text-[15px] text-mist-700">
@@ -352,7 +249,7 @@ export function CrearEmpleo() {
   if (cupo.libres === 0) {
     return (
       <>
-        <Encabezado etiqueta="Career site" titulo={titulo} />
+        <Encabezado etiqueta="Bolsa de empleo" titulo={titulo} />
         <section className="max-w-xl rounded-[22px] border border-mist-200 bg-white p-6">
           <h2 className="text-xl">Tus {cupo.limite} vacantes están activas</h2>
           <p className="mt-2 text-[15px] text-mist-700">
@@ -372,7 +269,7 @@ export function CrearEmpleo() {
       <Encabezado
         etiqueta={
           cupo.libres === null
-            ? "Career site"
+            ? "Bolsa de empleo"
             : cupo.publicacionesLibres !== null && cupo.publicacionesLibres < cupo.libres
               ? `Puedes publicar ${cupo.publicacionesLibres} ${cupo.publicacionesLibres === 1 ? "vacante" : "vacantes"} más en estos 30 días`
               : `Te quedan ${cupo.libres} de ${cupo.limite} vacantes`
@@ -446,17 +343,17 @@ export function CrearEmpleo() {
             </fieldset>
             <fieldset className="flex flex-col gap-2">
               <legend className="text-sm font-bold">
-                Rango salarial mensual ({borrador.moneda})
+                Rango salarial mensual
                 <span className="ml-1.5 font-normal text-mist-600">
                   Las vacantes con salario reciben más aplicaciones.
                 </span>
               </legend>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_9rem]">
                 <Campo etiqueta="Desde">
                   <input
                     type="number"
                     min={0}
-                    step={500}
+                    step={1}
                     inputMode="numeric"
                     value={borrador.salarioMin ?? ""}
                     onChange={(e) => editar({ salarioMin: aNumero(e.target.value) })}
@@ -467,14 +364,38 @@ export function CrearEmpleo() {
                   <input
                     type="number"
                     min={borrador.salarioMin ?? 0}
-                    step={500}
+                    step={1}
                     inputMode="numeric"
                     value={borrador.salarioMax ?? ""}
                     onChange={(e) => editar({ salarioMax: aNumero(e.target.value) })}
                     className={CLASE_CAMPO}
                   />
                 </Campo>
+                <Campo etiqueta="Moneda">
+                  <select
+                    required={hayMonto}
+                    aria-invalid={faltaMoneda && !borrador.moneda}
+                    value={borrador.moneda ?? ""}
+                    onChange={(e) => {
+                      editar({ moneda: (e.target.value || null) as Moneda | null });
+                      setFaltaMoneda(false);
+                    }}
+                    className={CLASE_CAMPO}
+                  >
+                    <option value="">Elige</option>
+                    {MONEDAS.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </Campo>
               </div>
+              {faltaMoneda && !borrador.moneda && (
+                <p role="alert" className="text-sm font-bold text-danger-700">
+                  Elige la moneda del salario o deja los montos vacíos.
+                </p>
+              )}
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -482,7 +403,7 @@ export function CrearEmpleo() {
                   onChange={(e) => editar({ salarioPublico: e.target.checked })}
                   className="h-4 w-4 accent-aqua-600"
                 />
-                Mostrar el salario en el career site
+                Mostrar el salario en la bolsa de empleo
               </label>
             </fieldset>
             <CampoDeSkills skills={borrador.skills} alCambiar={(skills) => editar({ skills })} />
@@ -531,7 +452,7 @@ export function CrearEmpleo() {
               )
             )}
             <Button type="submit" disabled={publicar.isPending}>
-              Publicar en el career site
+              Publicar en la bolsa de empleo
             </Button>
           </div>
         </form>
@@ -541,7 +462,6 @@ export function CrearEmpleo() {
             Vista previa · así la ven los candidatos
           </span>
           <VistaPrevia borrador={borrador} empresa={sesion.empresa.nombre} />
-          {!sesion.modulos.includes("cockpit") && <Brochure />}
         </div>
       </div>
     </>

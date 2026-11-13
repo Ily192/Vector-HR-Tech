@@ -22,7 +22,7 @@ export type { Modulo };
 export interface SesionEmpresa {
   usuario: { nombre: string; iniciales: string };
   empresa: { nombre: string };
-  /** Nombre del plan tal como se muestra, p. ej. "Career site · gratis". */
+  /** Nombre del plan tal como se muestra, p. ej. "Bolsa de empleo · gratis". */
   plan: string;
   modulos: readonly Modulo[];
   /** Reclutador(a) independiente: Vector HR revisa cada vacante antes de publicarla (ADR-022). */
@@ -66,6 +66,10 @@ export interface MisVacantes {
   cupo: CupoDeVacantes;
 }
 
+/** Monedas del rango salarial: las de México y Venezuela, y el dólar. */
+export const MONEDAS = ["MXN", "USD", "VES"] as const;
+export type Moneda = (typeof MONEDAS)[number];
+
 /** Lo que la empresa llena en "Crear empleo". */
 export interface BorradorDeVacante {
   titulo: string;
@@ -75,8 +79,12 @@ export interface BorradorDeVacante {
   descripcion: string;
   salarioMin: number | null;
   salarioMax: number | null;
-  moneda: string;
-  /** Si el salario se muestra en el career site (`vacantes.salario_publico`). */
+  /**
+   * Sin valor por defecto: la empresa la elige, y es obligatoria si hay algún monto.
+   * Sin salario ni moneda, la base pone la suya (`vacantes.currency`) y no se muestra.
+   */
+  moneda: Moneda | null;
+  /** Si el salario se muestra en la bolsa de empleo (`vacantes.salario_publico`). */
   salarioPublico: boolean;
   /** Skills que pide la vacante (hasta 15): el gancho cuenta cuántos CVs las mencionan. */
   skills: string[];

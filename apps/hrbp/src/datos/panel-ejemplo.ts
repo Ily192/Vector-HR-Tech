@@ -154,7 +154,7 @@ function estadoGratis(): Estado {
     sesion: {
       usuario: { nombre: "Mariana", iniciales: "MV" },
       empresa: { nombre: "Andes Logística" },
-      plan: "Career site · gratis",
+      plan: "Bolsa de empleo · gratis",
       modulos: ["career-site"],
       publicaParaClientes: false,
     },

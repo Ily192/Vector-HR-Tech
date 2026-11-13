@@ -64,7 +64,7 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
           className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-danger-50 p-4 text-sm"
         >
           <p className="flex-1 basis-64 text-danger-700">
-            <b>¿Eliminar «{v.titulo}»?</b> Deja de aparecer en el career site
+            <b>¿Eliminar «{v.titulo}»?</b> Deja de aparecer en la bolsa de empleo
             {cupo.limite !== null &&
               " y libera un lugar entre tus activas, aunque su publicación sigue contando 30 días"}
             . Las aplicaciones que recibió no se recuperan desde el panel.
@@ -135,8 +135,8 @@ export function MisVacantes() {
           <h2 className="text-lg font-extrabold">Aún no publicas vacantes</h2>
           <p className="mt-1 text-sm text-mist-600">
             {cupo.limite === null
-              ? "Publica tu primera vacante en el career site."
-              : `Tu plan incluye ${cupo.limite} vacantes activas en el career site, sin costo.`}
+              ? "Publica tu primera vacante en la bolsa de empleo."
+              : `Tu plan incluye ${cupo.limite} vacantes activas en la bolsa de empleo, sin costo.`}
           </p>
         </div>
       ) : (

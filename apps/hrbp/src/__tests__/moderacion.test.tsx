@@ -73,8 +73,8 @@ describe("la moderación en el panel (ADR-022)", () => {
     );
   });
 
-  it("la lista vacía de aplicados dice si ya está en el career site", () => {
-    expect(sinAplicaciones("publicada")).toContain("ya está en el career site");
-    expect(sinAplicaciones("pendiente")).toContain("aún no está en el career site");
+  it("la lista vacía de aplicados dice si ya está en la bolsa de empleo", () => {
+    expect(sinAplicaciones("publicada")).toContain("ya está en la bolsa de empleo");
+    expect(sinAplicaciones("pendiente")).toContain("aún no está en la bolsa de empleo");
   });
 });

@@ -31,7 +31,7 @@ type Cliente = ReturnType<typeof createClient<Database>>;
 /** Quiénes usan el panel: los mismos roles que deja pasar la RLS de vacantes (0001). */
 const ROLES_DEL_PANEL = ["HR", "Director", "SuperAdmin"];
 
-const NOMBRE_DEL_PLAN = { gratis: "Career site · gratis", ia: "Servicios de IA" } as const;
+const NOMBRE_DEL_PLAN = { gratis: "Bolsa de empleo · gratis", ia: "Servicios de IA" } as const;
 
 /** Lo que dura el enlace a cada CV en la lista de aplicados. */
 const SEGUNDOS_DEL_ENLACE_AL_CV = 60 * 60;
@@ -279,7 +279,8 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
             location: borrador.ubicacion.trim() || null,
             salary_min: borrador.salarioMin,
             salary_max: borrador.salarioMax,
-            currency: borrador.moneda,
+            // Sin moneda elegida (y por tanto sin salario) manda el default de la base.
+            ...(borrador.moneda ? { currency: borrador.moneda } : {}),
             salario_publico: borrador.salarioPublico,
             skills: borrador.skills,
             status: "open",

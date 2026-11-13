@@ -8,7 +8,7 @@ import { montarPanel } from "../test/montar";
 const encabezado = () => screen.findByRole("heading", { level: 1 }, { timeout: 5_000 });
 
 describe("panel de empresa · plan gratis (ADR-017)", () => {
-  it("entra a Mis vacantes con el cupo del plan y solo el módulo Career site", async () => {
+  it("entra a Mis vacantes con el cupo del plan y solo el módulo Bolsa de empleo", async () => {
     montarPanel("/");
 
     expect(await encabezado()).toHaveTextContent("Mis vacantes");
@@ -18,13 +18,13 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(screen.getByRole("img", { name: "Tu cuenta: Mariana" })).toBeInTheDocument();
 
     const menu = screen.getByRole("complementary", { name: "Navegación" });
-    expect(within(menu).getByRole("navigation", { name: "Career site" })).toBeInTheDocument();
+    expect(within(menu).getByRole("navigation", { name: "Bolsa de empleo" })).toBeInTheDocument();
     expect(within(menu).queryByRole("navigation", { name: "Operación" })).toBeNull();
     expect(within(menu).getByRole("link", { name: /Mis vacantes/ })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(within(menu).getByText("Career site · gratis")).toBeInTheDocument();
+    expect(within(menu).getByText("Bolsa de empleo · gratis")).toBeInTheDocument();
   });
 
   it("marca la vacante que llegó a 50 aplicaciones como cupo completo", async () => {
@@ -50,7 +50,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(screen.queryByText("Chofer repartidor")).toBeNull();
   });
 
-  it("crear empleo muestra la vista previa en vivo, el brochure y publica", async () => {
+  it("crear empleo muestra la vista previa en vivo, sin servicios de IA, y publica", async () => {
     montarPanel("/vacantes/nueva");
 
     expect(await encabezado()).toHaveTextContent("Crear empleo");
@@ -61,6 +61,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Saltillo, Coah." } });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "18000" } });
     fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "22000" } });
+    fireEvent.change(screen.getByLabelText("Moneda"), { target: { value: "MXN" } });
     fireEvent.click(screen.getByLabelText("Presencial"));
     fireEvent.change(screen.getByLabelText(/Descripción/), {
       target: { value: "Supervisarás el turno nocturno." },
@@ -72,19 +73,42 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(within(previa).getByText("Presencial")).toBeInTheDocument();
     expect(within(previa).getByText(/\$18,000 – \$22,000/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Mostrar el salario en el career site"));
+    fireEvent.click(screen.getByLabelText("Mostrar el salario en la bolsa de empleo"));
     expect(within(previa).getByText("Salario a convenir")).toBeInTheDocument();
 
-    const brochure = screen.getByRole("region", { name: "Servicios de Vector HR" });
-    fireEvent.click(within(brochure).getByRole("button", { name: "Quiero saber más" }));
-    expect(await within(brochure).findByRole("status")).toHaveTextContent(/te escribe pronto/);
+    // Hasta que la IA esté lista, crear empleo no ofrece servicios de IA.
+    expect(screen.queryByRole("region", { name: "Servicios de Vector HR" })).toBeNull();
+    expect(screen.queryByText(/leer los CVs por ti/)).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
     expect(
       await screen.findByRole("heading", { level: 1, name: "Supervisor de turno" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toMatch(/^\/vacantes\/supervisor-de-turno-/);
     expect(screen.getByText(/Todavía no hay aplicaciones/)).toBeInTheDocument();
+  });
+
+  it("con salario pide la moneda antes de publicar, sin elegir una por defecto", async () => {
+    montarPanel("/vacantes/nueva");
+    const moneda = (await screen.findByLabelText("Moneda")) as HTMLSelectElement;
+    expect(moneda.value).toBe("");
+    expect(moneda).not.toBeRequired();
+
+    fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Cajero" } });
+    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Valencia" } });
+    fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Cobra." } });
+    fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "300" } });
+    expect(moneda).toBeRequired();
+
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
+    expect(await encabezado()).toHaveTextContent("Crear empleo");
+    expect(moneda).toBeInvalid();
+
+    fireEvent.change(moneda, { target: { value: "USD" } });
+    const previa = screen.getByRole("article", { name: "Vista previa de la vacante" });
+    expect(within(previa).getByText("USD / mes")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Cajero" })).toBeInTheDocument();
   });
 
   it("con el cupo lleno, crear empleo explica cómo liberar uno en vez del formulario", async () => {
@@ -96,7 +120,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     fireEvent.change(screen.getByLabelText(/Descripción/), {
       target: { value: "Opera montacargas." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
     await screen.findByRole("heading", { level: 1, name: "Montacarguista" });
 
     fireEvent.click(screen.getAllByRole("link", { name: /Crear empleo/ })[0] as HTMLElement);
@@ -158,7 +182,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Almacenista" } });
     fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
     fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Surte pedidos." } });
-    fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+    fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
 
     await screen.findByRole("heading", { level: 1, name: "Almacenista" });
     expect(screen.getByRole("region", { name: "Coincidencia de skills" })).toHaveTextContent(
@@ -182,7 +206,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
       fireEvent.change(await screen.findByLabelText("Puesto"), { target: { value: puesto } });
       fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
       fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Opera." } });
-      fireEvent.click(screen.getByRole("button", { name: "Publicar en el career site" }));
+      fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
       await screen.findByRole("heading", { level: 1, name: puesto });
     };
 
@@ -398,7 +422,7 @@ describe("panel de empresa · accesibilidad", () => {
         .queryAllByRole("button")
         .filter((b) => b.getAttribute("type") === "submit");
       expect(submits.map((b) => b.textContent)).toEqual(
-        url === "/vacantes/nueva" ? ["Publicar en el career site"] : [],
+        url === "/vacantes/nueva" ? ["Publicar en la bolsa de empleo"] : [],
       );
     },
   );
