@@ -504,6 +504,15 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       if (error) throw error;
     },
 
+    /** La base toma la empresa del token y no marca vacantes de otra (0020). */
+    async marcarPostulacionesVistas(vacanteId) {
+      if (!ES_UUID.test(vacanteId)) return;
+      const { error } = await supabase.rpc("marcar_postulaciones_vistas", {
+        p_vacante: vacanteId,
+      });
+      if (error) throw error;
+    },
+
     async entrar(correo) {
       // El correo lleva un código de 6 dígitos y no un enlace (infra/supabase/templates):
       // a una cuenta sin confirmar, Auth le reenvía el de su alta.

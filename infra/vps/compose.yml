@@ -76,6 +76,11 @@ x-hr-engine: &hr-engine
     SMTP_PASS: ${SMTP_PASS:-}
     SMTP_REMITENTE: ${SMTP_ADMIN_EMAIL:?}
     SMTP_NOMBRE: ${SMTP_SENDER_NAME:?}
+    # El recordatorio de postulados sin revisar (ADR-023): más de 5, 24 horas después del
+    # sexto, y como mucho 20 correos al día, para dejarle la cuota de Resend a los códigos.
+    RECORDATORIO_UMBRAL: ${RECORDATORIO_UMBRAL:-5}
+    RECORDATORIO_HORAS_DE_ESPERA: ${RECORDATORIO_HORAS_DE_ESPERA:-24}
+    RECORDATORIO_MAX_24H: ${RECORDATORIO_MAX_24H:-20}
 
 services:
   # ─── Supabase ────────────────────────────────────────────────────────────

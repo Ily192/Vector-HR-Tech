@@ -125,6 +125,8 @@ interface Estado {
   maxAplicaciones: number | null;
   registros: Registro[];
   interes: OrigenDelInteres[];
+  /** Las vacantes cuyas postulaciones se abrieron, en orden. */
+  vistas: string[];
 }
 
 function vacante(
@@ -162,6 +164,7 @@ function estadoGratis(): Estado {
     limite: limiteDeVacantes(80),
     maxAplicaciones: LIMITES_DEL_PLAN.gratis.aplicacionesPorVacante,
     interes: [],
+    vistas: [],
     registros: [
       {
         vacante: vacante("coordinador-de-almacen", "Coordinador de almacén", 6, 47),
@@ -220,6 +223,7 @@ function estadoConIa(): Estado {
     limite: null,
     maxAplicaciones: LIMITES_DEL_PLAN.ia.aplicacionesPorVacante,
     interes: [],
+    vistas: [],
     registros: [
       {
         vacante: vacante("senior-software-engineer", "Senior Software Engineer", 9, 84, {
@@ -287,6 +291,9 @@ let estado = estadoInicial();
 export function reiniciarDatosDeEjemplo() {
   estado = estadoInicial();
 }
+
+/** Para los tests: las vacantes cuyas postulaciones se abrieron, en orden. */
+export const postulacionesVistasDelEjemplo = (): readonly string[] => [...estado.vistas];
 
 const activos = () => estado.registros.filter((r) => r.vacante.estado === "open");
 
@@ -439,6 +446,10 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
 
   async registrarInteres(origen) {
     estado.interes.push(origen);
+  },
+
+  async marcarPostulacionesVistas(vacanteId) {
+    estado.vistas.push(vacanteId);
   },
 
   async entrar() {

@@ -24,6 +24,8 @@ celery_app = Celery(
         "app.workers.altas",
         # Moderación de vacantes antes del career site (ADR-022).
         "app.workers.moderacion",
+        # El recordatorio de postulados sin revisar a la empresa (ADR-023).
+        "app.workers.recordatorios",
         # próximas etapas:
         # "app.workers.psicometrico",
         # "app.workers.interviewer",
@@ -106,6 +108,15 @@ celery_app.conf.update(
             "task": "moderacion.avisar",
             "schedule": 300.0,
             "options": {"expires": 290},
+        },
+        # Un solo correo a la empresa con más de 5 postulados sin revisar (ADR-023). Cada
+        # hora: la espera es de 24 horas y el tope de correos, diario. "schedule: The
+        # frequency of execution. This can be the number of seconds as an integer, a
+        # timedelta, or a crontab" (Celery 5.6, Periodic Tasks).
+        "postulados-recordar": {
+            "task": "postulados.recordar",
+            "schedule": 3600.0,
+            "options": {"expires": 3500},
         },
     },
 )

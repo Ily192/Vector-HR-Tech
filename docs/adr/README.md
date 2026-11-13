@@ -28,6 +28,7 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [020](020-plataforma-en-un-vps.md) | Toda la plataforma en un VPS, con Supabase autoalojado y Docker Compose | Accepted; desde el 2026-11-11, solo el backend (los frontends en Vercel) |
 | [021](021-evaluacion-ia-del-plan-de-pago.md) | La evaluación con IA del plan de pago, a ciegas y como trabajo interno del hr-engine | Accepted |
 | [022](022-moderacion-de-vacantes.md) | Verificar empresas y moderar vacantes antes del career site | Accepted |
+| [023](023-recordatorio-de-postulados.md) | Un solo recordatorio a la empresa con más de 5 postulados sin revisar | Accepted |
 
 ## Cómo escribir una ADR
 

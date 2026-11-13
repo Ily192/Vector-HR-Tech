@@ -50,6 +50,7 @@ services:
       - ../supabase/migrations/0017_rol_del_career_site.sql:/docker-entrypoint-initdb.d/26_0017_rol_del_career_site.sql:ro
       - ../supabase/migrations/0018_altas_desde_la_web.sql:/docker-entrypoint-initdb.d/27_0018_altas_desde_la_web.sql:ro
       - ../supabase/migrations/0019_moderacion_de_vacantes.sql:/docker-entrypoint-initdb.d/28_0019_moderacion_de_vacantes.sql:ro
+      - ../supabase/migrations/0020_recordatorio_de_postulados.sql:/docker-entrypoint-initdb.d/29_0020_recordatorio_de_postulados.sql:ro
       - ../supabase/seed.sql:/docker-entrypoint-initdb.d/90_seed.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vortex -d vortex_dev"]

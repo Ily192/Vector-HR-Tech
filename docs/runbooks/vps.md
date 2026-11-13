@@ -366,6 +366,28 @@ lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
   limpieza de 7 días. En los logs del worker sale como `altas_confirmadas` dentro de
   `moderacion.barrido`.
 
+### 12. El recordatorio de postulados sin revisar (ADR-023)
+
+A la empresa con más de 5 postulados sin revisar le llega **un solo correo**, 24 horas
+después del sexto, si no abrió "Ver postulaciones". No se repite hasta que entre y se
+junten otros más de 5. Va a HR y Dirección con el correo confirmado, sin datos de
+candidatos: cuántos, en qué vacantes y el enlace a `PANEL_URL`.
+
+- **Cada hora:** la tarea `postulados.recordar` del beat. En los logs del worker sale
+  como `postulados.recordatorio`, con `empresas`, `correos`, `sin_cupo` y
+  `sin_destinatarios`. Si el SMTP rechaza correos, sale `postulados.recordatorio_fallido`.
+- **El tope:** `RECORDATORIO_MAX_24H` (20 por defecto) cuenta correos en 24 horas. Los
+  100 diarios de Resend son también los de los códigos de acceso, que van primero. Con
+  `RECORDATORIO_MAX_24H=0` se apaga. `RECORDATORIO_UMBRAL` (5) y
+  `RECORDATORIO_HORAS_DE_ESPERA` (24) cambian la regla sin tocar código.
+- **Qué se mandó:**
+
+  ```bash
+  vortex exec -T db psql -h 127.0.0.1 -U postgres -d postgres -c     "select e.name, r.postulados, r.destinatarios, r.enviado_en
+       from privado.recordatorios_de_postulados r join empresas e on e.id = r.empresa_id
+      order by r.enviado_en desc limit 20"
+  ```
+
 ## Día a día
 
 - **Desplegar:** el workflow, desde `main`.
