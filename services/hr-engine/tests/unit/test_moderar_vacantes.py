@@ -26,6 +26,7 @@ from app.domain.moderacion import (
     VacanteAModerar,
     VacanteEnCola,
 )
+from app.domain.verificador import MARCA_SIN_VERIFICAR
 from app.security import enlaces_de_revision
 
 AHORA = datetime(2026, 11, 12, 15, 0, tzinfo=UTC)
@@ -192,6 +193,75 @@ async def test_si_el_revisor_falla_la_vacante_espera_al_siguiente_barrido() -> N
     resultado = await ModerarVacantesPendientes(repo, RevisorCaido()).ejecutar(lote=10)
     assert resultado.en_espera == 1
     assert repo.guardadas == {}
+
+
+class IntentosEnMemoria:
+    def __init__(self, *, roto: bool = False) -> None:
+        self.cuenta: dict[UUID, int] = {}
+        self.limpiadas: list[UUID] = []
+        self.roto = roto
+
+    async def sumar(self, vacante: VacanteAModerar) -> int:
+        if self.roto:
+            raise ConnectionError("redis caído")
+        self.cuenta[vacante.id] = self.cuenta.get(vacante.id, 0) + 1
+        return self.cuenta[vacante.id]
+
+    async def limpiar(self, vacante: VacanteAModerar) -> None:
+        if self.roto:
+            raise ConnectionError("redis caído")
+        self.limpiadas.append(vacante.id)
+
+
+async def test_tras_el_tope_de_fallos_del_revisor_la_vacante_va_a_revision() -> None:
+    """Nunca se publica sin verificar: espera y, al pasar el tope, la revisa una persona."""
+    repo = RepoFalso()
+    v = _vacante()  # empresa verificada sin señales: sin el revisor se publicaría
+    repo.pendientes_ = [v]
+    intentos = IntentosEnMemoria()
+    caso = ModerarVacantesPendientes(repo, RevisorCaido(), intentos=intentos, max_intentos=3)
+
+    for _ in range(2):
+        resultado = await caso.ejecutar(lote=10)
+        assert (resultado.en_espera, resultado.sin_verificar) == (1, 0)
+        assert repo.guardadas == {}
+
+    resultado = await caso.ejecutar(lote=10)
+    assert (resultado.en_espera, resultado.sin_verificar, resultado.en_revision) == (0, 1, 1)
+    decision = repo.guardadas[v.id]
+    assert decision.estado is EstadoDeModeracion.EN_REVISION
+    assert [m.senal for m in decision.motivos] == [MARCA_SIN_VERIFICAR.senal]
+
+
+async def test_si_el_revisor_responde_se_olvidan_los_fallos() -> None:
+    repo = RepoFalso()
+    v = _vacante()
+    repo.pendientes_ = [v]
+    intentos = IntentosEnMemoria()
+    await ModerarVacantesPendientes(repo, RevisorQueMarca(), intentos=intentos).ejecutar(lote=10)
+    assert intentos.limpiadas == [v.id]
+
+
+async def test_sin_registro_de_intentos_el_revisor_caido_no_publica_nunca() -> None:
+    """Si Redis no responde, la vacante sigue esperando: no se publica a ciegas."""
+    repo = RepoFalso()
+    repo.pendientes_ = [_vacante()]
+    caso = ModerarVacantesPendientes(
+        repo, RevisorCaido(), intentos=IntentosEnMemoria(roto=True), max_intentos=1
+    )
+    for _ in range(3):
+        resultado = await caso.ejecutar(lote=10)
+        assert resultado.en_espera == 1
+    assert repo.guardadas == {}
+
+
+async def test_un_registro_roto_no_tumba_la_moderacion_cuando_el_revisor_responde() -> None:
+    repo = RepoFalso()
+    v = _vacante()
+    repo.pendientes_ = [v]
+    caso = ModerarVacantesPendientes(repo, RevisorQueMarca(), intentos=IntentosEnMemoria(roto=True))
+    await caso.ejecutar(lote=10)
+    assert repo.guardadas[v.id].estado is EstadoDeModeracion.EN_REVISION
 
 
 # ─────────────────────────────── el resumen ───────────────────────────────

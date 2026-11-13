@@ -1,5 +1,21 @@
 # Verificador de vacantes: comparación de modelos
 
+## Confirmación con el código de producción (2026-11-13 00:07 UTC)
+
+El PR 3 pasó el prompt, el esquema y la configuración de Gemini al código de la
+moderación (`app/infrastructure/verificador_gemini.py`, `app/domain/verificador.py`), y
+esta prueba ahora los importa de ahí. Se volvió a correr solo el modelo elegido, con el
+mismo set:
+
+| Modelo | Recall alto | Sospechosas como bajo | Falsos positivos | Exactitud | Errores | Costo por vacante | Costo total | Latencia media |
+|---|---|---|---|---|---|---|---|---|
+| `gemini-3.5-flash-lite` (`thinking_level=LOW`) | 100% | 0 | 0% | 100% | 0 | US$0.00040 | US$0.0160 | 1.0 s |
+
+Igual que en la comparación de abajo: es el modelo que usa la moderación
+(`MODERACION_MODELO`).
+
+## Comparación (2026-11-12)
+
 Corrida del 2026-11-12 22:06 UTC con `python -m app.cli.evals_verificador` (services/hr-engine). Set sintético `casos.yaml`: 40 vacantes inventadas de México y Venezuela (22 legítimas, 13 de riesgo alto y 5 de riesgo medio). Mismo prompt para todos (`instrucciones.md`), salida estructurada con el esquema del script y una sola pasada por modelo.
 
 - Claude: `thinking` adaptativo, `effort: low`, `output_config.format`. Opus 5.5 y Sonnet 5.5 con `fallbacks: "default"` (beta `server-side-fallback-2026-07-01`); Haiku 5.5 no tiene fallback del lado del servidor y su negativa cuenta como revisión manual.
@@ -8,7 +24,7 @@ Corrida del 2026-11-12 22:06 UTC con `python -m app.cli.evals_verificador` (serv
 
 Criterio: el más barato con recall de alto = 100%, ninguna sospechosa como bajo y falsos positivos ≤ 10%.
 
-## Resultados
+### Resultados
 
 | Modelo | Recall alto | Sospechosas como bajo | Falsos positivos | Exactitud | Negativas | Errores | Costo por vacante | Costo total | Latencia media |
 |---|---|---|---|---|---|---|---|---|---|
@@ -23,13 +39,13 @@ Sin correr:
 
 Gasto de la corrida: US$0.0523 (tope US$1.00).
 
-## Recomendación
+### Recomendación
 
 gemini-3.5-flash-lite: el más barato que detectó todas las de riesgo alto, no dejó pasar ninguna sospechosa como bajo y mandó a revisión el 0% de las legítimas.
 
-## Fallos por modelo
+### Fallos por modelo
 
-### `gemini-2.5-flash`
+#### `gemini-2.5-flash`
 
 - `leg-almacen-turno-rotativo`: esperado bajo, obtuvo error (API 404). Señal: puesto operativo con prestaciones
 - `leg-asesor-seguros`: esperado bajo, obtuvo error (API 404). Señal: venta de seguros con base, capacitación y cédula, sin cobro
@@ -73,7 +89,7 @@ gemini-3.5-flash-lite: el más barato que detectó todas las de riesgo alto, no 
 - `sos-trabajo-exterior-tramites`: esperado alto, obtuvo error (API 404). Señal: trabajo en el exterior con cobro por trámites (posible trata)
 
 
-## Estimación antes de correr
+### Estimación antes de correr
 
 | Modelo | Precio (entrada / salida por millón) | Estimado para el set | Fuente |
 |---|---|---|---|

@@ -1,27 +1,37 @@
-"""Tareas de la moderación de vacantes (ADR-022). Sin IA.
+"""Tareas de la moderación de vacantes (ADR-022).
 
 `moderacion.barrer` corre cada minuto con Celery beat. Primero da la insignia a las
 empresas cuyo dueño acaba de confirmar el código del alta desde la web
-(`ConfirmarAltasDeLaWeb`), y después modera: una vacante de una empresa verificada
-sin señales de riesgo sale al career site en el siguiente barrido.
+(`ConfirmarAltasDeLaWeb`), y después modera con las reglas fijas y, si hay
+GOOGLE_API_KEY, con el revisor de Gemini: una vacante de una empresa verificada sin
+señales de riesgo sale al career site en el siguiente barrido. Si el revisor falla,
+la vacante espera y, después de `MODERACION_MAX_INTENTOS_IA` barridos, va a revisión.
 `moderacion.avisar` corre cada 5 minutos y decide si toca mandar el resumen de la
-cola a hola@. Como coincidencias, no son runs de agente: sin run-token ni tope de
-gasto, porque no llaman a ningún LLM.
+cola a hola@. No son runs de agente: sin run-token. El revisor cuesta ~US$0,0004
+por vacante y cada llamada deja sus tokens en el log (`moderacion.ia`).
 """
 
 from __future__ import annotations
 
 import asyncio
 from dataclasses import asdict
+from functools import cache
 from typing import TYPE_CHECKING
 from uuid import UUID
+
+import redis
 
 from app.application.moderar_vacantes import AvisarColaDeRevision, ModerarVacantesPendientes
 from app.application.verificar_empresa import ConfirmarAltasDeLaWeb, VerificarEmpresa
 from app.config import settings
 from app.database import db_session
 from app.infrastructure.altas_web import SqlRepositorioDeAltasWeb
-from app.infrastructure.moderacion import CorreoSmtp, SqlRepositorioDeModeracion
+from app.infrastructure.moderacion import (
+    CorreoSmtp,
+    RegistroDeIntentosRedis,
+    SqlRepositorioDeModeracion,
+)
+from app.infrastructure.verificador_gemini import revisor_configurado
 from app.monitoring import logger
 from app.security import enlaces_de_revision
 from app.workers.celery_app import celery_app
@@ -37,10 +47,40 @@ def confirmar_altas(db: AsyncSession) -> ConfirmarAltasDeLaWeb:
     )
 
 
+@cache
+def _redis() -> redis.Redis:
+    # Síncrono, como el circuit breaker: no se ata a ningún event loop.
+    return redis.Redis.from_url(settings.redis_url, socket_timeout=0.5, socket_connect_timeout=0.5)
+
+
+_avisado_sin_ia = False
+
+
+def _avisar_si_no_hay_revisor(hay_revisor: bool) -> None:
+    """Una vez por proceso: la moderación sigue, pero solo con las reglas fijas."""
+    global _avisado_sin_ia
+    if hay_revisor or _avisado_sin_ia:
+        return
+    _avisado_sin_ia = True
+    motivo = (
+        "MODERACION_IA_ACTIVA=false"
+        if not settings.moderacion_ia_activa
+        else "falta GOOGLE_API_KEY"
+    )
+    logger.warning("moderacion.sin_ia", motivo=motivo, efecto="solo reglas fijas")
+
+
 async def _barrer() -> dict[str, int]:
+    revisor = revisor_configurado()
+    _avisar_si_no_hay_revisor(revisor is not None)
     async with db_session() as db:
         confirmadas = await confirmar_altas(db).ejecutar()
-        caso = ModerarVacantesPendientes(SqlRepositorioDeModeracion(db))
+        caso = ModerarVacantesPendientes(
+            SqlRepositorioDeModeracion(db),
+            revisor,
+            intentos=RegistroDeIntentosRedis(_redis()),
+            max_intentos=settings.moderacion_max_intentos_ia,
+        )
         resultado = {
             "altas_confirmadas": confirmadas,
             **asdict(await caso.ejecutar(lote=settings.moderacion_lote)),

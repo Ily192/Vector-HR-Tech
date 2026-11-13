@@ -10,8 +10,9 @@ gemini-3.5-flash-lite (el Flash-Lite vigente) y gemini-3.8-flash. Los de Claude 
 listos pero apagados: hoy no hay créditos en la API de Anthropic (`--con-claude`).
 
 Lee `evals/verificador/casos.yaml` (40 vacantes inventadas: 22 legítimas, 13 de riesgo
-alto y 5 de riesgo medio) y `evals/verificador/instrucciones.md` (el prompt, igual para
-todos los modelos). Manda cada vacante a cada modelo con salida estructurada y escribe
+alto y 5 de riesgo medio) y usa el prompt, el esquema y la configuración de Gemini de
+producción (`app/infrastructure/verificador_gemini.py`, `app/domain/verificador.py`): lo
+que se mide es lo que corre en la moderación, igual para todos los modelos. Manda cada vacante a cada modelo con salida estructurada y escribe
 `evals/verificador/RESULTADOS.md` (tabla, fallos y recomendación) y el detalle en
 `evals/verificador/resultados/<fecha>.json`, que git ignora.
 
@@ -39,50 +40,17 @@ from typing import Any, Literal
 
 import yaml
 
+from app.config import settings
+from app.domain.verificador import ESQUEMA, RIESGOS
+from app.infrastructure.verificador_gemini import (
+    INSTRUCCIONES,
+    configuracion,
+    texto_de_la_vacante,
+)
+
 #: Raíz del repo (services/hr-engine/app/cli → raíz).
 RAIZ = Path(__file__).resolve().parents[4]
 DIRECTORIO = RAIZ / "evals" / "verificador"
-
-RIESGOS = ("bajo", "medio", "alto")
-
-#: Las categorías que puede devolver el modelo (enum del esquema).
-SENALES = (
-    "cobro_al_candidato",
-    "datos_sensibles_anticipados",
-    "inversion_o_multinivel",
-    "mula_de_dinero",
-    "actividad_ilegal",
-    "posible_trata",
-    "estafa_de_tareas",
-    "suplantacion_de_marca",
-    "contacto_solo_mensajeria",
-    "enlace_acortado",
-    "sueldo_irreal",
-    "oportunidad_vaga",
-    "otra",
-)
-
-ESQUEMA: dict[str, Any] = {
-    "type": "object",
-    "properties": {
-        "riesgo": {"type": "string", "enum": list(RIESGOS)},
-        "motivos": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "frase": {"type": "string"},
-                    "explicacion": {"type": "string"},
-                },
-                "required": ["frase", "explicacion"],
-                "additionalProperties": False,
-            },
-        },
-        "senales": {"type": "array", "items": {"type": "string", "enum": list(SENALES)}},
-    },
-    "required": ["riesgo", "motivos", "senales"],
-    "additionalProperties": False,
-}
 
 #: Precios de Claude: skill claude-api (tabla "Current Models", cacheada 2026-11-03).
 FUENTE_CLAUDE = "skill claude-api, tabla Current Models (2026-11-03)"
@@ -169,7 +137,7 @@ class Caso:
     descripcion: str
 
     def texto(self) -> str:
-        return f"Título: {self.titulo}\n\nDescripción:\n{self.descripcion.strip()}"
+        return texto_de_la_vacante(self.titulo, self.descripcion)
 
 
 class SetInvalidoError(ValueError):
@@ -406,21 +374,14 @@ async def _llamar_claude(cliente: Any, modelo: Modelo, instrucciones: str, caso:
 
 
 async def _llamar_gemini(cliente: Any, modelo: Modelo, instrucciones: str, caso: Caso) -> Resultado:
-    from google.genai import errors, types
+    from google.genai import errors
 
-    if modelo.pensamiento == "budget_0":
-        pensar = types.ThinkingConfig(thinking_budget=0)
-    elif modelo.pensamiento == "level_low":
-        pensar = types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
-    else:
-        pensar = None
-    config = types.GenerateContentConfig(
-        system_instruction=instrucciones,
-        response_mime_type="application/json",
-        response_json_schema=ESQUEMA,
-        max_output_tokens=MAX_TOKENS,
-        thinking_config=pensar,
-    )
+    # La configuración de producción: prompt, esquema, tokens y razonamiento (los 2.5
+    # con thinking_budget=0, los 3.x con MODERACION_THINKING_LEVEL). `instrucciones` es el
+    # mismo prompt salvo que una prueba lo cambie.
+    config = configuracion(modelo.id, settings.moderacion_thinking_level)
+    if instrucciones != INSTRUCCIONES:
+        config = config.model_copy(update={"system_instruction": instrucciones})
     inicio = time.perf_counter()
     try:
         respuesta = await cliente.aio.models.generate_content(
@@ -588,7 +549,7 @@ def informe_markdown(
         f"(services/hr-engine). Set sintético `casos.yaml`: {len(casos)} vacantes inventadas "
         f"de México y Venezuela ({por_clase['bajo']} legítimas, {por_clase['alto']} de riesgo "
         f"alto y {por_clase['medio']} de riesgo medio). Mismo prompt para todos "
-        "(`instrucciones.md`), salida estructurada con el esquema del script y una sola "
+        "(el de producción), salida estructurada con el esquema de producción y una sola "
         "pasada por modelo.",
         "",
         "- Claude: `thinking` adaptativo, `effort: low`, `output_config.format`. Opus 5.5 y "
@@ -745,7 +706,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, SetInvalidoError) as exc:
         print(f"El set de {directorio} no sirve:\n{exc}", file=sys.stderr)
         return 2
-    instrucciones = (directorio / "instrucciones.md").read_text(encoding="utf-8").strip()
+    instrucciones = INSTRUCCIONES
     cargar_credenciales(Path(args.var_local))
     elegidos, apagados = elegir_modelos(args.modelos, con_claude=args.con_claude)
     presupuesto = Presupuesto(args.tope_usd)

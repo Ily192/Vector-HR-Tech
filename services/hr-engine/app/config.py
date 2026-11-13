@@ -161,6 +161,16 @@ class Settings(BaseSettings):
     moderacion_correo: str = "hola@vectorhrtech.com"
     moderacion_horas_entre_resumenes: float = Field(default=6.0, gt=0)
     moderacion_max_resumenes_24h: int = Field(default=6, ge=1, le=50)
+    # El revisor con IA (app/infrastructure/verificador_gemini.py). Sin GOOGLE_API_KEY, o
+    # apagado, la moderación sigue solo con las reglas fijas. gemini-3.5-flash-lite ganó la
+    # prueba de modelos (evals/verificador/RESULTADOS.md): ~US$0,0004 por vacante.
+    moderacion_ia_activa: bool = True
+    moderacion_modelo: str = "gemini-3.5-flash-lite"
+    moderacion_thinking_level: Literal["minimal", "low", "medium", "high"] = "low"
+    moderacion_timeout_s: float = Field(default=20.0, gt=0, le=120)
+    # Fallos del revisor con una vacante antes de mandarla a revisión humana (uno por
+    # barrido, cada minuto).
+    moderacion_max_intentos_ia: int = Field(default=5, ge=1, le=60)
 
     # ─── SMTP (el mismo de Auth: Resend) ─────────────────
     # Vacío = no se manda correo (desarrollo).
