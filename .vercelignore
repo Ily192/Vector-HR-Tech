@@ -1,0 +1,49 @@
+# La CLI de Vercel NO lee el .gitignore. Sin este archivo, `vercel deploy` sube como
+# código fuente del despliegue todo lo que haya en la carpeta, y ese código lo ve
+# cualquier miembro del equipo de Vercel: el 2026-11-12 un despliegue del panel subió
+# así var-local.env y .env. Por eso se despliega desde una copia de `git archive`
+# (docs/runbooks/vps.md, "Vercel: el career site y el panel") y esto es la segunda
+# barrera. La CLI ya ignora por su cuenta .git, node_modules, .vercel, .next,
+# .env.local y .env.*.local. Sintaxis de .gitignore: un patrón sin "/" vale en
+# cualquier carpeta.
+
+# Claves y credenciales locales
+var-local.*
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*_ed25519
+known_hosts*
+*.tfstate
+*.tfstate.*
+*.tfvars
+/*.txt
+
+# Copias de trabajo y carpetas de herramientas locales (la "/" inicial ancla a la raíz:
+# sin ella, "skills/" también se llevaría .agents/skills, que turbo usa para su caché)
+/.claude/
+/.husky/
+/skills/
+
+# Restos de compilaciones locales: Vercel compila desde cero
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
+storybook-static/
+
+# Nada de esto hace falta para construir el career site ni el panel: el workspace de
+# pnpm es apps/* y packages/*
+/infra/
+/services/
+/docs/
+/evals/
+/scripts/
