@@ -272,7 +272,10 @@ con el OK de Ilyra.
    VERCEL_ORG_ID=<equipo> VERCEL_PROJECT_ID=<proyecto> vercel deploy --prod --yes
    ```
 
-   Con el token del equipo en `VERCEL_TOKEN`. Después, revisar qué se subió
+   Con el token del equipo en `VERCEL_TOKEN`. `bash scripts/desplegar_vercel.sh panel|empleos`
+   hace todo esto desde la raíz del repo: comprueba que `main` local sea igual a
+   `origin/main`, aborta si la copia trae archivos con claves y lee el token y los IDs
+   de `var-local.env`. Después, revisar qué se subió
    (`GET /v6/deployments/<id>/files`) y comprobar que `https://<DOMINIO_EMPLEOS>/` y
    `https://<DOMINIO_PANEL>/` respondan. El primer despliegue de un proyecto sale a
    producción aunque no se pida.
