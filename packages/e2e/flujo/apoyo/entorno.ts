@@ -36,6 +36,12 @@ export type Entorno = {
    * leer el código: `E2E_ALTA_URL`, `E2E_ALTA_SECRETO` y `E2E_MAILPIT_URL`.
    */
   alta: { url: string; secreto: string } | null;
+  /**
+   * La cuenta que entra a panel/admin (ADR-022, enmienda del 2026-11-17): su correo está
+   * en ADMIN_CORREOS del hr-engine. Solo contra el stack del VPS (pruebas/probar_en_local.sh,
+   * `E2E_ADMIN_CORREO`), que trae el hr-engine como API.
+   */
+  admin: string | null;
 };
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -105,6 +111,7 @@ export function entorno(): Entorno {
         process.env.E2E_ALTA_URL && process.env.E2E_ALTA_SECRETO
           ? { url: process.env.E2E_ALTA_URL, secreto: process.env.E2E_ALTA_SECRETO }
           : null,
+      admin: process.env.E2E_ADMIN_CORREO || null,
     };
     return enMemoria;
   }
@@ -133,8 +140,10 @@ export function entorno(): Entorno {
     // El hr-engine habla con asyncpg.
     baseDeDatos: (s.DB_URL as string).replace(/^postgresql:/, "postgresql+asyncpg:"),
     mailpit: s.MAILPIT_URL as string,
-    // En local el hr-engine no corre como API: el alta desde la web se prueba en el VPS.
+    // En local el hr-engine no corre como API: el alta desde la web y el admin se prueban
+    // contra el stack del VPS.
     alta: null,
+    admin: null,
   };
   return enMemoria;
 }

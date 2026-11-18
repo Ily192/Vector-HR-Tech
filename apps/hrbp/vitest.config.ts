@@ -10,7 +10,13 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
     // Los tests usan siempre los datos de ejemplo, aunque haya un .env.local con Supabase.
-    env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_PUBLISHABLE_KEY: "", VITE_SUPABASE_ANON_KEY: "" },
+    env: {
+      VITE_SUPABASE_URL: "",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "",
+      VITE_SUPABASE_ANON_KEY: "",
+      VITE_ADMIN_API_URL: "",
+      VITE_WEB_METRICAS_URL: "",
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

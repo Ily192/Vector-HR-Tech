@@ -462,6 +462,11 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
 
   async salir() {},
 
+  // El área de admin necesita el hr-engine: con datos de ejemplo no hay sesión que mandarle.
+  async tokenDeAcceso() {
+    return null;
+  },
+
   alCambiarLaSesion() {
     return () => {};
   },

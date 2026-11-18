@@ -8,7 +8,8 @@
 #      el endpoint del alta desde la web (secreto, datos y tope);
 #   4. corre contra el stack el e2e del plan gratis (`E2E_REMOTO=1 pnpm e2e:flujo`,
 #      packages/e2e): invitación, vacante, 7 aplicaciones con CV, el worker del stack,
-#      el gancho, el .zip y eliminar; y el alta desde la web con el código de Mailpit.
+#      el gancho, el .zip y eliminar; el alta desde la web con el código de Mailpit; y la
+#      revisión humana desde panel/admin (ADR-022): aprobar y rechazar con motivo.
 #      Después humo.py prueba la clave del career site y la moderación (ADR-022): la
 #      policy de cvs de 0019, el resumen de la cola en Mailpit y la página de revisión;
 #   5. respalda (scripts/respaldar.sh), borra la base y los CVs, restaura
@@ -118,6 +119,8 @@ e2e() {
 		# El alta desde la web (ADR-017, 2026-11-12) y Mailpit, para leer el código.
 		"E2E_ALTA_URL=http://$api/alta/plan-gratis"
 		"E2E_ALTA_SECRETO=$(valor_del_env ALTA_SECRETO)"
+		# La cuenta de ADMIN_CORREOS (compose.local.yml) para panel/admin (ADR-022).
+		"E2E_ADMIN_CORREO=$admin"
 	)
 	if [[ -n ${VORTEX_SERVIDOR:-} ]]; then
 		variables+=(E2E_MAILPIT_URL=http://mailpit:8025)
@@ -143,6 +146,11 @@ compose exec -T hr-engine-api python -m app.cli.alta_empresa \
 # La insignia a mano, como la da Vector HR tras revisar la empresa (ADR-022): sin ella la
 # primera vacante del e2e esperaría una revisión humana en vez de publicarse sola.
 compose exec -T hr-engine-api python -m app.cli.moderacion verificar --correo "$correo" --forzar
+# La cuenta de admin del e2e: su correo es el de ADMIN_CORREOS en compose.local.yml. Entra
+# a panel/admin con el código de Mailpit y resuelve la cola de revisión.
+admin=admin@vortex.test
+compose exec -T hr-engine-api python -m app.cli.alta_empresa \
+	--empresa "Vector HR Tech (prueba)" --correo "$admin" --nombre "Admin de prueba" --tamano 10
 humo borde "$correo"
 log "el alta desde la web: secreto, datos y tope"
 humo alta

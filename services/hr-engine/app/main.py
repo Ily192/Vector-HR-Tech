@@ -15,7 +15,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import alta, cv_evaluator, health, moderacion, sourcer
+from app.api import admin, alta, cv_evaluator, health, moderacion, sourcer
 from app.api.rate_limit import limiter
 from app.config import settings
 from app.monitoring import (
@@ -96,6 +96,19 @@ async def request_context_middleware(
         clear_log_context()
         _request_id_ctx.reset(token)
     response.headers[REQUEST_ID_HEADER] = request_id
+    return response
+
+
+@app.middleware("http")
+async def admin_sin_cache(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """`/admin/*` (ADR-022, 2026-11-17) no se guarda en ninguna caché: ni los conteos ni
+    la cola, y tampoco sus errores (401, 403, 422, 429)."""
+    response = await call_next(request)
+    if request.url.path.startswith("/admin/"):
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
@@ -185,5 +198,7 @@ app.include_router(sourcer.router, prefix="/api/sourcer", tags=["sourcer"])
 app.include_router(cv_evaluator.router, prefix="/api/cv-evaluator", tags=["cv-evaluator"])
 # La página de revisión de la cola de moderación (ADR-022); Caddy publica /moderacion/*.
 app.include_router(moderacion.router)
+# El área de admin del panel (ADR-022, 2026-11-17): la sesión del panel y ADMIN_CORREOS.
+app.include_router(admin.router, include_in_schema=False)
 
 instrument_fastapi(app)

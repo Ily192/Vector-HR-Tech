@@ -1,14 +1,14 @@
 import { Badge, Wordmark } from "@fluveai/ui";
-import { Briefcase, LayoutGrid, type LucideIcon, Plus } from "lucide-react";
+import { Briefcase, LayoutGrid, type LucideIcon, Plus, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { useMisVacantes, useSalir, useSesion } from "../datos/consultas";
+import { useAccesoAdmin, useMisVacantes, useSalir, useSesion } from "../datos/consultas";
 import { ES_DE_EJEMPLO } from "../datos/panel";
 import type { CupoDeVacantes, Modulo } from "../datos/tipos";
 import { Enlace } from "../navegacion/ruta";
 
 /** Entradas del menú lateral. Cuáles se ven lo decide el plan, vía `sesion.modulos`. */
-export type Seccion = "hoy" | "mis-vacantes" | "crear-empleo";
+export type Seccion = "hoy" | "mis-vacantes" | "crear-empleo" | "admin";
 
 interface EntradaDelMenu {
   seccion: Seccion;
@@ -17,7 +17,12 @@ interface EntradaDelMenu {
   icono: LucideIcon;
 }
 
-const GRUPOS: { modulo: Modulo; titulo: string; entradas: EntradaDelMenu[] }[] = [
+interface GrupoDelMenu {
+  titulo: string;
+  entradas: EntradaDelMenu[];
+}
+
+const GRUPOS: (GrupoDelMenu & { modulo: Modulo })[] = [
   {
     modulo: "cockpit",
     titulo: "Operación",
@@ -33,7 +38,13 @@ const GRUPOS: { modulo: Modulo; titulo: string; entradas: EntradaDelMenu[] }[] =
   },
 ];
 
-function Logo() {
+/** Solo si el hr-engine dice que la sesión es de admin (`/admin/yo`, ADR-022). */
+const GRUPO_ADMIN: GrupoDelMenu = {
+  titulo: "Vector HR",
+  entradas: [{ seccion: "admin", href: "/admin", texto: "Admin", icono: ShieldCheck }],
+};
+
+export function Logo() {
   return (
     <svg aria-hidden="true" width="30" height="30" viewBox="0 0 30 30" className="shrink-0">
       <rect x=".5" y=".5" width="29" height="29" rx="9" className="fill-ink-950 stroke-ink-800" />
@@ -108,7 +119,11 @@ export function Marco({
 }) {
   const { data: sesion } = useSesion();
   const { data: mis } = useMisVacantes();
-  const grupos = GRUPOS.filter((g) => sesion?.modulos.includes(g.modulo));
+  const { data: acceso } = useAccesoAdmin();
+  const grupos: GrupoDelMenu[] = [
+    ...GRUPOS.filter((g) => sesion?.modulos.includes(g.modulo)),
+    ...(acceso?.estado === "admin" ? [GRUPO_ADMIN] : []),
+  ];
 
   const contador = (s: Seccion) =>
     s === "mis-vacantes" && mis
@@ -132,7 +147,7 @@ export function Marco({
           <Wordmark brand="vector" size="sm" tone="dark" />
         </Enlace>
         {grupos.map((grupo) => (
-          <nav key={grupo.modulo} aria-label={grupo.titulo} className="flex flex-col gap-0.5">
+          <nav key={grupo.titulo} aria-label={grupo.titulo} className="flex flex-col gap-0.5">
             <span className="px-3 pb-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
               {grupo.titulo}
             </span>

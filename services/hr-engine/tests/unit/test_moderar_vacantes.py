@@ -88,6 +88,15 @@ class RepoFalso:
     async def cola_sin_avisar(self, limite: int) -> list[VacanteEnCola]:
         return self.cola[:limite]
 
+    async def cola_completa(self) -> list[VacanteEnCola]:
+        """Lo que sigue esperando revisión, como la consulta: en revisión u oculta."""
+        return [
+            v
+            for v in self.cola
+            if self.estados.get(v.id, v.estado)
+            in (EstadoDeModeracion.EN_REVISION, EstadoDeModeracion.OCULTA)
+        ]
+
     async def vacante_en_cola(self, vacante_id: UUID) -> VacanteEnCola | None:
         return next((v for v in self.cola if v.id == vacante_id), None)
 

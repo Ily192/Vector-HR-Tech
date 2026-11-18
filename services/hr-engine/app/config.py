@@ -189,6 +189,16 @@ class Settings(BaseSettings):
     # también los de los códigos de acceso de Auth, que van primero. 0 = apagado.
     recordatorio_max_24h: int = Field(default=20, ge=0, le=100)
 
+    # ─── El área de admin del panel (ADR-022, enmienda del 2026-11-17) ─
+    # CSV de los correos que entran a /admin/*: las métricas de la plataforma y la cola
+    # de revisión. La cuenta de Auth tiene que tener el correo confirmado. No se usa
+    # platform_admins (0004): ese rol salta la RLS de todas las empresas.
+    admin_correos: str = "hola@vectorhrtech.com"
+    # Por sesión del panel, en cada endpoint de /admin/* (detrás de Caddy todas las
+    # peticiones traen la IP de Caddy). El tope global corre antes, en el middleware: también
+    # frena los tokens falsos antes de preguntarle a Auth.
+    rate_limit_admin: str = "60/minute"
+
     # ─── SMTP (el mismo de Auth: Resend) ─────────────────
     # Vacío = no se manda correo (desarrollo).
     smtp_host: str = ""
@@ -235,6 +245,11 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         """CSV → lista, ignorando espacios y entradas vacías."""
         return [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
+
+    @property
+    def correos_admin(self) -> frozenset[str]:
+        """`ADMIN_CORREOS` (CSV) → conjunto en minúsculas, sin espacios ni entradas vacías."""
+        return frozenset(c.strip().lower() for c in self.admin_correos.split(",") if c.strip())
 
     @property
     def is_production(self) -> bool:

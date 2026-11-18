@@ -25,10 +25,22 @@ http://{$DOMINIO_PANEL} {
 		X-Frame-Options DENY
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 	}
-	root * /srv/panel
-	@hasheados path /assets/*
-	header @hasheados Cache-Control "public, max-age=31536000, immutable"
-	try_files {path} /index.html
-	header /index.html Cache-Control "no-cache"
-	file_server
+	# El área de admin (ADR-022, 2026-11-17) llama a /admin/* del hr-engine. En producción
+	# va a DOMINIO_API, con el CORS del hr-engine; aquí por el mismo origen
+	# (VITE_ADMIN_API_URL, compose.local.yml), porque el hr-engine en modo producción no
+	# acepta localhost en CORS_ALLOW_ORIGINS. `/admin`, sin barra al final, es la pantalla.
+	handle /admin/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy hr-engine-api:8000
+	}
+	handle {
+		root * /srv/panel
+		@hasheados path /assets/*
+		header @hasheados Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		header /index.html Cache-Control "no-cache"
+		file_server
+	}
 }

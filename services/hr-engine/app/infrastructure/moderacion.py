@@ -52,6 +52,9 @@ def _en_cola(fila: Any) -> VacanteEnCola:
         publica_para=fila.publica_para,
         estado=EstadoDeModeracion(fila.moderacion),
         motivos=_motivos(fila.motivos_moderacion),
+        web=fila.web,
+        linkedin=fila.linkedin,
+        creada_en=fila.creada_en,
     )
 
 

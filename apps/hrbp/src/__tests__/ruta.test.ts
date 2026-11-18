@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolverRuta } from "../navegacion/ruta";
+import { manifiestoDe, resolverRuta } from "../navegacion/ruta";
 
 describe("resolverRuta", () => {
   it.each([
@@ -18,7 +18,20 @@ describe("resolverRuta", () => {
     ["/vacantes/a%C3%B1o", { pantalla: "pipeline", vacanteId: "año" }],
     ["/vacantes/x/y", { pantalla: "no-encontrada" }],
     ["/configuracion", { pantalla: "no-encontrada" }],
+    ["/admin", { pantalla: "admin" }],
+    ["/admin/", { pantalla: "admin" }],
+    ["/admin/cola", { pantalla: "no-encontrada" }],
   ])("%s", (url, esperada) => {
     expect(resolverRuta(url)).toEqual(esperada);
+  });
+});
+
+describe("manifiestoDe", () => {
+  it.each([
+    ["/admin", "/admin.webmanifest"],
+    ["/", "/manifest.webmanifest"],
+    ["/vacantes/nueva", "/manifest.webmanifest"],
+  ])("%s → %s", (url, manifiesto) => {
+    expect(manifiestoDe(url)).toBe(manifiesto);
   });
 });

@@ -65,6 +65,8 @@ export const verificarCodigo = async (correo: string, codigo: string) =>
 
 export const salir = async () => (await adaptador()).salir();
 
+export const tokenDeAcceso = async () => (await adaptador()).tokenDeAcceso();
+
 /** Avisa cuando entra o sale alguien. Devuelve cómo dejar de escuchar. */
 export function alCambiarLaSesion(avisar: () => void): () => void {
   let dejarDeEscuchar: (() => void) | undefined;
