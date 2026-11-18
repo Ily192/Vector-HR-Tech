@@ -21,6 +21,9 @@ x-cors-de-prueba: &cors-de-prueba
   SMTP_USER: ""
   SMTP_PASS: ""
   SMTP_STARTTLS: "false"
+  # La cuenta de admin del e2e (flujo/revision-humana.spec.ts): probar_en_local.sh la da
+  # de alta con este correo y entra a panel/admin con el código de Mailpit.
+  ADMIN_CORREOS: admin@vortex.test
 
 services:
   hr-engine-api:
@@ -76,6 +79,9 @@ services:
       args:
         VITE_SUPABASE_URL: http://${DOMINIO_API}
         VITE_SUPABASE_ANON_KEY: ${ANON_KEY}
+        # /admin/* por el mismo origen del panel (pruebas/Caddyfile): el hr-engine en modo
+        # producción no acepta localhost en CORS_ALLOW_ORIGINS.
+        VITE_ADMIN_API_URL: http://${DOMINIO_PANEL}
     depends_on:
       career-site:
         condition: service_started

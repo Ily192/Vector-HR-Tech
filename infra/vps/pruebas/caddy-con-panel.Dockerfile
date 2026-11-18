@@ -20,6 +20,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # panel arrancaría con los datos de ejemplo, así que el build falla en vez de eso.
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
+# Opcional: a dónde llama el área de admin (/admin/*). Sin ella, a VITE_SUPABASE_URL.
+ARG VITE_ADMIN_API_URL
 RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY" \
     || { echo "faltan VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY" >&2; exit 1; }
 RUN pnpm --filter @fluveai/hrbp build
