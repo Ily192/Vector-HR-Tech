@@ -70,6 +70,9 @@ x-hr-engine: &hr-engine
     MODERACION_SECRETO: ${MODERACION_SECRETO:?}
     API_PUBLICA_URL: *url-api
     MODERACION_CORREO: ${MODERACION_CORREO:-hola@vectorhrtech.com}
+    # El área de admin del panel (/admin/*, ADR-022, 2026-11-17): los correos (CSV) que
+    # ven las métricas y resuelven la cola desde panel./admin, con la cuenta confirmada.
+    ADMIN_CORREOS: ${ADMIN_CORREOS:-hola@vectorhrtech.com}
     SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
     SMTP_PORT: ${SMTP_PORT:-2587}
     SMTP_USER: ${SMTP_USER:-resend}
@@ -342,9 +345,9 @@ services:
   hr-engine-api:
     <<: *hr-engine
     mem_limit: 192m
-    # Poco tráfico público: /ready, que Caddy expone como /salud/hr-engine, y la página
-    # de revisión de la moderación (/moderacion/*, ADR-022). Un worker de uvicorn basta
-    # (en Fly eran dos).
+    # Poco tráfico público: /ready, que Caddy expone como /salud/hr-engine, la página de
+    # revisión de la moderación (/moderacion/*, ADR-022), el alta desde la web (/alta/*) y
+    # el área de admin del panel (/admin/*). Un worker de uvicorn basta (en Fly eran dos).
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
   hr-engine-worker:

@@ -60,6 +60,14 @@ http://{$DOMINIO_API} {
 		}
 		reverse_proxy hr-engine-api:8000
 	}
+	# El área de admin del panel (ADR-022, 2026-11-17): las métricas y la cola de revisión,
+	# con la sesión del panel. Lo más grande es un rechazo con su motivo.
+	handle /admin/* {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy hr-engine-api:8000
+	}
 	# Para el monitoreo externo: sin el detalle del /ready del hr-engine.
 	handle /salud/hr-engine {
 		reverse_proxy hr-engine-api:8000 {

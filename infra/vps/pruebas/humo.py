@@ -97,6 +97,12 @@ def borde() -> None:
     ok(r.status_code == 403, "/moderacion/revisar sin enlace firmado responde 403", r.status_code)
     r = http.post(f"{API}/moderacion/revisar", content=b"x" * 20_000)
     ok(r.status_code == 413, "y Caddy corta un formulario de más de 16 KB", r.status_code)
+    # El área de admin del panel (ADR-022, 2026-11-17): llega al hr-engine, que pide la
+    # sesión del panel, y Caddy corta un rechazo de más de 16 KB antes de llegar.
+    r = http.get(f"{API}/admin/yo")
+    ok(r.status_code == 401, "/admin/yo sin la sesión del panel responde 401", r.status_code)
+    r = http.post(f"{API}/admin/vacantes/{uuid.uuid4()}/rechazar", content=b"x" * 20_000)
+    ok(r.status_code == 413, "y Caddy corta un rechazo de más de 16 KB", r.status_code)
     r = http.get(f"{API}/rest/v1/vacantes_publicas")
     ok(r.status_code == 401, "sin apikey el gateway responde 401", r.status_code)
     r = http.get(f"{API}/rest/v1/", headers={"apikey": ""})
