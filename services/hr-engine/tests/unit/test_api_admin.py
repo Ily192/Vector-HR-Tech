@@ -74,6 +74,7 @@ def mundo(monkeypatch: pytest.MonkeyPatch) -> Iterator[Mundo]:
         {
             # En otra capitalización que la de ADMIN_CORREOS: se compara sin mayúsculas.
             "token-admin": UsuarioDeAuth("Hola@VectorHRTech.com", confirmado=True),
+            "token-otra-admin": UsuarioDeAuth("otra@vectorhrtech.com", confirmado=True),
             "token-sin-confirmar": UsuarioDeAuth("hola@vectorhrtech.com", confirmado=False),
             "token-empresa": UsuarioDeAuth("rh@andes.mx", confirmado=True),
             "token-caido": AuthNoDisponibleError("ConnectTimeout"),
@@ -337,8 +338,11 @@ def test_un_id_que_no_es_uuid_es_422(mundo: Mundo, client: TestClient) -> None:
     assert client.post("/admin/vacantes/123/aprobar", headers=ADMIN).status_code == 422
 
 
-def test_el_tope_por_ip(mundo: Mundo, client: TestClient) -> None:
+def test_el_tope_es_por_sesion(mundo: Mundo, client: TestClient) -> None:
+    # Detrás de Caddy todas las peticiones traen la misma IP: el tope no puede ser por IP.
     tope = int(settings.rate_limit_admin.split("/")[0])
     estados = [client.get("/admin/yo", headers=ADMIN).status_code for _ in range(tope + 1)]
     assert estados[:tope] == [200] * tope
     assert estados[tope] == 429
+    otra = {"Authorization": "Bearer token-otra-admin"}
+    assert client.get("/admin/yo", headers=otra).status_code == 200

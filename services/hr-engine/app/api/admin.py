@@ -23,6 +23,7 @@ no responde o el área no está configurada. Todo sale con `Cache-Control: no-st
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime
 from typing import Annotated, Literal, NoReturn
 from uuid import UUID
@@ -50,6 +51,14 @@ MAX_CUERPO = 16 * 1024
 #: Un access token de Supabase ronda el kilobyte; uno de 8 KB no es de Auth.
 MAX_TOKEN = 8 * 1024
 ADMIN_RATE_LIMIT = settings.rate_limit_admin
+
+
+def _clave_de_la_sesion(request: Request) -> str:
+    """El tope de /admin/* va por sesión, no por IP: detrás de Caddy todas las peticiones
+    llegan desde la IP de Caddy y el tope sería uno solo para todos. Corre después de
+    `exigir_admin`, así que el token ya es de un admin; se guarda su hash, no el token."""
+    _, _, token = request.headers.get("authorization", "").partition(" ")
+    return "admin:" + hashlib.sha256(token.strip().encode()).hexdigest()[:32]
 
 
 # ─────────────────────────────── la sesión ───────────────────────────────
@@ -205,13 +214,13 @@ async def _sin_cambios(repositorio: SqlRepositorioDeModeracion, vacante_id: UUID
 
 
 @router.get("/yo", response_model=Yo)
-@limiter.limit(ADMIN_RATE_LIMIT)
+@limiter.limit(ADMIN_RATE_LIMIT, key_func=_clave_de_la_sesion)
 async def yo(request: Request, response: Response, correo: Admin) -> Yo:
     return Yo(correo=correo)
 
 
 @router.get("/resumen", response_model=Resumen)
-@limiter.limit(ADMIN_RATE_LIMIT)
+@limiter.limit(ADMIN_RATE_LIMIT, key_func=_clave_de_la_sesion)
 async def resumen(request: Request, response: Response, _admin: Admin, db: DbSession) -> Resumen:
     r = await SqlResumenDeLaPlataforma(db).resumen()
     return Resumen(
@@ -233,14 +242,14 @@ async def resumen(request: Request, response: Response, _admin: Admin, db: DbSes
 
 
 @router.get("/cola", response_model=Cola)
-@limiter.limit(ADMIN_RATE_LIMIT)
+@limiter.limit(ADMIN_RATE_LIMIT, key_func=_clave_de_la_sesion)
 async def cola(request: Request, response: Response, _admin: Admin, db: DbSession) -> Cola:
     vacantes = await SqlRepositorioDeModeracion(db).cola_completa()
     return Cola(vacantes=[_de_la_cola(v) for v in vacantes])
 
 
 @router.post("/vacantes/{vacante_id}/aprobar", response_model=Resuelta)
-@limiter.limit(ADMIN_RATE_LIMIT)
+@limiter.limit(ADMIN_RATE_LIMIT, key_func=_clave_de_la_sesion)
 async def aprobar(
     request: Request, response: Response, vacante_id: UUID, correo: Admin, db: DbSession
 ) -> Resuelta:
@@ -256,7 +265,7 @@ async def aprobar(
     response_model=Resuelta,
     dependencies=[Depends(_cuerpo_chico)],
 )
-@limiter.limit(ADMIN_RATE_LIMIT)
+@limiter.limit(ADMIN_RATE_LIMIT, key_func=_clave_de_la_sesion)
 async def rechazar(
     request: Request,
     response: Response,

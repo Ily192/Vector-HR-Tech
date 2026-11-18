@@ -194,8 +194,9 @@ class Settings(BaseSettings):
     # de revisión. La cuenta de Auth tiene que tener el correo confirmado. No se usa
     # platform_admins (0004): ese rol salta la RLS de todas las empresas.
     admin_correos: str = "hola@vectorhrtech.com"
-    # Por IP, en cada endpoint de /admin/*. El tope global por IP corre antes, en el
-    # middleware: también frena los tokens falsos antes de preguntarle a Auth.
+    # Por sesión del panel, en cada endpoint de /admin/* (detrás de Caddy todas las
+    # peticiones traen la IP de Caddy). El tope global corre antes, en el middleware: también
+    # frena los tokens falsos antes de preguntarle a Auth.
     rate_limit_admin: str = "60/minute"
 
     # ─── SMTP (el mismo de Auth: Resend) ─────────────────

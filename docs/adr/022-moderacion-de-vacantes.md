@@ -182,8 +182,9 @@ teléfono, sin esperar al resumen diario a hola@ (punto 4) ni abrir la terminal.
      (`{motivo}`) → `ResolverRevision`, el mismo caso de uso de los enlaces firmados y de la
      CLI. 409 si ya estaba decidida o ya no existe, con el estado en que quedó; 422 sin
      motivo.
-   - Tope por IP en cada uno (`RATE_LIMIT_ADMIN`, 60 por minuto), además del global, que
-     corre antes de preguntarle a Auth. `Cache-Control: no-store` en todo `/admin/*`.
+   - Tope por sesión en cada uno (`RATE_LIMIT_ADMIN`, 60 por minuto), además del global,
+     que corre antes de preguntarle a Auth. Por sesión y no por IP: detrás de Caddy todas
+     las peticiones traen la IP de Caddy. `Cache-Control: no-store` en todo `/admin/*`.
 4. **Las métricas de la web:** el tablero pide además `vectorhrtech.com/api/admin/metricas`
    (registros por campaña, altas fallidas, diagnósticos y lista de espera) con el mismo
    token. Lo construye la web, en su repo, que valida el token de la misma forma. Si falla,
