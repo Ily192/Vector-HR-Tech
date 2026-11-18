@@ -327,6 +327,11 @@ export interface AdaptadorDelPanel {
   /** Abre la sesión con el código que llegó al correo. */
   verificarCodigo(correo: string, codigo: string): Promise<ResultadoDeVerificar>;
   salir(): Promise<void>;
+  /**
+   * El access token de la sesión, para el área de admin del hr-engine (`/admin/*`), o
+   * `null` sin sesión. Con datos de ejemplo no hay token.
+   */
+  tokenDeAcceso(): Promise<string | null>;
   /** Avisa cuando alguien entra o sale. Devuelve cómo dejar de escuchar. */
   alCambiarLaSesion(avisar: () => void): () => void;
 }

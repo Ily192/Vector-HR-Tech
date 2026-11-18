@@ -15,10 +15,19 @@ export type Ruta =
   | { pantalla: "mis-vacantes" }
   | { pantalla: "crear-empleo" }
   | { pantalla: "pipeline"; vacanteId: string }
+  /** El área de admin de Vector HR (ADR-022, 2026-11-17). Decide el hr-engine quién entra. */
+  | { pantalla: "admin" }
   | { pantalla: "no-encontrada" };
 
 /** La página a la que vuelve quien se registra en vectorhrtech.com/publicar-vacantes. */
 export const RUTA_DE_VERIFICAR = "/verificar";
+
+/** El área de admin. Instalada en el teléfono, abre aquí (`public/admin.webmanifest`). */
+export const RUTA_DE_ADMIN = "/admin";
+
+/** El manifiesto de la app instalable: el del admin abre en `/admin`, el del panel en `/`. */
+export const manifiestoDe = (pathname: string) =>
+  resolverRuta(pathname).pantalla === "admin" ? "/admin.webmanifest" : "/manifest.webmanifest";
 
 /** Traduce una ruta de la URL a la pantalla que le toca. */
 export function resolverRuta(pathname: string): Ruta {
@@ -27,6 +36,7 @@ export function resolverRuta(pathname: string): Ruta {
   // Donde se escribe el código del alta desde la web: con la sesión abierta, es el inicio.
   if (partes.length === 1 && partes[0] === RUTA_DE_VERIFICAR.slice(1))
     return { pantalla: "inicio" };
+  if (partes.length === 1 && partes[0] === RUTA_DE_ADMIN.slice(1)) return { pantalla: "admin" };
   if (partes[0] !== "vacantes" || partes.length > 2) return { pantalla: "no-encontrada" };
   if (partes.length === 1) return { pantalla: "mis-vacantes" };
   const [, segunda = ""] = partes;

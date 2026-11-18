@@ -5,6 +5,10 @@ El panel de la empresa: una SPA con Vite y React 19, desplegada en Vercel. Lo qu
 - **Career site (gratis):** Mis vacantes (con su cupo y Eliminar), Crear empleo (con las skills de la vacante, vista previa y un brochure breve de los servicios) y el pipeline de cada vacante, abierto solo en *Aplicados*, con la descarga de todos los CVs en un .zip y el gancho: cuántos CVs mencionan las skills, sin IA ([ADR-019](../../docs/adr/019-plan-gratis-sin-ia.md)).
 - **Servicios de IA:** además, el cockpit *Hoy* y el pipeline completo.
 
+**Admin (`/admin`, solo Vector HR):** las métricas de la plataforma y de la web, y la cola de revisión de vacantes con Aprobar y Rechazar ([ADR-022](../../docs/adr/022-moderacion-de-vacantes.md), enmienda del 2026-11-17). Quién entra lo decide el hr-engine (`ADMIN_CORREOS`); el menú muestra "Admin" solo si `/admin/yo` responde 200. Tiene su propio marco, de una columna, para el teléfono.
+
+**Se instala** (`public/manifest.webmanifest` y, en `/admin`, `public/admin.webmanifest`), sin service worker. Los íconos de `public/iconos` salen de `public/favicon.svg` con `node apps/hrbp/scripts/iconos.mjs`, y van en el repo.
+
 Con `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` el panel lee Supabase y se entra con un enlace al correo; las cuentas las crea la invitación de Vector HR. Sin ellas usa datos de ejemplo y la barra superior lo avisa: así corren la demo (<https://vortex-hrbp.vercel.app>, y `/?plan=ia` para el plan con IA) y los tests. El cockpit del plan con IA todavía muestra números de ejemplo.
 
 ## Cómo se corre
@@ -27,12 +31,13 @@ src/
   App.tsx              elige la pantalla según la URL y los módulos del plan
   navegacion/ruta.tsx  router mínimo sobre la History API (ver abajo)
   marco/marco.tsx      menú lateral, barra superior y encabezado de pantalla
-  pantallas/           entrar, cockpit, mis-vacantes, crear-empleo, pipeline (un chunk cada una)
+  pantallas/           entrar, cockpit, mis-vacantes, crear-empleo, pipeline, admin (un chunk cada una)
   datos/
     tipos.ts           forma de lo que devuelve el backend y el contrato de los adaptadores
     panel.ts           elige el adaptador según las variables y lo carga aparte
     panel-supabase.ts  RLS, topes, gancho y cockpit los pone la base; aquí se traducen las filas
     panel-ejemplo.ts   datos de ejemplo en memoria: la demo y los tests
+    admin.ts           el área de admin contra el hr-engine (/admin/*) y las métricas de la web
     consultas.ts       hooks de TanStack Query: las pantallas solo piden datos por aquí
   cockpit/
     textos.ts          los textos del cockpit a partir de sus números (puros, con test)

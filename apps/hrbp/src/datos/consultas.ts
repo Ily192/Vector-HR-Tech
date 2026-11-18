@@ -6,6 +6,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import {
+  type VacanteEnRevision,
+  aprobarVacante,
+  obtenerAccesoAdmin,
+  obtenerColaAdmin,
+  obtenerMetricasWeb,
+  obtenerResumenAdmin,
+  rechazarVacante,
+} from "./admin";
+import {
   alCambiarLaSesion,
   descartar,
   eliminarVacante,
@@ -28,6 +37,10 @@ const CLAVES = {
   misVacantes: ["mis-vacantes"],
   pipeline: (id: string) => ["pipeline", id],
   cockpit: ["cockpit"],
+  admin: ["admin", "acceso"],
+  resumenAdmin: ["admin", "resumen"],
+  metricasWeb: ["admin", "web"],
+  colaAdmin: ["admin", "cola"],
 } as const;
 
 export const useSesion = () =>
@@ -117,3 +130,57 @@ export const useVerificarCodigo = () =>
   });
 
 export const useSalir = () => useMutation({ mutationFn: salir });
+
+/**
+ * Si la sesión es de admin (ADR-022, 2026-11-17). Una sola vez por sesión: la comparten
+ * el enlace "Admin" del menú y la pantalla. Al cambiar la sesión, `useSesionEnVivo` la
+ * borra con todo lo demás.
+ */
+export const useAccesoAdmin = () =>
+  useQuery({
+    queryKey: CLAVES.admin,
+    queryFn: obtenerAccesoAdmin,
+    staleTime: Number.POSITIVE_INFINITY,
+    retry: false,
+  });
+
+// Las tres solo se piden con `useAccesoAdmin` en "admin": las monta el tablero.
+export const useResumenAdmin = () =>
+  useQuery({ queryKey: CLAVES.resumenAdmin, queryFn: obtenerResumenAdmin });
+
+/** De la web: si falla, el tablero sigue con lo del panel. Sin reintentos. */
+export const useMetricasWeb = () =>
+  useQuery({ queryKey: CLAVES.metricasWeb, queryFn: obtenerMetricasWeb, retry: false });
+
+export const useColaAdmin = () =>
+  useQuery({ queryKey: CLAVES.colaAdmin, queryFn: obtenerColaAdmin });
+
+/**
+ * Aprobar o rechazar una vacante de la cola. Si se guardó, o si ya estaba resuelta
+ * (409), la tarjeta sale de la lista sin esperar a pedirla de nuevo, y los conteos se
+ * vuelven a pedir.
+ */
+export function useResolverVacante() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      pedido:
+        | { vacanteId: string; accion: "aprobar" }
+        | {
+            vacanteId: string;
+            accion: "rechazar";
+            motivo: string;
+          },
+    ) =>
+      pedido.accion === "aprobar"
+        ? aprobarVacante(pedido.vacanteId)
+        : rechazarVacante(pedido.vacanteId, pedido.motivo),
+    onSuccess: (resultado, { vacanteId }) => {
+      if (!resultado.ok && resultado.motivo !== "ya-resuelta") return;
+      cliente.setQueryData<VacanteEnRevision[]>(CLAVES.colaAdmin, (cola) =>
+        cola?.filter((v) => v.id !== vacanteId),
+      );
+      void cliente.invalidateQueries({ queryKey: CLAVES.resumenAdmin });
+    },
+  });
+}

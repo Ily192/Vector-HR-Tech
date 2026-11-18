@@ -1,11 +1,13 @@
 import { type ReactNode, Suspense, lazy, useEffect } from "react";
 
 import { useSesion, useSesionEnVivo } from "./datos/consultas";
+import { SinAccesoAlPanel } from "./datos/tipos";
 import { Marco, type Seccion } from "./marco/marco";
 import {
   Enlace,
   RUTA_DE_VERIFICAR,
   type Ruta,
+  manifiestoDe,
   navegar,
   resolverRuta,
   useRuta,
@@ -24,6 +26,7 @@ const Entrar = lazy(() => import("./pantallas/entrar").then((m) => ({ default: m
 const ErrorDeSesion = lazy(() =>
   import("./pantallas/entrar").then((m) => ({ default: m.ErrorDeSesion })),
 );
+const Admin = lazy(() => import("./pantallas/admin").then((m) => ({ default: m.Admin })));
 
 interface Vista {
   seccion: Seccion | null;
@@ -82,6 +85,9 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
         ),
         contenido: <Pipeline vacanteId={ruta.vacanteId} />,
       };
+    // Con su propio marco, para el teléfono: `App` lo pinta sin el del panel.
+    case "admin":
+      return { seccion: "admin", titulo: "Admin", migas: "Admin", contenido: <Admin /> };
     case "no-encontrada":
       return {
         seccion: null,
@@ -107,13 +113,28 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
 export function App() {
   useSesionEnVivo();
   const { data: sesion, error, refetch } = useSesion();
-  const ruta = resolverRuta(useRuta());
+  const pathname = useRuta();
+  const ruta = resolverRuta(pathname);
   const vista = vistaDe(ruta, sesion?.modulos.includes("cockpit") ?? false);
   const titulo = sesion === null ? "Entrar" : vista.titulo;
+  const esAdmin = ruta.pantalla === "admin";
 
   useEffect(() => {
     document.title = `${titulo} · Vector HR Tech`;
   }, [titulo]);
+
+  // Instalada desde /admin, la app abre en /admin (public/admin.webmanifest); desde el
+  // resto, el panel. Chrome y Safari leen el manifiesto, el ícono y el título que haya
+  // en la página al instalar.
+  useEffect(() => {
+    document.querySelector('link[rel="manifest"]')?.setAttribute("href", manifiestoDe(pathname));
+    document
+      .querySelector('link[rel="apple-touch-icon"]')
+      ?.setAttribute("href", `/iconos/${esAdmin ? "admin" : "panel"}-apple-touch-icon.png`);
+    document
+      .querySelector('meta[name="apple-mobile-web-app-title"]')
+      ?.setAttribute("content", esAdmin ? "VHR Admin" : "Vector HR");
+  }, [pathname, esAdmin]);
 
   // Con la sesión abierta, `/verificar#correo=…` (el registro desde la web) es el inicio.
   useEffect(() => {
@@ -133,6 +154,10 @@ export function App() {
     }
   }, [sesion]);
 
+  // El área de admin no pide acceso al panel: lo decide el hr-engine con la sesión.
+  if (esAdmin && sesion !== null && (sesion || error instanceof SinAccesoAlPanel)) {
+    return <Suspense fallback={null}>{vista.contenido}</Suspense>;
+  }
   if (error) {
     return (
       <Suspense fallback={null}>

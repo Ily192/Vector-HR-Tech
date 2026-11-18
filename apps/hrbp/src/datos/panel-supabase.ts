@@ -546,6 +546,13 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       if (error) throw error;
     },
 
+    /** `getSession` renueva el token si venció; el hr-engine lo valida con Auth. */
+    async tokenDeAcceso() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return data.session?.access_token ?? null;
+    },
+
     alCambiarLaSesion(avisar) {
       let anterior: string | null | undefined;
       const { data } = supabase.auth.onAuthStateChange((_evento, sesion) => {
