@@ -53,7 +53,7 @@ Por dominio (los tres en el `.env`; en GitHub solo `DOMINIO_API`):
 |---|---|---|
 | `DOMINIO_EMPLEOS` | Vercel (`vectorhrtech-empleos`) | El career site |
 | `DOMINIO_PANEL` | Vercel (`vectorhrtech-panel`) | El panel de la empresa |
-| `DOMINIO_API` | Este servidor, por el túnel | Solo `/auth/v1`, `/rest/v1`, `/storage/v1` y `/salud/hr-engine` (para el monitoreo) |
+| `DOMINIO_API` | Este servidor, por el túnel | Solo `/auth/v1`, `/rest/v1` y `/storage/v1` (Supabase); `/alta/*`, `/moderacion/*` y `/admin/*` (hr-engine); y `/salud/hr-engine` (para el monitoreo) |
 
 Los dos primeros siguen en el `.env` aunque no se sirvan aquí: el CORS del hr-engine y las
 URLs de regreso de Auth (`GOTRUE_SITE_URL`, `GOTRUE_URI_ALLOW_LIST`) los usan.
@@ -189,7 +189,9 @@ Se puede volver a correr sin riesgo: no pisa el `.env` ni las otras llaves.
      de vacantes de la moderación (ADR-022; sin ella, la moderación sigue solo con las
      reglas fijas). Las dos usan `gemini-3.5-flash-lite`: `gemini-2.5-flash` responde 404
      a claves nuevas y se apaga el 2026-12-01;
-   - opcional: `RESPALDO_PING_URL` y `OPENAI_API_KEY` (respaldo de Gemini).
+   - opcional: `RESPALDO_PING_URL` y `OPENAI_API_KEY` (respaldo de Gemini);
+   - opcional: `ADMIN_CORREOS`, quién entra a `panel./admin` (sección 13). Sin ella,
+     `hola@vectorhrtech.com`.
 2. **Comprobar:**
    `python3 ~/vortex/repo/infra/vps/scripts/generar_secretos.py --verificar ~/vortex/.env`.
    No imprime nada si todo está.
@@ -351,6 +353,8 @@ lo dudoso va a la cola de revisión, y lo grave se rechaza con qué corregir.
   resumen siguiente: ya no está a la vista. Hay que revisar la cola a diario. Cada vacante
   trae un enlace firmado a `https://<DOMINIO_API>/moderacion/revisar`, que vence en 7
   días, con los botones Aprobar y Rechazar. El rechazo pide un motivo, que la empresa ve en su panel.
+- **Desde el teléfono o el navegador:** `https://<DOMINIO_PANEL>/admin` (sección 13), con
+  la misma cola completa y los mismos botones.
 - **Desde la terminal:**
 
   ```bash
@@ -390,6 +394,30 @@ candidatos: cuántos, en qué vacantes y el enlace a `PANEL_URL`.
        from privado.recordatorios_de_postulados r join empresas e on e.id = r.empresa_id
       order by r.enviado_en desc limit 20"
   ```
+
+### 13. El área de admin del panel (ADR-022, enmienda del 2026-11-17)
+
+`https://<DOMINIO_PANEL>/admin`: las métricas de la plataforma (y las de la web) y la cola
+de revisión con Aprobar y Rechazar. Se entra con el código al correo, como al panel, y el
+hr-engine deja pasar solo a los correos de `ADMIN_CORREOS` con la cuenta confirmada.
+
+| Variable | Dónde | Para qué |
+|---|---|---|
+| `ADMIN_CORREOS` | `.env` del servidor (opcional) | CSV de los correos que entran. Por defecto `hola@vectorhrtech.com`. Se cambia con `vortex up -d hr-engine-api` |
+| `VITE_WEB_METRICAS_URL` | Vercel, `vectorhrtech-panel` (opcional, Config) | Las métricas de la web. Por defecto `https://vectorhrtech.com/api/admin/metricas` |
+| `VITE_ADMIN_API_URL` | Vercel, `vectorhrtech-panel` (opcional, Config) | Dónde está `/admin/*`. Por defecto `VITE_SUPABASE_URL`: en producción los dos son `https://<DOMINIO_API>` |
+
+- **La cuenta:** el correo tiene que tener cuenta en Auth y haber escrito su código alguna
+  vez. Todas las cuentas nacen de una invitación (0003): si `hola@` no tiene, se registra
+  en vectorhrtech.com/publicar-vacantes o se da de alta con `app.cli.alta_empresa`.
+- **Instalarla en el teléfono:** abrir `https://<DOMINIO_PANEL>/admin` y entrar. En Android
+  (Chrome), menú → *Instalar app* o *Agregar a la pantalla principal*; en iPhone (Safari),
+  Compartir → *Agregar a inicio*. Abre directo en `/admin` y su ícono es el aqua. No hay
+  service worker: cada vez que se abre carga la versión publicada.
+- **Si no entra:** 403 es que el correo no está en `ADMIN_CORREOS` o la cuenta no lo
+  confirmó; 401 es la sesión (salir y volver a entrar); 503, que el hr-engine no llega a
+  Auth (`vortex logs hr-engine-api`, `admin.auth_no_disponible`). Si las métricas de la web
+  no cargan, el tablero lo dice y sigue con las del panel: es el endpoint de la web.
 
 ## Día a día
 

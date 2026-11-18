@@ -148,3 +148,65 @@ Fuentes, revisadas el 2026-11-12:
 | Revisar a mano todas las vacantes | No escala, y la empresa verificada espera sin motivo |
 | Reportes por un endpoint del hr-engine | Otro secreto en Vercel y otra superficie pública; la RPC con el rol del career site deja la regla en la base |
 | Rechazar todo lo dudoso | Un falso positivo le cuesta a una empresa real su vacante; mejor revisión |
+
+## Enmienda del 2026-11-17: el panel de admin
+
+Ilyra pidió ver las métricas de la plataforma y resolver la cola de revisión desde el
+teléfono, sin esperar al resumen diario a hola@ (punto 4) ni abrir la terminal.
+
+1. **Dónde:** `panel.vectorhrtech.com/admin`, en la misma SPA del panel, con su propio
+   marco de una columna. Se entra con el mismo código al correo. El menú del panel muestra
+   "Admin" solo si el hr-engine dice que la sesión es de admin.
+2. **Quién entra:** el panel manda el access token de su sesión como Bearer a
+   `api./admin/*`. El hr-engine le pregunta a Auth de quién es (`GET /auth/v1/user`, con la
+   clave secreta como `apikey`, por la red interna) y deja pasar solo a un correo confirmado
+   de `ADMIN_CORREOS` (CSV, `hola@vectorhrtech.com` por defecto), sin distinguir
+   mayúsculas. 401 si el token no sirve, 403 si la cuenta no es de admin y 503 si Auth no
+   responde.
+   - **Por qué no `platform_admins` (0004):** ese rol cambia lo que la RLS deja ver en
+     todas las empresas a cualquier cliente con la clave pública. El admin solo necesita
+     contar filas y aprobar o rechazar, y eso el hr-engine ya lo hace con el rol dueño. La
+     lista vive en el hr-engine: no hay grants nuevos ni un rol con más poder en la base.
+   - Auth revisa el token en cada petición: una cuenta borrada deja de entrar enseguida.
+     Para sumar o quitar a alguien se cambia `ADMIN_CORREOS` y se reinicia `hr-engine-api`.
+3. **Endpoints** (`app/api/admin.py`). Caddy publica `/admin/*` en `api.` con un tope de
+   16 KB, como `/moderacion/*`:
+   - `GET /admin/yo` → `{correo}`.
+   - `GET /admin/resumen` → empresas (total, verificadas y altas de la web confirmadas),
+     vacantes abiertas por estado de la moderación, abiertas y cerradas, aplicaciones
+     (total y últimos 7 días) y altas de la web de los últimos 7 días. Solo conteos.
+   - `GET /admin/cola` → la cola completa (`cola_completa()`), con lo que hace falta para
+     decidir: quién publica, la insignia, la web y el LinkedIn de la empresa, los motivos y
+     la descripción.
+   - `POST /admin/vacantes/{id}/aprobar` y `POST /admin/vacantes/{id}/rechazar`
+     (`{motivo}`) → `ResolverRevision`, el mismo caso de uso de los enlaces firmados y de la
+     CLI. 409 si ya estaba decidida o ya no existe, con el estado en que quedó; 422 sin
+     motivo.
+   - Tope por IP en cada uno (`RATE_LIMIT_ADMIN`, 60 por minuto), además del global, que
+     corre antes de preguntarle a Auth. `Cache-Control: no-store` en todo `/admin/*`.
+4. **Las métricas de la web:** el tablero pide además `vectorhrtech.com/api/admin/metricas`
+   (registros por campaña, altas fallidas, diagnósticos y lista de espera) con el mismo
+   token. Lo construye la web, en su repo, que valida el token de la misma forma. Si falla,
+   el tablero sigue con las del panel y lo dice.
+5. **Se instala, sin service worker:** `manifest.webmanifest` abre el panel en `/` y
+   `admin.webmanifest` abre en `/admin`, con los colores del ícono al revés para
+   distinguirlas. En `/admin` el panel cambia el manifiesto, el ícono de iOS y su título,
+   que es lo que el navegador lee al instalar. No hay service worker: Chrome no lo pide
+   para instalar, y uno mal invalidado deja a quien lo usa con una versión vieja del panel,
+   que se despliega seguido. La app no funciona sin red, y no hace falta: sin red no hay
+   cola que resolver.
+6. **La prueba de punta a punta** (`packages/e2e/flujo/revision-humana.spec.ts`), contra
+   el stack del VPS levantado en local: una empresa con correo de Gmail publica, su
+   vacante queda en revisión y fuera del career site, el admin la aprueba desde `/admin` y
+   sale; otra que manda a WhatsApp, el admin la rechaza con un motivo y la empresa lo ve en
+   su panel. En la prueba `/admin/*` va por el mismo origen del panel
+   (`VITE_ADMIN_API_URL`), porque el hr-engine en modo producción no acepta localhost en
+   `CORS_ALLOW_ORIGINS`.
+
+Fuentes, revisadas el 2026-11-17:
+- Supabase, `auth.getUser()`: "performs a network request to the Supabase Auth server"
+  y "the returned value is authentic and can be used to base authorization rules on":
+  https://supabase.com/docs/reference/javascript/auth-getuser
+- Lo que Chrome pide para instalar una web app (HTTPS y un manifiesto con `name` o
+  `short_name`, íconos de 192 y 512 px, `start_url` y `display`), sin service worker:
+  https://web.dev/articles/install-criteria
