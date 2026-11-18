@@ -560,6 +560,10 @@ class VacanteEnCola:
     publica_para: str
     estado: EstadoDeModeracion
     motivos: tuple[Marca, ...]
+    #: La web y el LinkedIn que dio la empresa (0019): quien revisa los abre para decidir.
+    web: str | None = None
+    linkedin: str | None = None
+    creada_en: datetime | None = None
 
 
 @dataclass(frozen=True, slots=True)

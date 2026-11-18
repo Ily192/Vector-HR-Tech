@@ -70,7 +70,8 @@ _GUARDAR = text(
 _COLA_SIN_AVISAR = text(
     """
     select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
-           e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
+           e.verificada, e.publica_para, e.web, e.linkedin, v.moderacion,
+           v.motivos_moderacion, v.created_at as creada_en
       from public.vacantes v
       join public.empresas e on e.id = v.empresa_id
      where v.moderacion in ('en_revision', 'oculta')
@@ -84,7 +85,8 @@ _COLA_SIN_AVISAR = text(
 _UNA = text(
     """
     select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
-           e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
+           e.verificada, e.publica_para, e.web, e.linkedin, v.moderacion,
+           v.motivos_moderacion, v.created_at as creada_en
       from public.vacantes v
       join public.empresas e on e.id = v.empresa_id
      where v.id = :id
@@ -94,7 +96,8 @@ _UNA = text(
 _COLA_COMPLETA = text(
     """
     select v.id, v.title as titulo, v.jd as descripcion, e.name as empresa,
-           e.verificada, e.publica_para, v.moderacion, v.motivos_moderacion
+           e.verificada, e.publica_para, e.web, e.linkedin, v.moderacion,
+           v.motivos_moderacion, v.created_at as creada_en
       from public.vacantes v
       join public.empresas e on e.id = v.empresa_id
      where v.moderacion in ('en_revision', 'oculta')
