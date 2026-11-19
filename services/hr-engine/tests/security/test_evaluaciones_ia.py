@@ -149,6 +149,50 @@ async def test_reclama_solo_lo_que_hay_que_evaluar(
     assert await _reclamadas(sesion, mias) == {nueva}
 
 
+async def test_mover_candidatos_en_el_plan_gratis_no_enciende_la_ia(
+    db: asyncpg.Connection, sesion: AsyncSession
+) -> None:
+    """ADR-024: el pipeline manual es gratis, la IA no. Ninguna etapa la lanza."""
+    empresa_id, _, mias = await _vacante_con_aplicaciones(db, 8, plan="gratis")
+    await assume_tenant(db, empresa_id)
+    etapas = (
+        "evaluated",
+        "shortlisted",
+        "interviewed",
+        "offered",
+        "hired",
+        "rejected",
+        "withdrawn",
+    )
+    for application_id, etapa in zip(mias[1:], etapas, strict=True):
+        await db.execute(
+            "update applications set status = $2::application_status where id = $1::uuid",
+            application_id,
+            etapa,
+        )
+
+    assert await _reclamadas(sesion, mias) == set()
+
+
+async def test_al_contratar_la_ia_solo_toma_lo_que_sigue_en_aplicados(
+    db: asyncpg.Connection, sesion: AsyncSession
+) -> None:
+    """Lo que una persona ya movió en el plan gratis no se vuelve a decidir con IA."""
+    empresa_id, _, (sin_mover, revisada, descartada) = await _vacante_con_aplicaciones(
+        db, 3, plan="gratis"
+    )
+    await assume_tenant(db, empresa_id)
+    for application_id, etapa in ((revisada, "evaluated"), (descartada, "rejected")):
+        await db.execute(
+            "update applications set status = $2::application_status where id = $1::uuid",
+            application_id,
+            etapa,
+        )
+    await _como_dueno(db, "update empresas set plan = 'ia' where id = $1::uuid", empresa_id)
+
+    assert await _reclamadas(sesion, [sin_mover, revisada, descartada]) == {sin_mover}
+
+
 async def test_lo_reclamado_trae_el_cv_el_candidato_y_la_vacante(
     db: asyncpg.Connection, sesion: AsyncSession
 ) -> None:
