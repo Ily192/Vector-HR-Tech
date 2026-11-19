@@ -9,6 +9,7 @@ import { useMisVacantes, usePublicarVacante, useSesion } from "../datos/consulta
 import { type BorradorDeVacante, MONEDAS, type Moneda, type MotivoDeRechazo } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace, navegar } from "../navegacion/ruta";
+import { EscribenosParaMas, MAS_VACANTES } from "./mas-del-plan";
 import { AvisoDeReclutador } from "./moderacion";
 
 const MODALIDADES = Object.keys(ETIQUETA_MODALIDAD) as Modality[];
@@ -238,6 +239,7 @@ export function CrearEmpleo() {
             {cupo.proximaPublicacion &&
               ` Podrás publicar otra el ${formatoDia.format(new Date(cupo.proximaPublicacion))}.`}
           </p>
+          <EscribenosParaMas {...MAS_VACANTES} className="mt-3 text-[15px]" />
           <Enlace href="/vacantes" className={`${buttonVariants({ variant: "ink" })} mt-5`}>
             Ir a Mis vacantes
           </Enlace>
@@ -256,6 +258,7 @@ export function CrearEmpleo() {
             Tu plan permite {cupo.limite} vacantes a la vez. Elimina una de las activas para
             publicar otra.
           </p>
+          <EscribenosParaMas {...MAS_VACANTES} className="mt-3 text-[15px]" />
           <Enlace href="/vacantes" className={`${buttonVariants({ variant: "ink" })} mt-5`}>
             Ir a Mis vacantes
           </Enlace>

@@ -70,8 +70,13 @@ En el plan de pago, la lista de la IA sigue llamándose "Evaluados": es la evalu
 | IA | Nada: el gancho es la coincidencia de skills sin IA (ADR-019 §3) | Evaluación a ciegas (ADR-021) |
 | Cockpit | No: ni entrevistas agendadas, ni psicométricos, ni constancias | Sí |
 
-- **Lo único que se cobra hoy es publicar más vacantes.** Los límites no cambian.
-- **La IA (Fluve AI) se ofrecerá desde el panel cuando esté lista.** Hasta entonces, la única venta dentro del panel sigue siendo el gancho de skills con su botón "Evaluarlos con IA" (ADR-019 §3, ADR-017 §6).
+- **Lo único que se cobra hoy es pasar del plan.** Eso es publicar más vacantes, un reclutamiento masivo o recibir más de 50 CVs por vacante. Los límites no cambian.
+  - El panel lo ofrece por correo: "¿Necesitas …? Escríbenos a hola@vectorhrtech.com", con el asunto ya escrito.
+  - Aparece en Mis vacantes, en Crear empleo con el cupo lleno y bajo "Recibidas: N de 50" (`pantallas/mas-del-plan.tsx`).
+  - Lo decidió Ilyra el 2026-11-19.
+- **La IA (Fluve AI) se ofrecerá desde el panel cuando esté lista.** Hasta entonces el gancho de skills se queda (ADR-019 §3), pero sin el botón "Evaluarlos con IA" ni la frase de los servicios de IA (decisión del 2026-11-19).
+  - La captura de interés de 0013 sigue en la base y en los adaptadores para cuando vuelva.
+  - El gancho dice "Comparamos 45 de tus CVs con las 4 skills" y no "Revisamos", para no sonar a una persona: en el plan gratis, la etapa "Revisados" sí la hace una persona.
 
 ### 5. La base lo aplica (migración 0021)
 
@@ -151,10 +156,14 @@ En el plan de pago, la lista de la IA sigue llamándose "Evaluados": es la evalu
 
 ## Lo que queda abierto
 
-- **El botón "Evaluarlos con IA" del gancho.** Sigue en el panel gratis (ADR-019 §3), aunque la IA no está lista para venderse. ¿Se queda como captura de interés o se oculta hasta Fluve AI, como el recuadro de crear empleo?
-- **"Revisamos 45 de tus CVs" en el gancho y la etapa "Revisados".** El gancho cuenta menciones de skills y la etapa es una persona. Si confunde, el gancho puede decir "Comparamos".
-- **Cómo se vende publicar más de 3 vacantes.** Hoy el panel dice "elimina una para publicar otra" y no ofrece nada más.
+Resuelto el 2026-11-19 (ver §4):
+- El botón "Evaluarlos con IA" se oculta hasta Fluve AI.
+- El gancho dice "Comparamos".
+- Pasar del plan se pide por correo desde el panel.
+
+Sigue abierto:
 - **El cockpit no se abre:** ni las entrevistas agendadas, ni los psicométricos, ni las constancias. El pipeline no los necesita.
+- **El motivo de descarte sigue opcional**, y no hay historial de etapas.
 
 ## Implementación
 
