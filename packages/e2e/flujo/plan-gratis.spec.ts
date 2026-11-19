@@ -9,10 +9,12 @@ import { barrer, darDeAlta, moderar, verificarEmpresa } from "./apoyo/hr-engine"
 import { enlaceParaEntrar } from "./apoyo/supabase";
 
 /**
- * El plan gratis de punta a punta (MVP, ADR-019): Vector HR da de alta a una
- * empresa, la empresa acepta la invitación y publica una vacante con 4 skills,
+ * El plan gratis de punta a punta (MVP, ADR-019 y ADR-024): Vector HR da de alta a
+ * una empresa, la empresa acepta la invitación y publica una vacante con 4 skills,
  * 7 candidatos aplican desde el career site, el worker cuenta las menciones y la
- * empresa ve el gancho, baja el .zip y elimina la vacante.
+ * empresa ve el gancho, baja el .zip, sigue a cada candidato por las etapas del
+ * pipeline a mano (contrata a una y descarta a otra con su motivo) y elimina la
+ * vacante.
  */
 
 const SKILLS = ["Excel", "Inventarios", "Montacargas", "Inglés"];
@@ -49,7 +51,10 @@ async function esperarTurnstile(pagina: Page) {
   });
 }
 
-test("plan gratis: alta, publicar, aplicar, gancho, .zip y eliminar", async ({ page, browser }) => {
+test("plan gratis: alta, publicar, aplicar, gancho, .zip, etapas y eliminar", async ({
+  page,
+  browser,
+}) => {
   const e = entorno();
   const marca = Date.now().toString(36);
   const empresa = `Distribuidora Norte ${marca}`;
@@ -177,6 +182,61 @@ test("plan gratis: alta, publicar, aplicar, gancho, .zip y eliminar", async ({ p
     expect(nombresEnElZip(zip)).toEqual(
       CANDIDATOS.map((c, i) => `${String(i + 1).padStart(2, "0")} - ${c.nombre}.pdf`),
     );
+  });
+
+  const etapas = page.getByRole("region", { name: "Pipeline" });
+  const lista = page.getByRole("region", { name: "Candidatos" });
+  const etapaDe = (nombre: string) => lista.getByRole("combobox", { name: `Etapa de ${nombre}` });
+  const enLaEtapa = (etapa: string) => etapas.locator(`[data-etapa="${etapa}"]`);
+
+  await test.step("sigue a cada candidato por las etapas, a mano y sin IA (ADR-024)", async () => {
+    await expect(page.getByText(/Servicios IA/)).toHaveCount(0);
+    await expect(enLaEtapa("applied")).toHaveText(new RegExp(`Aplicados\\s*${CANDIDATOS.length}`));
+    for (const [etapa, etiqueta] of [
+      ["evaluated", "Revisados"],
+      ["shortlisted", "Preseleccionados"],
+      ["interviewed", "En entrevista"],
+      ["offered", "Con oferta"],
+    ] as const) {
+      await etapaDe("Ana Paz").selectOption(etapa);
+      await expect(enLaEtapa(etapa)).toHaveText(new RegExp(`${etiqueta}\\s*1`));
+    }
+    await etapaDe("José Ruiz").selectOption("shortlisted");
+    await expect(enLaEtapa("shortlisted")).toHaveText(/Preseleccionados\s*1/);
+  });
+
+  await test.step("marca a quién contrató", async () => {
+    await etapaDe("Ana Paz").selectOption("hired");
+    await expect(enLaEtapa("hired")).toHaveText(/Contratados\s*1/);
+    await expect(enLaEtapa("offered")).toHaveText(/Con oferta\s*0/);
+  });
+
+  await test.step("descarta a otra con su motivo, sin correo al candidato", async () => {
+    await etapaDe("Rosa Díaz").selectOption("rejected");
+    const formulario = lista.getByRole("form", { name: "Descartar a Rosa Díaz" });
+    await expect(formulario).toContainText("Al candidato no le mandamos ningún correo.");
+    await formulario
+      .getByLabel("Motivo del descarte (opcional)")
+      .fill("No tiene la licencia de montacargas vigente.");
+    await formulario.getByRole("button", { name: "Sí, descartar" }).click();
+    await expect(enLaEtapa("rejected")).toHaveText(/Descartados\s*1/);
+    await expect(etapaDe("Rosa Díaz")).toHaveValue("rejected");
+  });
+
+  await test.step("las etapas quedan en la base, se filtran y no liberan cupo", async () => {
+    await page.reload();
+    await expect(etapaDe("Ana Paz")).toHaveValue("hired");
+    await expect(etapaDe("José Ruiz")).toHaveValue("shortlisted");
+    await expect(enLaEtapa("applied")).toHaveText(
+      new RegExp(`Aplicados\\s*${CANDIDATOS.length - 3}`),
+    );
+    await expect(etapas).toContainText(`Recibidas: ${CANDIDATOS.length} de 50.`);
+
+    await etapas.getByRole("button", { name: /^Contratados/ }).click();
+    await expect(lista.getByRole("listitem")).toHaveCount(1);
+    await expect(lista).toContainText("Ana Paz");
+    await lista.getByRole("button", { name: "Ver todos" }).click();
+    await expect(lista.getByRole("listitem")).toHaveCount(CANDIDATOS.length);
   });
 
   await test.step("elimina la vacante y sale del career site", async () => {
