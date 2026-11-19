@@ -1,6 +1,6 @@
 # ADR-017: El career site es el módulo gratuito de Vortex, no un sitio de marketing
 
-- **Status:** Accepted
+- **Status:** Accepted; las etapas del pipeline (§1 y §3) las enmienda [ADR-024](024-pipeline-manual-del-plan-gratis.md)
 - **Date:** 2026-10-16
 - **Decider:** Ilyra
 - **Tags:** producto, career-site, hrbp, multi-tenant
@@ -105,7 +105,7 @@ Los aplica el backend; la UI solo los muestra.
 | Vacantes activas | **3 o 4 según el tamaño de la empresa**. Por defecto: 3 hasta 50 personas y 4 desde 51. Vector HR puede ajustarlo por empresa. | `empresas.limite_vacantes`, comprobado al publicar |
 | Aplicaciones por vacante | **50** recibidas: borrar no libera cupo (ADR-019) | Trigger en `applications` (0010) |
 | Publicaciones nuevas | Tantas como vacantes activas cada 30 días (ADR-019) | Trigger en `vacantes` (0010) |
-| Etapas del pipeline | Solo **Aplicados** | RLS y caso de uso del pipeline |
+| Etapas del pipeline | ~~Solo **Aplicados**~~ Todas, a mano (ADR-024) | RLS de 0004; 0021 quitó el bloqueo de 0009 |
 
 - **Al llegar al límite de vacantes:** para publicar otra, la empresa tiene que
   eliminar una de las activas.
@@ -120,7 +120,7 @@ Los aplica el backend; la UI solo los muestra.
   - la empresa ve la lista de aplicados;
   - puede **descargar todos los CVs a la vez** (un `.zip`, que según ADR-018 §10
     se arma en el navegador con URLs firmadas de Storage);
-  - el resto de etapas se ve, pero cerrado.
+  - ~~el resto de etapas se ve, pero cerrado~~. *Desde ADR-024 (2026-11-19):* todas las etapas están abiertas y la empresa mueve a cada candidato a mano, sin IA.
 
 ### 4. El gancho: el patrón de LinkedIn ("quién vio tu perfil")
 

@@ -303,51 +303,9 @@ async def test_no_queda_nada_de_la_preseleccion_con_ia(db: asyncpg.Connection) -
 
 
 # ──────────────────────────── etapas por plan ────────────────────────────
-
-
-@pytest.mark.parametrize("etapa", ["evaluated", "shortlisted", "interviewed", "offered"])
-async def test_la_empresa_gratis_no_mueve_candidatos_a_etapas_de_pago(
-    db: asyncpg.Connection, etapa: str
-) -> None:
-    empresa_id = await _empresa(db)
-    vacante_id = await _vacante(db, empresa_id)
-    (application_id,) = await _aplicaciones(db, empresa_id, vacante_id, 1)
-    await assume_tenant(db, empresa_id)
-    with pytest.raises(asyncpg.PostgresError) as exc:
-        await db.execute(
-            "update applications set status = $2::application_status where id = $1::uuid",
-            application_id,
-            etapa,
-        )
-    assert exc.value.sqlstate == PROHIBIDO
-
-
-@pytest.mark.parametrize("etapa", ["rejected", "hired", "withdrawn"])
-async def test_la_empresa_gratis_puede_cerrar_una_aplicacion(
-    db: asyncpg.Connection, etapa: str
-) -> None:
-    empresa_id = await _empresa(db)
-    vacante_id = await _vacante(db, empresa_id)
-    (application_id,) = await _aplicaciones(db, empresa_id, vacante_id, 1)
-    await assume_tenant(db, empresa_id)
-    await db.execute(
-        "update applications set status = $2::application_status where id = $1::uuid",
-        application_id,
-        etapa,
-    )
-
-
-async def test_el_plan_ia_usa_todas_las_etapas(db: asyncpg.Connection) -> None:
-    empresa_id = await _empresa(db, plan="ia")
-    vacante_id = await _vacante(db, empresa_id)
-    (application_id,) = await _aplicaciones(db, empresa_id, vacante_id, 1)
-    await assume_tenant(db, empresa_id)
-    for etapa in ("evaluated", "shortlisted", "interviewed", "offered"):
-        await db.execute(
-            "update applications set status = $2::application_status where id = $1::uuid",
-            application_id,
-            etapa,
-        )
+#
+# Desde 0021 (ADR-024) el plan gratis usa todas las etapas, a mano: lo prueba
+# `test_pipeline_manual.py`.
 
 
 # ───────────────────────────── al contratar ─────────────────────────────

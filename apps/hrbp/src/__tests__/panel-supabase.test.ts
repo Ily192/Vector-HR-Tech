@@ -492,8 +492,8 @@ describe("pipeline", () => {
     expect(peticiones).toHaveLength(0);
   });
 
-  it("en el plan gratis abre solo Aplicados, con el gancho y un enlace por CV", async () => {
-    const { adaptador } = clienteDePrueba((p) => {
+  it("en el plan gratis trae a cada aplicado en su etapa, con el gancho y un enlace por CV", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) => {
       switch (p.ruta) {
         case "/rest/v1/vacantes":
           return {
@@ -513,7 +513,7 @@ describe("pipeline", () => {
             filas: [
               {
                 id: "a2",
-                status: "applied",
+                status: "shortlisted",
                 applied_at: "2026-10-12T10:00:00+00:00",
                 ...SIN_EVALUAR,
                 candidatos: { full_name: "José Ruiz", cv_url: `${EMPRESA}/b.docx` },
@@ -546,8 +546,6 @@ describe("pipeline", () => {
         // En el plan gratis no hay evaluación con IA: la rpc no devuelve filas (0014).
         case "/rest/v1/rpc/resumen_de_evaluaciones":
           return { filas: [] };
-        case "/rest/v1/empresas":
-          return { filas: [{ plan: "gratis" }] };
         case "/storage/v1/object/sign/cvs":
           return {
             filas: [
@@ -566,7 +564,8 @@ describe("pipeline", () => {
     expect(pipeline?.evaluaciones).toBeNull();
     expect(pipeline?.vacante.aplicaciones).toBe(3);
     expect(pipeline?.maxAplicaciones).toBe(50);
-    expect(pipeline?.etapas.map((e) => e.conteo)).toEqual([3, null, null, null, null]);
+    // Las etapas ya no dependen del plan (ADR-024): no hace falta leerlo.
+    expect(peticiones.some((p) => p.ruta === "/rest/v1/empresas")).toBe(false);
     expect(pipeline?.gancho).toEqual({
       skills: 4,
       revisados: 0,
@@ -580,7 +579,7 @@ describe("pipeline", () => {
         id: "a2",
         nombre: "José Ruiz",
         aplicoEn: "2026-10-12T10:00:00+00:00",
-        estado: "applied",
+        estado: "shortlisted",
         cvUrl: `${URL_DE_PRUEBA}/storage/v1/object/sign/cvs/${EMPRESA}/b.docx?token=t`,
         cvFormato: "docx",
         evaluacion: null,
@@ -655,8 +654,6 @@ describe("pipeline", () => {
               },
             ],
           };
-        case "/rest/v1/empresas":
-          return { filas: [{ plan: "ia" }] };
       }
       return undefined;
     });
@@ -689,6 +686,36 @@ describe("pipeline", () => {
       ],
       ["a2", "applied", null],
     ]);
+  });
+
+  it("mover de etapa manda solo la etapa y pide de vuelta la fila que cambió (0021)", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/applications" && p.metodo === "PATCH"
+        ? { filas: [{ id: "a1" }] }
+        : undefined,
+    );
+    await adaptador.moverDeEtapa("a1", "hired");
+    const [patch] = peticiones;
+    expect(patch?.url.searchParams.get("id")).toBe("eq.a1");
+    expect(patch?.url.searchParams.get("select")).toBe("id");
+    expect(patch?.cuerpo).toEqual({ status: "hired" });
+  });
+
+  it("si la RLS no deja tocar la aplicación, mover falla en vez de fingir que se guardó", async () => {
+    const { adaptador } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/applications" && p.metodo === "PATCH" ? { filas: [] } : undefined,
+    );
+    await expect(adaptador.moverDeEtapa("de-otra-empresa", "shortlisted")).rejects.toThrow(
+      /no es de la empresa/,
+    );
+  });
+
+  it("descartar sin motivo, como en el plan gratis, no manda un motivo vacío", async () => {
+    const { adaptador, peticiones } = clienteDePrueba((p) =>
+      p.ruta === "/rest/v1/applications" && p.metodo === "PATCH" ? { estado: 204 } : undefined,
+    );
+    expect(await adaptador.descartar("a1", "   ")).toEqual({ ok: true });
+    expect(peticiones[0]?.cuerpo).toEqual({ status: "rejected", motivo_de_descarte: null });
   });
 
   it("descartar manda el motivo y pasa la aplicación a descartada", async () => {

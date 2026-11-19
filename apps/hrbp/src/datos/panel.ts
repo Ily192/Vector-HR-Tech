@@ -10,7 +10,7 @@
  * Los dos adaptadores se cargan aparte: supabase-js pesa más que todo el marco y
  * el bundle principal tiene tope de 90 KB.
  */
-import type { AdaptadorDelPanel, BorradorDeVacante, OrigenDelInteres } from "./tipos";
+import type { AdaptadorDelPanel, BorradorDeVacante, EtapaAlMover, OrigenDelInteres } from "./tipos";
 
 const URL_DE_SUPABASE = import.meta.env.VITE_SUPABASE_URL;
 const CLAVE_PUBLICA =
@@ -48,6 +48,9 @@ export const marcarPostulacionesVistas = async (vacanteId: string) =>
   (await adaptador()).marcarPostulacionesVistas(vacanteId);
 
 export const obtenerResumenCockpit = async () => (await adaptador()).obtenerResumenCockpit();
+
+export const moverDeEtapa = async (aplicacionId: string, etapa: EtapaAlMover) =>
+  (await adaptador()).moverDeEtapa(aplicacionId, etapa);
 
 export const descartar = async (aplicacionId: string, motivo: string) =>
   (await adaptador()).descartar(aplicacionId, motivo);

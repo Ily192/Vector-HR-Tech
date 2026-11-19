@@ -122,8 +122,8 @@ values
         '22222222-2222-2222-2222-222222222222',
         'bbbbbbbb-0000-0000-0000-000000000001',
         'dddddddd-0000-0000-0000-000000000001',
-        -- Siete es gratuita: su pipeline solo tiene "Aplicados" y no se
-        -- evalúa con IA (0010, ADR-019).
+        -- Siete es gratuita: no se evalúa con IA (0010, ADR-019) y sus etapas las
+        -- mueve una persona (0021, ADR-024).
         'applied',
         null
     )

@@ -47,7 +47,7 @@ function FilaDeVacante({ v, cupo }: { v: VacanteDeLaEmpresa; cupo: CupoDeVacante
             href={`/vacantes/${v.id}`}
             className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
           >
-            Ver aplicados
+            Ver candidatos
           </Enlace>
           {!confirmando && (
             <Button variant="ghost" size="sm" onClick={() => setConfirmando(true)}>

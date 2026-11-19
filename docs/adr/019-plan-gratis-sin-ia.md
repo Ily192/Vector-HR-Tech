@@ -1,6 +1,6 @@
 # ADR-019: El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho
 
-- **Status:** Accepted
+- **Status:** Accepted; el pipeline lo enmienda [ADR-024](024-pipeline-manual-del-plan-gratis.md) (§2, fila "Pipeline" y el PT403 de las etapas; la frase de la frontera en Consequences)
 - **Date:** 2026-10-19
 - **Decider:** Ilyra ("no me gusta la decisión de evaluar CVs para empresas en la etapa gratis: solo debería dejar descargar en un .zip los que se postularon, y con algún script sin IA evaluar el match de los CVs, pero solo como enganche para la adquisición de la plataforma")
 - **Supersedes:** ADR-018, salvo §10, §11, §12 y §14 (abajo)
@@ -46,12 +46,14 @@ Para una empresa gratuita no corre ningún agente ni se llama a ningún LLM: ni 
 | Publicaciones nuevas | Tantas como vacantes activas cada 30 días; reabrir no cuenta | Sin tope |
 | Aplicaciones por vacante | 50 recibidas, entren por donde entren. Borrar o descartar no libera cupo | Sin tope |
 | Candidatos | Lista de aplicados y **descarga de todos los CVs en un .zip** | Igual |
-| Pipeline | Aplicados, y cerrar: contratado, descartado o retirado | Todas las etapas |
+| Pipeline | ~~Aplicados, y cerrar: contratado, descartado o retirado~~ Todas las etapas, a mano (ADR-024) | Todas las etapas |
 | Gancho | Coincidencia de skills **sin IA**, solo en agregado (punto 3) | La evaluación con IA lo reemplaza |
 | IA | Nada | Evaluación a ciegas con su porqué, búsqueda de perfiles, agentes |
 | Cockpit | No: ni entrevistas, ni psicométricos, ni constancias | Sí |
 
 La base aplica cada fila (PT409 y PT403, que PostgREST devuelve como 409 y 403) y el hr-engine aplica la de IA.
+
+*Enmendado el 2026-11-19 ([ADR-024](024-pipeline-manual-del-plan-gratis.md)):* el pipeline deja de ser una fila de la frontera. La empresa gratuita mueve a sus candidatos entre todas las etapas, a mano, y la migración 0021 quita el PT403 de las etapas que ponía 0009. Lo único que se cobra hoy es publicar más vacantes; la IA sigue siendo de pago.
 
 ### 3. El gancho: una coincidencia de skills, sin IA
 
@@ -168,7 +170,7 @@ Menos que con ADR-018, porque el plan gratis ya no trata datos con IA:
 
 **Positivas:**
 
-- **La frontera se dice en una frase:** gratis es publicar, recibir y descargar; la IA es de pago. La base y el hr-engine la sostienen aunque alguien se salte la UI.
+- **La frontera se dice en una frase:** gratis es publicar, recibir y descargar; la IA es de pago. La base y el hr-engine la sostienen aunque alguien se salte la UI. *Desde ADR-024:* gratis es también llevar el pipeline a mano.
 - **El plan gratis cuesta casi nada por empresa** y no depende del acceso a Gemini.
 - **Menos riesgo legal:** sin IA ni decisiones automatizadas en el gratis, y con datos mínimos.
 - **El gancho es verificable.** Cualquiera puede contar las menciones en el .zip, y el texto no promete lo que el plan de pago no da.

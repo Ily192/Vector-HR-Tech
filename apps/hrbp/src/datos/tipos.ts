@@ -2,9 +2,10 @@
  * Forma de los datos que el panel de la empresa recibe del backend.
  *
  * Todo llega ya decidido: cuántas vacantes le quedan a la empresa, si una vacante
- * llenó su cupo, qué etapas del pipeline habilita su plan y los números del
- * gancho. La UI los pinta; no los calcula (ADR-016). Las reglas tienen su dueña
- * en hr-engine (`domain/plan.py`, ADR-017).
+ * llenó su cupo y los números del gancho. La UI los pinta; no los calcula
+ * (ADR-016). Las reglas tienen su dueña en hr-engine (`domain/plan.py`, ADR-017).
+ * Las etapas del pipeline son las mismas en los dos planes (ADR-024): la pantalla
+ * solo agrupa a los aplicados por la etapa en que están.
  */
 import type {
   ApplicationStatus,
@@ -156,23 +157,27 @@ export interface ResumenDeEvaluaciones {
   sinIa: number;
 }
 
-/** El descarte se guardó, o faltó el motivo que la base pide si evaluó la IA (0015). */
+/**
+ * El descarte se guardó, o faltó un motivo que sirva: la base lo pide si evaluó la
+ * IA (PT422) y, si se escribe, que mida de 10 a 500 caracteres (0015, 0021).
+ */
 export type ResultadoDeDescartar = { ok: true } | { ok: false; motivo: "sin-motivo" };
 
-export interface EtapaVisible {
-  etapa: EtapaDelPipeline;
-  /** `null` si el plan no habilita la etapa. */
-  conteo: number | null;
-}
+/**
+ * A dónde mueve una persona a un candidato sin descartarlo: cualquier etapa del
+ * pipeline, contratado o se retiró (0021, ADR-024). Descartar va por `descartar`,
+ * con su motivo.
+ */
+export type EtapaAlMover = Exclude<ApplicationStatus, "rejected">;
 
 export interface PipelineDeVacante {
   vacante: Pick<
     VacanteDeLaEmpresa,
     "id" | "titulo" | "publicadaEn" | "aplicaciones" | "moderacion" | "motivos"
   >;
+  /** Las aplicaciones que recibe la vacante; `null` sin tope (plan con IA). */
   maxAplicaciones: number | null;
-  etapas: EtapaVisible[];
-  /** Los más recientes primero. */
+  /** Los más recientes primero, cada uno en su etapa. */
   aplicados: Aplicado[];
   /** Solo en el plan gratis y cuando ya hubo evaluación. */
   gancho: GanchoDelPipeline | null;
@@ -318,7 +323,15 @@ export interface AdaptadorDelPanel {
   marcarPostulacionesVistas(vacanteId: string): Promise<void>;
   /** El "hoy" del cockpit; `null` si el plan de la empresa no lo tiene. */
   obtenerResumenCockpit(): Promise<ResumenCockpit | null>;
-  /** Una persona descarta una aplicación y deja el motivo (ADR-021 §4). */
+  /**
+   * Una persona mueve a un candidato de etapa (0021, ADR-024). Falla si la aplicación
+   * no es de la empresa: la RLS no la deja tocar.
+   */
+  moverDeEtapa(aplicacionId: string, etapa: EtapaAlMover): Promise<void>;
+  /**
+   * Una persona descarta una aplicación. El motivo es obligatorio si la evaluó la IA
+   * (ADR-021 §4) y opcional si no; vacío, no se guarda.
+   */
   descartar(aplicacionId: string, motivo: string): Promise<ResultadoDeDescartar>;
   solicitarDescargaDeCvs(vacanteId: string): Promise<DescargaDeCvs>;
   registrarInteres(origen: OrigenDelInteres): Promise<void>;

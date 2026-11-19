@@ -2,16 +2,18 @@
  * El panel con datos de ejemplo en memoria: la demo sin backend y los tests.
  *
  * Hace de base de datos, así que aplica a su manera las reglas del plan (cupo de
- * vacantes, publicaciones cada 30 días, tope de aplicaciones) para que la demo se
- * comporte como el producto. Las reglas reales y sus tests viven en las
- * migraciones 0008 y 0010 y en `domain/plan.py` (ADR-017, ADR-019). Siempre hay
- * alguien dentro: el ejemplo no pide entrar.
+ * vacantes, publicaciones cada 30 días, tope de aplicaciones, el motivo al
+ * descartar) para que la demo se comporte como el producto. Las reglas reales y sus
+ * tests viven en las migraciones 0008, 0010, 0015 y 0021 y en `domain/plan.py`
+ * (ADR-017, ADR-019, ADR-024). Siempre hay alguien dentro: el ejemplo no pide entrar.
+ *
+ * Los candidatos son inventados: nombres y apellidos comunes combinados, sin datos
+ * de nadie. Están repartidos por todas las etapas, como un pipeline a medio camino.
  *
  * `?plan=ia` en la URL de entrada muestra el panel con los servicios de IA.
  */
-import type { EtapaDelPipeline } from "@fluveai/types/reglas";
+import type { ApplicationStatus } from "@fluveai/types/hr";
 import {
-  ETAPAS_DEL_PIPELINE,
   LIMITES_DEL_PLAN,
   VENTANA_DE_PUBLICACIONES_DIAS,
   limiteDeVacantes,
@@ -32,8 +34,7 @@ import type {
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const VENTANA_MS = VENTANA_DE_PUBLICACIONES_DIAS * DIA_MS;
-const haceDias = (dias: number, horas = 0) =>
-  new Date(Date.now() - dias * DIA_MS - horas * 3_600_000).toISOString();
+const haceDias = (dias: number) => new Date(Date.now() - dias * DIA_MS).toISOString();
 const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60_000).toISOString();
 
 const NOMBRES = [
@@ -47,6 +48,10 @@ const NOMBRES = [
   "Luis Ángel",
   "Paola",
   "Ricardo",
+  "Alejandro",
+  "Gabriela",
+  "Héctor",
+  "Karla",
 ];
 const APELLIDOS = [
   "López",
@@ -59,17 +64,62 @@ const APELLIDOS = [
   "Villarreal",
   "Ortiz",
   "Méndez",
+  "Rodríguez",
+  "Flores",
+  "Sandoval",
 ];
 
-function aplicadosDeEjemplo(vacanteId: string, total: number): Aplicado[] {
+/**
+ * Un nombre inventado distinto para cada uno de los primeros 180 (14 nombres y 13
+ * apellidos): en cada vuelta de los nombres, los apellidos se corren un lugar.
+ */
+const nombreDeEjemplo = (i: number) =>
+  `${NOMBRES[i % NOMBRES.length]} ${
+    APELLIDOS[(i * 3 + 1 + Math.floor(i / NOMBRES.length)) % APELLIDOS.length]
+  }`;
+
+/**
+ * `total` aplicados a una vacante publicada hace `dias`, repartidos en ese tiempo:
+ * el primero es el más reciente. Todos en "Aplicados" hasta que `conEtapas` los mueva.
+ */
+function aplicadosDeEjemplo(vacanteId: string, total: number, dias: number): Aplicado[] {
   return Array.from({ length: total }, (_, i) => ({
     id: `${vacanteId}-${i + 1}`,
-    nombre: `${NOMBRES[i % NOMBRES.length]} ${APELLIDOS[(i * 3 + 1) % APELLIDOS.length]}`,
-    aplicoEn: haceDias(0, i * 3 + 1),
+    nombre: nombreDeEjemplo(i),
+    aplicoEn: haceMinutos(Math.round(((i + 1) * dias * 24 * 60) / (total + 1))),
     estado: "applied",
     cvUrl: null,
-    cvFormato: "pdf",
+    cvFormato: i % 5 === 3 ? "docx" : "pdf",
     evaluacion: null,
+  }));
+}
+
+/** La letra de cada etapa en los repartos de `estadoGratis`. */
+const ETAPA_DE_LA_LETRA: Record<string, ApplicationStatus> = {
+  A: "applied",
+  R: "evaluated",
+  P: "shortlisted",
+  E: "interviewed",
+  O: "offered",
+  C: "hired",
+  D: "rejected",
+  X: "withdrawn",
+};
+
+/**
+ * Pone a cada aplicado en su etapa, como lo dejaría una persona que revisa seguido:
+ * `reparto` tiene una letra por aplicado, del más reciente al que aplicó primero
+ * (A Aplicados, R Revisados, P Preseleccionados, E En entrevista, O Con oferta,
+ * C Contratados, D Descartados, X Se retiraron). Los espacios solo agrupan de 10 en 10.
+ */
+function conEtapas(aplicados: Aplicado[], reparto: string): Aplicado[] {
+  const letras = reparto.replace(/\s+/g, "");
+  if (letras.length !== aplicados.length) {
+    throw new Error(`el reparto tiene ${letras.length} letras para ${aplicados.length} aplicados`);
+  }
+  return aplicados.map((a, i) => ({
+    ...a,
+    estado: ETAPA_DE_LA_LETRA[letras.charAt(i)] ?? a.estado,
   }));
 }
 
@@ -109,12 +159,25 @@ function conEvaluaciones(aplicados: Aplicado[], evaluadas: number): Aplicado[] {
   );
 }
 
+/**
+ * De los evaluados con menos de 7, que no cuentan en la decisión del día del
+ * cockpit, una persona preseleccionó a 9, entrevistó a 1 y le hizo oferta a 2: el
+ * mismo embudo que muestra el cockpit.
+ */
+function movidosAMano(aplicados: Aplicado[]): Aplicado[] {
+  const movidos: ApplicationStatus[] = [
+    ...Array.from({ length: 9 }, () => "shortlisted" as const),
+    "interviewed",
+    "offered",
+    "offered",
+  ];
+  return aplicados.map((a, i) => ({ ...a, estado: movidos[i - 17] ?? a.estado }));
+}
+
 interface Registro {
   vacante: VacanteDeLaEmpresa;
   aplicados: Aplicado[];
   gancho: GanchoDelPipeline | null;
-  /** Conteos de las etapas después de "Aplicados" (plan con IA). */
-  etapas?: Partial<Record<EtapaDelPipeline, number>>;
   /** Cómo va la evaluación con IA (plan con IA). */
   evaluaciones?: ResumenDeEvaluaciones;
 }
@@ -168,7 +231,12 @@ function estadoGratis(): Estado {
     registros: [
       {
         vacante: vacante("coordinador-de-almacen", "Coordinador de almacén", 6, 47),
-        aplicados: aplicadosDeEjemplo("coordinador-de-almacen", 47),
+        // 21 en Aplicados, 9 Revisados, 5 Preseleccionados, 3 En entrevista, 1 Con
+        // oferta, 1 Contratado y 7 Descartados.
+        aplicados: conEtapas(
+          aplicadosDeEjemplo("coordinador-de-almacen", 47, 6),
+          "AARADARPAA RAADRAPARA AAPDRARDEA DAPRAEARDA EAPDOAC",
+        ),
         gancho: {
           skills: 4,
           revisados: 45,
@@ -182,7 +250,11 @@ function estadoGratis(): Estado {
         vacante: vacante("analista-de-inventarios", "Analista de inventarios", 40, 50, {
           modalidad: "onsite",
         }),
-        aplicados: aplicadosDeEjemplo("analista-de-inventarios", 50),
+        // Casi cerrada: 1 Contratado, 1 que se retiró y 30 Descartados.
+        aplicados: conEtapas(
+          aplicadosDeEjemplo("analista-de-inventarios", 50, 40),
+          "ADARDDRADD DRDDADPDDR DDADDPDRDD DEDDADDRDD DPDXDEDACD",
+        ),
         gancho: {
           skills: 5,
           revisados: 50,
@@ -197,7 +269,8 @@ function estadoGratis(): Estado {
           modalidad: "onsite",
           ubicacion: "Apodaca, NL",
         }),
-        aplicados: aplicadosDeEjemplo("chofer-repartidor", 12),
+        // Recién publicada: casi todos esperan su primera revisión.
+        aplicados: conEtapas(aplicadosDeEjemplo("chofer-repartidor", 12, 1), "AARAADARAP RA"),
         gancho: {
           skills: 3,
           revisados: 10,
@@ -231,9 +304,10 @@ function estadoConIa(): Estado {
           ubicacion: "Remoto · LATAM",
           cupoCompleto: false,
         }),
-        aplicados: conEvaluaciones(aplicadosDeEjemplo("senior-software-engineer", 84), 41),
+        aplicados: movidosAMano(
+          conEvaluaciones(aplicadosDeEjemplo("senior-software-engineer", 84, 9), 41),
+        ),
         gancho: null,
-        etapas: { evaluated: 41, shortlisted: 12, interviewed: 3, offered: 2 },
         evaluaciones: {
           aplicaciones: 84,
           evaluadas: 41,
@@ -388,7 +462,7 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
   async obtenerPipeline(vacanteId) {
     const registro = activos().find((r) => r.vacante.id === vacanteId);
     if (!registro) return null;
-    const { vacante: v, etapas } = registro;
+    const { vacante: v } = registro;
     const conIa = estado.sesion.modulos.includes("cockpit");
     return {
       vacante: {
@@ -400,10 +474,6 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
         motivos: v.motivos,
       },
       maxAplicaciones: estado.maxAplicaciones,
-      etapas: ETAPAS_DEL_PIPELINE.map((etapa) => ({
-        etapa,
-        conteo: etapa === "applied" ? v.aplicaciones : conIa ? (etapas?.[etapa] ?? 0) : null,
-      })),
       aplicados: registro.aplicados,
       gancho: registro.gancho,
       evaluaciones: conIa
@@ -423,7 +493,19 @@ export const adaptadorDeEjemplo: AdaptadorDelPanel = {
     return estado.sesion.modulos.includes("cockpit") ? resumenDelCockpit() : null;
   },
 
-  /** Como la base (0015): lo que evaluó la IA no se descarta sin un motivo que sirva. */
+  /** Como la base (0021): solo se mueve lo que existe. La fecha y el motivo no se muestran. */
+  async moverDeEtapa(aplicacionId, etapa) {
+    const registro = estado.registros.find((r) => r.aplicados.some((a) => a.id === aplicacionId));
+    if (!registro) throw new Error("la aplicación no es de la empresa o ya no existe");
+    registro.aplicados = registro.aplicados.map((a) =>
+      a.id === aplicacionId ? { ...a, estado: etapa } : a,
+    );
+  },
+
+  /**
+   * Como la base (0015, 0021): lo que evaluó la IA no se descarta sin un motivo, y
+   * un motivo escrito mide de 10 a 500 caracteres. Sin IA, el motivo es opcional.
+   */
   async descartar(aplicacionId, motivo) {
     for (const registro of estado.registros) {
       const aplicado = registro.aplicados.find((a) => a.id === aplicacionId);

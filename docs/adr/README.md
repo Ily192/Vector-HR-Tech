@@ -22,13 +22,14 @@ Formato Michael Nygard. Uno por decisión arquitectónica relevante.
 | [014](014-test-psicometrico-iframe.md) | Test psicométrico vía iframe del HTML legacy (v0) | Accepted |
 | [015](015-tenant-identity-in-app-metadata.md) | Identidad de tenant en `app_metadata`; privilegio de plataforma fuera de `profiles` | Accepted |
 | [016](016-logica-de-negocio-fuera-de-la-ui.md) | La lógica de negocio vive en el backend; la UI solo la presenta | Accepted |
-| [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Accepted |
+| [017](017-career-site-modulo-gratuito.md) | El career site es el módulo gratuito de Vortex, no un sitio de marketing | Accepted; las etapas del pipeline las enmienda ADR-024 |
 | [018](018-preseleccion-ia-del-plan-gratis.md) | Preseleccionar con IA el plan gratis: a ciegas, con topes y por instrucción de la empresa | Superseded by ADR-019 (siguen vigentes §10-§12 y §14) |
-| [019](019-plan-gratis-sin-ia.md) | El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho | Accepted |
+| [019](019-plan-gratis-sin-ia.md) | El plan gratis no usa IA: descarga en .zip y una coincidencia de skills como gancho | Accepted; el pipeline lo enmienda ADR-024 |
 | [020](020-plataforma-en-un-vps.md) | Toda la plataforma en un VPS, con Supabase autoalojado y Docker Compose | Accepted; desde el 2026-11-11, solo el backend (los frontends en Vercel) |
 | [021](021-evaluacion-ia-del-plan-de-pago.md) | La evaluación con IA del plan de pago, a ciegas y como trabajo interno del hr-engine | Accepted |
 | [022](022-moderacion-de-vacantes.md) | Verificar empresas y moderar vacantes antes del career site | Accepted |
 | [023](023-recordatorio-de-postulados.md) | Un solo recordatorio a la empresa con más de 5 postulados sin revisar | Accepted |
+| [024](024-pipeline-manual-del-plan-gratis.md) | El plan gratis incluye el pipeline completo, a mano; la IA sigue siendo de pago | Accepted |
 
 ## Cómo escribir una ADR
 

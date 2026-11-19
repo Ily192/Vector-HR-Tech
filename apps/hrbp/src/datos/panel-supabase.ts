@@ -1,8 +1,9 @@
 /**
  * El panel contra Supabase. Las reglas del plan las aplica la base: RLS por
  * empresa, los topes de vacantes activas y de publicaciones (PT409, 0008 y 0010),
- * el de aplicaciones recibidas y el gancho por lotes de 5 (0010). Aquí solo se
- * traduce entre las filas y la forma de `tipos.ts`.
+ * el de aplicaciones recibidas y el gancho por lotes de 5 (0010), y quién puede
+ * mover a un candidato de etapa (0004 y 0021). Aquí solo se traduce entre las filas
+ * y la forma de `tipos.ts`.
  *
  * Se entra con un enlace al correo y solo con una cuenta que ya existe: la crea la
  * invitación de Vector HR (`inviteUserByEmail`, 0003). Los CVs se bajan con URLs
@@ -169,12 +170,6 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
     };
   }
 
-  async function planDeLaEmpresa() {
-    const { data, error } = await supabase.from("empresas").select("plan").single();
-    if (error) throw error;
-    return data.plan;
-  }
-
   /** Las aplicaciones de la vacante con su candidato; RLS deja solo las de la empresa. */
   async function aplicacionesDe(vacanteId: string, { recientesPrimero = true } = {}) {
     const { data, error } = await supabase
@@ -308,7 +303,7 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
 
     async obtenerPipeline(vacanteId) {
       if (!ES_UUID.test(vacanteId)) return null;
-      const [vacante, filas, cupo, gancho, evaluaciones, plan] = await Promise.all([
+      const [vacante, filas, cupo, gancho, evaluaciones] = await Promise.all([
         supabase
           .from("vacantes")
           .select("id, title, publicada_en, created_at, moderacion, motivos_moderacion")
@@ -325,7 +320,6 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
         supabase
           .rpc("resumen_de_evaluaciones", { p_vacante: vacanteId })
           .maybeSingle(),
-        planDeLaEmpresa(),
       ]);
       if (vacante.error) throw vacante.error;
       if (cupo.error) throw cupo.error;
@@ -338,27 +332,17 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
       const enlaces = await urlsFirmadas(rutas, SEGUNDOS_DEL_ENLACE_AL_CV).catch(
         () => new Map<string, string>(),
       );
-      const recibidas = cupo.data?.recibidas ?? filas.length;
-      const visibles: readonly EtapaDelPipeline[] = LIMITES_DEL_PLAN[plan].etapasVisibles;
       const g = gancho.data;
       return {
         vacante: {
           id: vacante.data.id,
           titulo: vacante.data.title,
           publicadaEn: vacante.data.publicada_en ?? vacante.data.created_at,
-          aplicaciones: recibidas,
+          aplicaciones: cupo.data?.recibidas ?? filas.length,
           moderacion: vacante.data.moderacion,
           motivos: vacante.data.motivos_moderacion,
         },
         maxAplicaciones: cupo.data?.limite ?? null,
-        etapas: ETAPAS_DEL_PIPELINE.map((etapa) => ({
-          etapa,
-          conteo: !visibles.includes(etapa)
-            ? null
-            : etapa === "applied"
-              ? recibidas
-              : filas.filter((a) => a.status === etapa).length,
-        })),
         aplicados: filas.map((a) => {
           const ruta = a.candidatos?.cv_url ?? null;
           return {
@@ -449,8 +433,24 @@ export function adaptadorDeSupabase(supabase: Cliente): AdaptadorDelPanel {
     },
 
     /**
+     * La RLS solo deja tocar las aplicaciones de la empresa, a HR y Dirección (0004):
+     * con otra, el update no encuentra filas y no se guarda nada. Las fechas y el
+     * motivo los pone la base al cambiar de etapa (0021).
+     */
+    async moverDeEtapa(aplicacionId, etapa) {
+      const { data, error } = await supabase
+        .from("applications")
+        .update({ status: etapa })
+        .eq("id", aplicacionId)
+        .select("id");
+      if (error) throw error;
+      if (data.length === 0) throw new Error("la aplicación no es de la empresa o ya no existe");
+    },
+
+    /**
      * La base pide el motivo si la evaluó la IA (PT422) y que mida de 10 a 500
-     * caracteres (23514, 0015): los dos son "falta un motivo que sirva".
+     * caracteres (23514, 0015): los dos son "falta un motivo que sirva". Sin score
+     * (plan gratis), el motivo es opcional: vacío no se manda.
      */
     async descartar(aplicacionId, motivo) {
       const { error } = await supabase

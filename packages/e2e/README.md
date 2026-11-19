@@ -5,7 +5,7 @@ Dos suites de Playwright:
 | Suite | Qué cubre | Contra qué | Comando |
 |---|---|---|---|
 | **smoke** (`tests/`) | El career site para candidatos: inicio, búsqueda, filtros, detalle y 404 | Los datos de ejemplo, o un `BASE_URL` | `pnpm e2e:smoke` |
-| **flujo** (`flujo/`) | El plan gratis de punta a punta: alta e invitación, publicar con skills, 7 aplicaciones con CV, el worker, el gancho, el .zip y eliminar la vacante. Contra el stack del VPS, además el alta desde la web y la revisión humana desde `/admin` | El Supabase local, o un despliegue | `pnpm e2e:flujo` |
+| **flujo** (`flujo/`) | El plan gratis de punta a punta: alta e invitación, publicar con skills, 7 aplicaciones con CV, el worker, el gancho, el .zip, las etapas a mano (mover, contratar y descartar con motivo, ADR-024) y eliminar la vacante. Contra el stack del VPS, además el alta desde la web y la revisión humana desde `/admin` | El Supabase local, o un despliegue | `pnpm e2e:flujo` |
 
 El flujo no corre en la CI: necesita Docker con Supabase y el hr-engine.
 
