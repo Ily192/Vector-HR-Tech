@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.domain.plan import (
+    ETAPAS_DEL_PIPELINE,
     CupoDeAplicacionesLlenoError,
     LimiteDePublicacionesError,
     LimiteDeVacantesError,
@@ -14,10 +15,13 @@ from app.domain.plan import (
 )
 
 
-def test_el_plan_gratis_solo_abre_el_career_site_y_la_etapa_aplicados() -> None:
+def test_el_plan_gratis_abre_el_career_site_con_todas_las_etapas_y_sin_ia() -> None:
+    """ADR-024: el pipeline manual es gratis; lo que se paga es la IA y publicar más."""
     limites = limites_del_plan("gratis", tamano=30)
     assert limites.modulos == ("career-site",)
-    assert limites.etapas_visibles == ("applied",)
+    assert limites.etapas_visibles == ETAPAS_DEL_PIPELINE
+    assert limites.etapas_visibles == limites_del_plan("ia").etapas_visibles
+    assert limites.incluye_ia is False
     assert limites.vacantes_activas == 3
     assert limites.aplicaciones_por_vacante == 50
 

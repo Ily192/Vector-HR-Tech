@@ -8,14 +8,17 @@ publica vacantes sin costo, con tres límites:
 - Publicaciones: en 30 días, tantas vacantes nuevas como vacantes activas.
   Reabrir una vacante no cuenta.
 - Aplicaciones: 50 recibidas por vacante. Borrar o descartar no libera cupo.
-- Pipeline: solo la etapa "Aplicados". Las demás son de los servicios de IA.
+
+El pipeline no es un límite: desde ADR-024 la empresa gratuita usa todas las
+etapas a mano, como la de pago, y cierra cada aplicación como contratada,
+descartada o retirada. Lo que monetiza el plan gratis es publicar más vacantes.
 
 El plan con IA no tiene estos topes. Y la IA es lo que se paga (ADR-019): para
 una empresa gratuita no corre ningún agente ni se llama a ningún LLM. Su gancho
 es una coincidencia de skills sin IA (`domain/coincidencia.py`).
 
-La base aplica la misma regla (migraciones 0008 y 0010), porque el panel y el
-career site escriben en Supabase sin pasar por el hr-engine. El contrato
+La base aplica la misma regla (migraciones 0008, 0010 y 0021), porque el panel y
+el career site escriben en Supabase sin pasar por el hr-engine. El contrato
 `packages/types/contracts/limites-plan.json` mantiene alineadas las tres copias.
 """
 
@@ -79,6 +82,7 @@ class LimitesDelPlan:
     #: Agentes y LLM: evaluación, búsqueda de perfiles. Lo que se paga.
     incluye_ia: bool
     modulos: tuple[Modulo, ...]
+    #: Las que la empresa usa a mano. Desde ADR-024, todas en los dos planes.
     etapas_visibles: tuple[Etapa, ...]
     vacantes_activas: int | None
     #: Vacantes nuevas en `VENTANA_DE_PUBLICACIONES_DIAS`. En el gratis, las mismas que activas.
@@ -138,7 +142,7 @@ def limites_del_plan(
         plan="gratis",
         incluye_ia=False,
         modulos=("career-site",),
-        etapas_visibles=("applied",),
+        etapas_visibles=ETAPAS_DEL_PIPELINE,
         vacantes_activas=limite_de_vacantes(tamano, ajuste),
         publicaciones_por_ventana=limite_de_vacantes(tamano, ajuste),
         aplicaciones_por_vacante=MAX_APLICACIONES_GRATIS,

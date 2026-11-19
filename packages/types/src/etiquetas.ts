@@ -31,12 +31,18 @@ export const ETIQUETA_MODERACION: Record<Moderacion, string> = {
   oculta: "Oculta por reportes",
 };
 
+/**
+ * Las etapas, como grupos de personas: así se leen en el pipeline, en el filtro y en
+ * la etapa de cada candidato. En los dos planes la empresa mueve a cada uno a mano
+ * (ADR-024). `evaluated` se lee "Revisados": en el plan gratis lo revisa una
+ * persona, y en el de pago también la IA.
+ */
 export const ETIQUETA_ESTADO_APLICACION: Record<ApplicationStatus, string> = {
   applied: "Aplicados",
-  evaluated: "Evaluados",
-  shortlisted: "Shortlist",
-  interviewed: "Entrevista",
-  offered: "Oferta",
+  evaluated: "Revisados",
+  shortlisted: "Preseleccionados",
+  interviewed: "En entrevista",
+  offered: "Con oferta",
   hired: "Contratados",
   rejected: "Descartados",
   withdrawn: "Se retiraron",

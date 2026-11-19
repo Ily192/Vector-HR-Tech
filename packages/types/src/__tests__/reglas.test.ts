@@ -6,6 +6,7 @@ import { ETIQUETA_ESTADO_APLICACION } from "../etiquetas";
 import { ApplicationStatusSchema } from "../hr";
 import {
   ETAPAS_DEL_PIPELINE,
+  ETAPAS_DE_SALIDA,
   LIMITES_DEL_PLAN,
   UMBRALES_SIGUIENTE_PASO,
   VENTANA_DE_PUBLICACIONES_DIAS,
@@ -42,11 +43,27 @@ describe("ETAPAS_DEL_PIPELINE", () => {
     }
     expect(ETAPAS_DEL_PIPELINE.map((e) => ETIQUETA_ESTADO_APLICACION[e])).toEqual([
       "Aplicados",
-      "Evaluados",
-      "Shortlist",
-      "Entrevista",
-      "Oferta",
+      "Revisados",
+      "Preseleccionados",
+      "En entrevista",
+      "Con oferta",
     ]);
+  });
+
+  it("con las de salida cubren todos los estados de una aplicación, sin repetirse", () => {
+    const todas = [...ETAPAS_DEL_PIPELINE, ...ETAPAS_DE_SALIDA];
+    expect(new Set(todas).size).toBe(todas.length);
+    expect([...todas].sort()).toEqual([...ApplicationStatusSchema.options].sort());
+    expect(ETAPAS_DE_SALIDA.map((e) => ETIQUETA_ESTADO_APLICACION[e])).toEqual([
+      "Contratados",
+      "Descartados",
+      "Se retiraron",
+    ]);
+  });
+
+  it("el plan gratis usa todas las etapas, como el de pago (ADR-024)", () => {
+    expect(LIMITES_DEL_PLAN.gratis.etapasVisibles).toEqual(ETAPAS_DEL_PIPELINE);
+    expect(LIMITES_DEL_PLAN.gratis.incluyeIa).toBe(false);
   });
 });
 

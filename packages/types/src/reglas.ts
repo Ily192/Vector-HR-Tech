@@ -34,8 +34,9 @@ export function siguientePaso(score: number): SiguientePaso {
 }
 
 /**
- * Etapas del pipeline activo, en orden. Las de salida (`hired`, `rejected`,
- * `withdrawn`) no forman parte del embudo y se cuentan aparte.
+ * Etapas del pipeline activo, en orden. Las de salida (`ETAPAS_DE_SALIDA`) no
+ * forman parte del embudo y se cuentan aparte. En los dos planes la empresa mueve
+ * a cada candidato entre todas, a mano (ADR-024).
  */
 export const ETAPAS_DEL_PIPELINE = [
   "applied",
@@ -46,6 +47,17 @@ export const ETAPAS_DEL_PIPELINE = [
 ] as const satisfies readonly ApplicationStatus[];
 export type EtapaDelPipeline = (typeof ETAPAS_DEL_PIPELINE)[number];
 
+/**
+ * Cómo se cierra una aplicación: contratado, descartado o se retiró. Descartar
+ * pide el motivo si la evaluó la IA (0015, 0021).
+ */
+export const ETAPAS_DE_SALIDA = [
+  "hired",
+  "rejected",
+  "withdrawn",
+] as const satisfies readonly ApplicationStatus[];
+export type EtapaDeSalida = (typeof ETAPAS_DE_SALIDA)[number];
+
 /** Planes de Fluve AI. Viajan en el JWT como `app_metadata.plan` (ADR-017). */
 export type Plan = "gratis" | "ia";
 /** Módulos que un plan habilita. Viajan como `app_metadata.modulos`. */
@@ -55,16 +67,17 @@ export type Modulo = "career-site" | "cockpit";
  * Límites de cada plan.
  *
  * Dueña: `services/hr-engine/app/domain/plan.py`; los aplica la base (migraciones
- * 0008 y 0010). Contrato: `contracts/limites-plan.json`. La UI los usa para
+ * 0008, 0010 y 0021). Contrato: `contracts/limites-plan.json`. La UI los usa para
  * explicar el cupo; el número de vacantes que le quedan a una empresa lo da la
  * base (`mi_cupo_de_vacantes()`), no se calcula aquí. `incluyeIa`: si para la
- * empresa corren agentes y LLM; la IA es lo que se paga (ADR-019).
+ * empresa corren agentes y LLM; la IA es lo que se paga (ADR-019). Las etapas del
+ * pipeline son las mismas en los dos planes (ADR-024).
  */
 export const LIMITES_DEL_PLAN = {
   gratis: {
     incluyeIa: false,
     modulos: ["career-site"],
-    etapasVisibles: ["applied"],
+    etapasVisibles: ETAPAS_DEL_PIPELINE,
     aplicacionesPorVacante: 50,
   },
   ia: {

@@ -1,12 +1,12 @@
 {
-  "$comment": "Límites de cada plan (ADR-017, punto 3, y ADR-019). La dueña es services/hr-engine/app/domain/plan.py. La aplican también las migraciones 0008 y 0010 (triggers, el hook del JWT y el cockpit solo con IA) y packages/types/src/reglas.ts la espeja para la UI. Los tres lados se prueban contra este fichero: si cambias un límite aquí, cámbialo en los tres. 'incluye_ia' dice si para la empresa corren agentes y LLM: la IA es lo que se paga, así que el hr-engine rechaza los runs de un plan sin IA. Las aplicaciones se cuentan recibidas: borrar o descartar no libera cupo. En 'ventana_de_publicaciones_dias' el plan gratis publica tantas vacantes nuevas como vacantes activas permite; reabrir una no cuenta.",
+  "$comment": "Límites de cada plan (ADR-017, punto 3, y ADR-019). La dueña es services/hr-engine/app/domain/plan.py. La aplican también las migraciones 0008, 0010 y 0021 (triggers, el hook del JWT y el cockpit solo con IA) y packages/types/src/reglas.ts la espeja para la UI. Los tres lados se prueban contra este fichero: si cambias un límite aquí, cámbialo en los tres. 'incluye_ia' dice si para la empresa corren agentes y LLM: la IA es lo que se paga, así que el hr-engine rechaza los runs de un plan sin IA. Las aplicaciones se cuentan recibidas: borrar o descartar no libera cupo. En 'ventana_de_publicaciones_dias' el plan gratis publica tantas vacantes nuevas como vacantes activas permite; reabrir una no cuenta. 'etapas_visibles' son las etapas del pipeline que la empresa usa a mano: desde ADR-024 las tiene todas en los dos planes (la migración 0021 quitó el bloqueo de 0009), y además cierra cada aplicación como contratada, descartada o retirada. El plan gratis limita las vacantes y las aplicaciones; no incluye la IA ni el cockpit.",
   "max_aplicaciones_gratis": 50,
   "ventana_de_publicaciones_dias": 30,
   "planes": {
     "gratis": {
       "incluye_ia": false,
       "modulos": ["career-site"],
-      "etapas_visibles": ["applied"],
+      "etapas_visibles": ["applied", "evaluated", "shortlisted", "interviewed", "offered"],
       "con_limites": true
     },
     "ia": {
