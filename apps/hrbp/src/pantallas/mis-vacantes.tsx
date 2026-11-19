@@ -7,6 +7,7 @@ import { useEliminarVacante, useMisVacantes, useSesion } from "../datos/consulta
 import type { CupoDeVacantes, VacanteDeLaEmpresa } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
+import { EscribenosParaMas, MAS_VACANTES } from "./mas-del-plan";
 import { AvisoDeModeracion, AvisoDeReclutador, InsigniaDeModeracion } from "./moderacion";
 
 const formatoDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long" });
@@ -130,6 +131,7 @@ export function MisVacantes() {
           </output>
         )
       )}
+      {cupo.limite !== null && <EscribenosParaMas {...MAS_VACANTES} />}
       {vacantes.length === 0 ? (
         <div className="rounded-[22px] border border-dashed border-mist-300 bg-white p-10 text-center">
           <h2 className="text-lg font-extrabold">Aún no publicas vacantes</h2>

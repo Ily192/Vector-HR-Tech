@@ -127,9 +127,17 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     fireEvent.click(screen.getAllByRole("link", { name: /Crear empleo/ })[0] as HTMLElement);
     expect(await screen.findByText("Tus 4 vacantes están activas")).toBeInTheDocument();
     expect(screen.queryByRole("form", { name: "Datos de la vacante" })).toBeNull();
+    expect(
+      screen.getByText(/¿Necesitas publicar más vacantes o hacer un reclutamiento masivo\?/),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("link", { name: "Ir a Mis vacantes" }));
     expect(await screen.findByText(/Para publicar otra, elimina una/)).toBeInTheDocument();
+    // Lo único que vende el panel gratis (ADR-024): se pide por correo, con el asunto puesto.
+    expect(screen.getByRole("link", { name: "hola@vectorhrtech.com" })).toHaveAttribute(
+      "href",
+      "mailto:hola@vectorhrtech.com?subject=Quiero%20publicar%20m%C3%A1s%20vacantes",
+    );
   });
 
   it("el pipeline gratis abre todas las etapas, sin IA, con el gancho y la descarga masiva", async () => {
@@ -139,10 +147,13 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(screen.getByText(/47 de 50 aplicaciones/)).toBeInTheDocument();
 
     const gancho = screen.getByRole("region", { name: "Coincidencia de skills" });
-    expect(gancho).toHaveTextContent("Revisamos 45 de tus CVs contra las 4 skills de la vacante.");
-    expect(gancho).toHaveTextContent("Faltan 2 por revisar.");
+    expect(gancho).toHaveTextContent("Comparamos 45 de tus CVs con las 4 skills de la vacante.");
+    expect(gancho).toHaveTextContent("Faltan 2 por comparar.");
     expect(within(gancho).getByText("13")).toBeInTheDocument();
     expect(within(gancho).getByText("6")).toBeInTheDocument();
+    // La IA no se ofrece hasta que Fluve AI esté lista (ADR-024).
+    expect(within(gancho).queryByRole("button")).toBeNull();
+    expect(gancho).not.toHaveTextContent(/IA ves|Evaluarlos/);
 
     // ADR-024: ninguna etapa con candado ni con "Servicios IA".
     expect(screen.queryByText(/Servicios IA/)).toBeNull();
@@ -161,6 +172,13 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     // Nadie se retiró: no hace falta mostrarlo.
     expect(etapas.querySelector('[data-etapa="withdrawn"]')).toBeNull();
     expect(etapas).toHaveTextContent("Recibidas: 47 de 50.");
+    expect(etapas).toHaveTextContent(
+      "¿Necesitas recibir más de 50 CVs o hacer un reclutamiento masivo? Escríbenos a hola@vectorhrtech.com.",
+    );
+    expect(within(etapas).getByRole("link", { name: "hola@vectorhrtech.com" })).toHaveAttribute(
+      "href",
+      `mailto:hola@vectorhrtech.com?subject=${encodeURIComponent("Quiero recibir más de 50 CVs: Coordinador de almacén")}`,
+    );
 
     const candidatos = screen.getByRole("region", { name: "Candidatos" });
     expect(within(candidatos).getAllByRole("listitem")).toHaveLength(10);
@@ -315,7 +333,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
 
     await screen.findByRole("heading", { level: 1, name: "Almacenista" });
     expect(screen.getByRole("region", { name: "Coincidencia de skills" })).toHaveTextContent(
-      "contra las 2 skills de la vacante",
+      "con las 2 skills de la vacante",
     );
   });
 

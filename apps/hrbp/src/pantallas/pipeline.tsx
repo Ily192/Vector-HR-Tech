@@ -12,7 +12,6 @@ import {
   useMarcarPostulacionesVistas,
   useMoverDeEtapa,
   usePipeline,
-  useRegistrarInteres,
 } from "../datos/consultas";
 import type {
   Aplicado,
@@ -31,6 +30,7 @@ import {
   deLaEtapa,
   salidasVisibles,
 } from "../pipeline/etapas";
+import { EscribenosParaMas } from "./mas-del-plan";
 import { AvisoDeModeracion, sinAplicaciones } from "./moderacion";
 
 /** Cuántos candidatos se listan antes de "Ver los N". */
@@ -70,10 +70,10 @@ function cuandoAplico(fechaIso: string) {
 /**
  * El gancho del plan gratis, al estilo de "quién vio tu perfil": cuántos CVs
  * mencionan las skills de la vacante, sin decir cuáles. No es IA y lo dice: cuenta
- * menciones, no juzga experiencia (ADR-019).
+ * menciones, no juzga experiencia (ADR-019). Dice "comparamos" y no "revisamos" para no
+ * sonar a una persona, y no ofrece la IA hasta que Fluve AI esté lista (ADR-024).
  */
 function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
-  const interes = useRegistrarInteres();
   if (gancho.skills === 0 || gancho.revisados === 0) {
     return (
       <section
@@ -82,13 +82,13 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
       >
         {gancho.skills === 0
           ? "Esta vacante no pide skills, así que no hay CVs que contar. Agrégalas al crear la próxima y te decimos cuántos CVs las mencionan."
-          : `Revisamos los CVs de 5 en 5 contra las ${gancho.skills} skills de la vacante. Con los primeros 5 te decimos cuántos las mencionan.`}
+          : `Comparamos los CVs de 5 en 5 con las ${gancho.skills} skills de la vacante. Con los primeros 5 te decimos cuántos las mencionan.`}
       </section>
     );
   }
   const notas = [
     gancho.enEspera > 0 &&
-      (gancho.enEspera === 1 ? "Falta 1 por revisar." : `Faltan ${gancho.enEspera} por revisar.`),
+      (gancho.enEspera === 1 ? "Falta 1 por comparar." : `Faltan ${gancho.enEspera} por comparar.`),
     gancho.ilegibles > 0 &&
       (gancho.ilegibles === 1
         ? "Un CV no se pudo leer (escaneado o protegido)."
@@ -104,11 +104,10 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
           Coincidencia de skills · sin IA
         </span>
         <h2 className="text-2xl leading-tight tracking-[-0.02em]">
-          Revisamos {gancho.revisados} de tus CVs contra las {gancho.skills} skills de la vacante.
+          Comparamos {gancho.revisados} de tus CVs con las {gancho.skills} skills de la vacante.
         </h2>
         <p className="text-[14.5px] text-ink-200">
-          Contamos menciones, no juzgamos experiencia. Con los servicios de IA ves quiénes son,
-          ordenados por encaje y con el porqué de cada uno.
+          Contamos menciones, no juzgamos experiencia.
           {notas.length > 0 && ` ${notas.join(" ")}`}
         </p>
       </div>
@@ -124,22 +123,6 @@ function Gancho({ gancho }: { gancho: GanchoDelPipeline }) {
         </b>
         <span className="text-sm text-ink-200">las mencionan todas</span>
       </p>
-      {interes.isSuccess ? (
-        <output className="block text-sm font-bold text-aqua-300">
-          Listo. Tu contacto en Vector HR te escribe pronto.
-        </output>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <Button disabled={interes.isPending} onClick={() => interes.mutate("pipeline")}>
-            Evaluarlos con IA
-          </Button>
-          {interes.isError && (
-            <p role="alert" className="text-sm font-bold text-flame-300">
-              No pudimos avisar a Vector HR. Inténtalo de nuevo.
-            </p>
-          )}
-        </div>
-      )}
     </section>
   );
 }
@@ -435,11 +418,18 @@ function Etapas({
         ))}
       </div>
       {maxAplicaciones && (
-        <p className="text-[12.5px] text-mist-600">
-          Recibidas: {pipeline.vacante.aplicaciones} de {maxAplicaciones}. Al llegar a{" "}
-          {maxAplicaciones}, la vacante deja de recibir aplicaciones; mover o descartar no libera
-          lugares.
-        </p>
+        <>
+          <p className="text-[12.5px] text-mist-600">
+            Recibidas: {pipeline.vacante.aplicaciones} de {maxAplicaciones}. Al llegar a{" "}
+            {maxAplicaciones}, la vacante deja de recibir aplicaciones; mover o descartar no libera
+            lugares.
+          </p>
+          <EscribenosParaMas
+            pregunta={`¿Necesitas recibir más de ${maxAplicaciones} CVs o hacer un reclutamiento masivo?`}
+            asunto={`Quiero recibir más de ${maxAplicaciones} CVs: ${pipeline.vacante.titulo}`}
+            className="text-[12.5px]"
+          />
+        </>
       )}
     </section>
   );
