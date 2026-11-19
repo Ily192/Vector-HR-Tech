@@ -77,10 +77,10 @@ function vistaDe(ruta: Ruta, conCockpit: boolean): Vista {
     case "pipeline":
       return {
         seccion: "mis-vacantes",
-        titulo: "Aplicados",
+        titulo: "Candidatos",
         migas: (
           <>
-            Bolsa de empleo / {raiz("Mis vacantes")} / <b className="text-ink-900">Aplicados</b>
+            Bolsa de empleo / {raiz("Mis vacantes")} / <b className="text-ink-900">Candidatos</b>
           </>
         ),
         contenido: <Pipeline vacanteId={ruta.vacanteId} />,

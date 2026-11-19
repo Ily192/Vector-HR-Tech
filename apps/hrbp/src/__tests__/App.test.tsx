@@ -132,7 +132,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(await screen.findByText(/Para publicar otra, elimina una/)).toBeInTheDocument();
   });
 
-  it("el pipeline gratis solo abre Aplicados, con el gancho y la descarga masiva", async () => {
+  it("el pipeline gratis abre todas las etapas, sin IA, con el gancho y la descarga masiva", async () => {
     montarPanel("/vacantes/coordinador-de-almacen");
 
     expect(await encabezado()).toHaveTextContent("Coordinador de almacén");
@@ -144,18 +144,133 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(within(gancho).getByText("13")).toBeInTheDocument();
     expect(within(gancho).getByText("6")).toBeInTheDocument();
 
+    // ADR-024: ninguna etapa con candado ni con "Servicios IA".
+    expect(screen.queryByText(/Servicios IA/)).toBeNull();
     const etapas = screen.getByRole("region", { name: "Pipeline" });
-    expect(within(etapas).getAllByText("Servicios IA")).toHaveLength(4);
-    expect(etapas.querySelector('[data-etapa="applied"]')).toHaveTextContent("47");
+    for (const [etapa, texto] of [
+      ["applied", "Aplicados21"],
+      ["evaluated", "Revisados9"],
+      ["shortlisted", "Preseleccionados5"],
+      ["interviewed", "En entrevista3"],
+      ["offered", "Con oferta1"],
+      ["hired", "Contratados1"],
+      ["rejected", "Descartados7"],
+    ] as const) {
+      expect(etapas.querySelector(`[data-etapa="${etapa}"]`)).toHaveTextContent(texto);
+    }
+    // Nadie se retiró: no hace falta mostrarlo.
+    expect(etapas.querySelector('[data-etapa="withdrawn"]')).toBeNull();
+    expect(etapas).toHaveTextContent("Recibidas: 47 de 50.");
 
-    const aplicados = screen.getByRole("region", { name: "Aplicados" });
-    expect(within(aplicados).getAllByRole("row")).toHaveLength(9);
-    expect(within(aplicados).getByText("Y 39 más en el .zip.")).toBeInTheDocument();
+    const candidatos = screen.getByRole("region", { name: "Candidatos" });
+    expect(within(candidatos).getAllByRole("listitem")).toHaveLength(10);
+    expect(within(candidatos).getAllByRole("combobox", { name: /^Etapa de / })).toHaveLength(10);
+    fireEvent.click(within(candidatos).getByRole("button", { name: "Ver los 47" }));
+    expect(within(candidatos).getAllByRole("listitem")).toHaveLength(47);
 
     fireEvent.click(screen.getByRole("button", { name: "Descargar los 47 CVs (.zip)" }));
     expect(
       await screen.findByText("Con datos de ejemplo no hay CVs que bajar."),
     ).toBeInTheDocument();
+  });
+
+  it("la empresa mueve a un candidato de etapa a mano y el pipeline lo cuenta", async () => {
+    montarPanel("/vacantes/coordinador-de-almacen");
+    await encabezado();
+    const etapas = screen.getByRole("region", { name: "Pipeline" });
+    const candidatos = screen.getByRole("region", { name: "Candidatos" });
+    const etapa = within(candidatos).getByRole("combobox", {
+      name: "Etapa de María Fernanda Ramírez",
+    }) as HTMLSelectElement;
+    expect(etapa.value).toBe("applied");
+
+    fireEvent.change(etapa, { target: { value: "evaluated" } });
+
+    await waitFor(() =>
+      expect(etapas.querySelector('[data-etapa="evaluated"]')).toHaveTextContent("Revisados10"),
+    );
+    expect(etapas.querySelector('[data-etapa="applied"]')).toHaveTextContent("Aplicados20");
+    expect(etapa.value).toBe("evaluated");
+
+    fireEvent.change(etapa, { target: { value: "hired" } });
+    await waitFor(() =>
+      expect(etapas.querySelector('[data-etapa="hired"]')).toHaveTextContent("Contratados2"),
+    );
+  });
+
+  it("descartar en el plan gratis pide el motivo, pero es opcional", async () => {
+    montarPanel("/vacantes/coordinador-de-almacen");
+    await encabezado();
+    const candidatos = screen.getByRole("region", { name: "Candidatos" });
+    const fila = within(candidatos)
+      .getByRole("combobox", { name: "Etapa de José Luis Herrera" })
+      .closest("li") as HTMLElement;
+
+    fireEvent.change(within(fila).getByRole("combobox"), { target: { value: "rejected" } });
+    const formulario = within(fila).getByRole("form", { name: "Descartar a José Luis Herrera" });
+    const motivo = within(formulario).getByLabelText("Motivo del descarte (opcional)");
+    expect(motivo).not.toBeRequired();
+    expect(formulario).toHaveTextContent("Al candidato no le mandamos ningún correo.");
+    // Hasta que se confirma, sigue donde estaba.
+    expect(within(fila).getByRole("combobox")).toHaveValue("applied");
+
+    fireEvent.click(within(formulario).getByRole("button", { name: "Sí, descartar" }));
+
+    const etapas = screen.getByRole("region", { name: "Pipeline" });
+    await waitFor(() =>
+      expect(etapas.querySelector('[data-etapa="rejected"]')).toHaveTextContent("Descartados8"),
+    );
+    expect(within(fila).queryByRole("form")).toBeNull();
+    expect(within(fila).getByRole("combobox")).toHaveValue("rejected");
+  });
+
+  it("un motivo de menos de 10 caracteres no se guarda", async () => {
+    montarPanel("/vacantes/coordinador-de-almacen");
+    await encabezado();
+    const fila = screen
+      .getByRole("combobox", { name: "Etapa de José Luis Herrera" })
+      .closest("li") as HTMLElement;
+    fireEvent.change(within(fila).getByRole("combobox"), { target: { value: "rejected" } });
+    const formulario = within(fila).getByRole("form");
+    fireEvent.change(within(formulario).getByRole("textbox"), { target: { value: "No." } });
+    fireEvent.submit(formulario);
+
+    expect(await within(formulario).findByRole("alert")).toHaveTextContent(
+      "Si escribes un motivo, que tenga de 10 a 500 caracteres.",
+    );
+    expect(within(fila).getByRole("combobox")).toHaveValue("applied");
+  });
+
+  it("al pulsar una etapa la lista muestra solo a los suyos", async () => {
+    montarPanel("/vacantes/coordinador-de-almacen");
+    await encabezado();
+    const etapas = screen.getByRole("region", { name: "Pipeline" });
+    const candidatos = screen.getByRole("region", { name: "Candidatos" });
+
+    const preseleccionados = within(etapas).getByRole("button", { name: /^Preseleccionados/ });
+    fireEvent.click(preseleccionados);
+    expect(preseleccionados).toHaveAttribute("aria-pressed", "true");
+    expect(within(candidatos).getByRole("heading", { level: 2 })).toHaveTextContent(
+      "Preseleccionados5",
+    );
+    const filas = within(candidatos).getAllByRole("listitem");
+    expect(filas).toHaveLength(5);
+    for (const fila of filas) expect(fila).toHaveAttribute("data-etapa", "shortlisted");
+
+    fireEvent.click(within(etapas).getByRole("button", { name: /^Contratados/ }));
+    expect(within(candidatos).getAllByRole("listitem")).toHaveLength(1);
+
+    fireEvent.click(within(candidatos).getByRole("button", { name: "Ver todos" }));
+    expect(within(candidatos).getByRole("heading", { level: 2 })).toHaveTextContent("Candidatos47");
+  });
+
+  it("la vacante casi cerrada muestra a quien se retiró", async () => {
+    montarPanel("/vacantes/analista-de-inventarios");
+    await encabezado();
+    const etapas = screen.getByRole("region", { name: "Pipeline" });
+    expect(etapas.querySelector('[data-etapa="withdrawn"]')).toHaveTextContent("Se retiraron1");
+    expect(etapas.querySelector('[data-etapa="rejected"]')).toHaveTextContent("Descartados30");
+    expect(etapas).toHaveTextContent("Recibidas: 50 de 50.");
   });
 
   it("abrir las postulaciones las marca como vistas; Mis vacantes no (ADR-023)", async () => {
@@ -312,7 +427,7 @@ describe("panel de empresa · plan con servicios de IA", () => {
 
     const embudo = screen.getByRole("region", { name: "Pipeline" });
     expect(within(embudo).getByText("Aplicados").closest("[data-etapa]")).toHaveTextContent("84");
-    expect(within(embudo).getByText("Evaluados").closest("[data-etapa]")).toHaveTextContent("49 %");
+    expect(within(embudo).getByText("Revisados").closest("[data-etapa]")).toHaveTextContent("49 %");
 
     // Los mismos tres que encabezan los evaluados de su pipeline.
     const evaluados = screen.getByRole("region", { name: "Mejores evaluados" });
@@ -409,7 +524,7 @@ describe("panel de empresa · plan con servicios de IA", () => {
 
     fireEvent.click(within(primera).getByRole("button", { name: "Descartar" }));
     const formulario = within(primera).getByRole("form", { name: /^Descartar a / });
-    const motivo = within(formulario).getByLabelText("Por qué la descartas");
+    const motivo = within(formulario).getByLabelText("Motivo del descarte");
     expect(motivo).toBeRequired();
     expect(motivo).toHaveAttribute("minlength", "10");
     fireEvent.change(motivo, { target: { value: "No tiene la experiencia que pide el puesto." } });

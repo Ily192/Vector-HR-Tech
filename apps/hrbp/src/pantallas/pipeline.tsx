@@ -1,6 +1,8 @@
 import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@fluveai/types/etiquetas";
-import { Button, buttonVariants, haceCuanto } from "@fluveai/ui";
-import { Download, Lock } from "lucide-react";
+import type { ApplicationStatus } from "@fluveai/types/hr";
+import { ETAPAS_DEL_PIPELINE } from "@fluveai/types/reglas";
+import { Button, buttonVariants, cn, haceCuanto } from "@fluveai/ui";
+import { Download } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { anchoRelativo } from "../cockpit/embudo";
@@ -8,6 +10,7 @@ import {
   useDescargarCvs,
   useDescartar,
   useMarcarPostulacionesVistas,
+  useMoverDeEtapa,
   usePipeline,
   useRegistrarInteres,
 } from "../datos/consultas";
@@ -21,10 +24,17 @@ import type {
 } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
+import {
+  BARRA_DE_ETAPA,
+  TODAS_LAS_ETAPAS,
+  contarPorEtapa,
+  deLaEtapa,
+  salidasVisibles,
+} from "../pipeline/etapas";
 import { AvisoDeModeracion, sinAplicaciones } from "./moderacion";
 
-/** Cuántos aplicados se listan antes de "Ver todos". */
-const APLICADOS_VISIBLES = 8;
+/** Cuántos candidatos se listan antes de "Ver los N". */
+const CANDIDATOS_VISIBLES = 10;
 
 const formatoHora = new Intl.DateTimeFormat("es-MX", { hour: "2-digit", minute: "2-digit" });
 
@@ -178,6 +188,77 @@ function ResumenDeLaEvaluacion({ resumen }: { resumen: ResumenDeEvaluaciones }) 
   );
 }
 
+/**
+ * Descartar con motivo, el mismo formulario en los dos planes. Si la evaluó la IA,
+ * la base pide el motivo (0015); si no, es opcional (0021). Al candidato no le sale
+ * ningún correo.
+ */
+function FormularioDeDescarte({
+  vacanteId,
+  aplicado,
+  alCerrar,
+}: {
+  vacanteId: string;
+  aplicado: Aplicado;
+  alCerrar: () => void;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const descartar = useDescartar(vacanteId);
+  const sinMotivo = descartar.data?.ok === false;
+  const conIa = aplicado.evaluacion !== null;
+
+  function alDescartar(evento: FormEvent) {
+    evento.preventDefault();
+    descartar.mutate(
+      { aplicacionId: aplicado.id, motivo },
+      { onSuccess: (resultado) => resultado.ok && alCerrar() },
+    );
+  }
+
+  return (
+    <form
+      onSubmit={alDescartar}
+      aria-label={`Descartar a ${aplicado.nombre}`}
+      className="mt-3 flex flex-col gap-3 rounded-2xl bg-danger-50 p-4 text-sm"
+    >
+      <label className="flex flex-col gap-1.5 font-bold text-danger-700">
+        {conIa ? "Motivo del descarte" : "Motivo del descarte (opcional)"}
+        <textarea
+          required={conIa}
+          minLength={10}
+          maxLength={500}
+          rows={3}
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          className="rounded-xl border-[1.5px] border-mist-200 bg-white px-3 py-2 font-normal text-ink-900"
+        />
+      </label>
+      <span className="text-mist-700">
+        {conIa
+          ? "La IA solo sugiere: el descarte lo decides tú y queda con tu motivo."
+          : "El motivo queda en tu panel. Al candidato no le mandamos ningún correo."}
+      </span>
+      {(sinMotivo || descartar.isError) && (
+        <p role="alert" className="font-bold text-danger-700">
+          {!sinMotivo
+            ? "No pudimos guardar el descarte. Inténtalo de nuevo."
+            : conIa
+              ? "Escribe el motivo, de 10 a 500 caracteres."
+              : "Si escribes un motivo, que tenga de 10 a 500 caracteres."}
+        </p>
+      )}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={alCerrar}>
+          Cancelar
+        </Button>
+        <Button type="submit" variant="destructive" size="sm" disabled={descartar.isPending}>
+          Sí, descartar
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 /** Un evaluado: su score, la sugerencia, el porqué y descartar con motivo. */
 function FilaEvaluada({
   vacanteId,
@@ -189,17 +270,6 @@ function FilaEvaluada({
   evaluacion: EvaluacionConIa;
 }) {
   const [descartando, setDescartando] = useState(false);
-  const [motivo, setMotivo] = useState("");
-  const descartar = useDescartar(vacanteId);
-  const sinMotivo = descartar.data?.ok === false;
-
-  function alDescartar(evento: FormEvent) {
-    evento.preventDefault();
-    descartar.mutate(
-      { aplicacionId: aplicado.id, motivo },
-      { onSuccess: (resultado) => resultado.ok && setDescartando(false) },
-    );
-  }
 
   return (
     <li data-aplicacion={aplicado.id} className="py-4">
@@ -244,47 +314,11 @@ function FilaEvaluada({
         )}
       </details>
       {descartando && (
-        <form
-          onSubmit={alDescartar}
-          aria-label={`Descartar a ${aplicado.nombre}`}
-          className="mt-3 flex flex-col gap-3 rounded-2xl bg-danger-50 p-4 text-sm"
-        >
-          <label className="flex flex-col gap-1.5 font-bold text-danger-700">
-            Por qué la descartas
-            <textarea
-              required
-              minLength={10}
-              maxLength={500}
-              rows={3}
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              className="rounded-xl border-[1.5px] border-mist-200 bg-white px-3 py-2 font-normal text-ink-900"
-            />
-          </label>
-          <span className="text-mist-700">
-            La IA solo sugiere: el descarte lo decides tú y queda con tu motivo.
-          </span>
-          {(sinMotivo || descartar.isError) && (
-            <p role="alert" className="font-bold text-danger-700">
-              {sinMotivo
-                ? "Escribe el motivo, de 10 a 500 caracteres."
-                : "No pudimos descartarla. Inténtalo de nuevo."}
-            </p>
-          )}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => setDescartando(false)}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" variant="destructive" size="sm" disabled={descartar.isPending}>
-              Sí, descartar
-            </Button>
-          </div>
-        </form>
+        <FormularioDeDescarte
+          vacanteId={vacanteId}
+          aplicado={aplicado}
+          alCerrar={() => setDescartando(false)}
+        />
       )}
     </li>
   );
@@ -321,61 +355,226 @@ function Evaluados({ vacanteId, aplicados }: { vacanteId: string; aplicados: Apl
   );
 }
 
-function Etapas({ pipeline }: { pipeline: PipelineDeVacante }) {
-  const habilitadas = pipeline.etapas.flatMap((e) => (e.conteo === null ? [] : [e.conteo]));
+/** Cómo se ve cada cierre en el pipeline. */
+const ESTILO_DE_SALIDA: Partial<Record<ApplicationStatus, string>> = {
+  hired: "bg-success-50 text-success-700",
+  rejected: "bg-danger-50 text-danger-700",
+  withdrawn: "bg-mist-100 text-mist-700",
+};
+
+type Filtro = ApplicationStatus | null;
+
+/**
+ * Cuántos candidatos hay ahora en cada etapa, y el filtro de la lista: al pulsar una
+ * etapa se ven solo los suyos. Todas abiertas en los dos planes (ADR-024).
+ */
+function Etapas({
+  pipeline,
+  filtro,
+  alFiltrar,
+}: {
+  pipeline: PipelineDeVacante;
+  filtro: Filtro;
+  alFiltrar: (etapa: Filtro) => void;
+}) {
+  const conteo = contarPorEtapa(pipeline.aplicados);
+  const enProceso = ETAPAS_DEL_PIPELINE.map((e) => conteo[e]);
+  const { maxAplicaciones } = pipeline;
+  const filtrar = (etapa: ApplicationStatus) => alFiltrar(filtro === etapa ? null : etapa);
+
   return (
     <section
       aria-label="Pipeline"
-      className="flex flex-col gap-3.5 rounded-[22px] border border-mist-200 bg-white p-5"
+      className="flex flex-col gap-2 rounded-[22px] border border-mist-200 bg-white p-5"
     >
-      <h2 className="text-[19px]">Pipeline</h2>
-      {pipeline.etapas.map(({ etapa, conteo }) => (
-        <div
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-[19px]">Pipeline</h2>
+        <span className="text-[12.5px] text-mist-600">Pulsa una etapa para filtrar</span>
+      </div>
+      {ETAPAS_DEL_PIPELINE.map((etapa) => (
+        <button
           key={etapa}
+          type="button"
           data-etapa={etapa}
-          className={`flex flex-col gap-1.5 ${conteo === null ? "opacity-60" : ""}`}
-        >
-          <div className="flex justify-between text-sm font-semibold">
-            <span>{ETIQUETA_ESTADO_APLICACION[etapa]}</span>
-            {conteo === null ? (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-mist-600">
-                <Lock aria-hidden="true" className="h-3 w-3" />
-                Servicios IA
-              </span>
-            ) : (
-              <b className="tabular-nums">{conteo}</b>
-            )}
-          </div>
-          <div className="h-2.5 rounded-full bg-mist-100" aria-hidden="true">
-            {conteo !== null && (
-              <div
-                className="h-full rounded-full bg-aqua-300"
-                style={{
-                  width: `${
-                    pipeline.maxAplicaciones && etapa === "applied"
-                      ? (conteo / pipeline.maxAplicaciones) * 100
-                      : anchoRelativo(conteo, habilitadas)
-                  }%`,
-                }}
-              />
-            )}
-          </div>
-          {etapa === "applied" && pipeline.maxAplicaciones && (
-            <span className="text-[12.5px] text-mist-600">
-              Al llegar a {pipeline.maxAplicaciones}, la vacante deja de recibir aplicaciones.
-            </span>
+          aria-pressed={filtro === etapa}
+          onClick={() => filtrar(etapa)}
+          className={cn(
+            "-mx-2 flex flex-col gap-1.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-mist-50",
+            filtro === etapa && "bg-aqua-50 ring-1 ring-inset ring-aqua-200",
           )}
-        </div>
+        >
+          <span className="flex w-full justify-between text-sm font-semibold">
+            <span>{ETIQUETA_ESTADO_APLICACION[etapa]}</span>
+            <b className="tabular-nums">{conteo[etapa]}</b>
+          </span>
+          <span className="block h-2.5 w-full rounded-full bg-mist-100" aria-hidden="true">
+            <span
+              className={`block h-full rounded-full ${BARRA_DE_ETAPA[etapa]}`}
+              style={{ width: `${anchoRelativo(conteo[etapa], enProceso)}%` }}
+            />
+          </span>
+        </button>
       ))}
+      <div className="mt-1 flex flex-wrap gap-2 border-t border-mist-150 pt-3">
+        {salidasVisibles(conteo).map((etapa) => (
+          <button
+            key={etapa}
+            type="button"
+            data-etapa={etapa}
+            aria-pressed={filtro === etapa}
+            onClick={() => filtrar(etapa)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold",
+              ESTILO_DE_SALIDA[etapa],
+              filtro === etapa && "ring-2 ring-ink-900",
+            )}
+          >
+            {ETIQUETA_ESTADO_APLICACION[etapa]}
+            <span className="tabular-nums">{conteo[etapa]}</span>
+          </button>
+        ))}
+      </div>
+      {maxAplicaciones && (
+        <p className="text-[12.5px] text-mist-600">
+          Recibidas: {pipeline.vacante.aplicaciones} de {maxAplicaciones}. Al llegar a{" "}
+          {maxAplicaciones}, la vacante deja de recibir aplicaciones; mover o descartar no libera
+          lugares.
+        </p>
+      )}
     </section>
   );
 }
 
-/** Los aplicados de una vacante, con la descarga de todos sus CVs. */
+/**
+ * Un candidato con su CV y su etapa, que la empresa cambia a mano (ADR-024). Pasar a
+ * "Descartados" abre el formulario del motivo; las demás etapas se guardan al elegirlas.
+ */
+function FilaDeCandidato({ vacanteId, aplicado }: { vacanteId: string; aplicado: Aplicado }) {
+  const [descartando, setDescartando] = useState(false);
+  const mover = useMoverDeEtapa(vacanteId);
+
+  function alElegir(etapa: ApplicationStatus) {
+    if (etapa === "rejected") {
+      setDescartando(true);
+      return;
+    }
+    setDescartando(false);
+    mover.mutate({ aplicacionId: aplicado.id, etapa });
+  }
+
+  return (
+    <li data-aplicacion={aplicado.id} data-etapa={aplicado.estado} className="py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="min-w-0 flex-1 basis-44">
+          <p className="font-bold">{aplicado.nombre}</p>
+          <p className="text-[13.5px] text-mist-600">
+            {cuandoAplico(aplicado.aplicoEn)} ·{" "}
+            {aplicado.cvFormato === null ? (
+              <span className="text-mist-500">Sin CV</span>
+            ) : aplicado.cvUrl ? (
+              <a
+                href={aplicado.cvUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-aqua-700 hover:underline"
+              >
+                CV.{aplicado.cvFormato}
+              </a>
+            ) : (
+              <span className="text-mist-500">CV.{aplicado.cvFormato}</span>
+            )}
+          </p>
+        </div>
+        <select
+          aria-label={`Etapa de ${aplicado.nombre}`}
+          value={aplicado.estado}
+          onChange={(e) => alElegir(e.target.value as ApplicationStatus)}
+          className="h-9 w-[12rem] max-w-full rounded-full border-[1.5px] border-mist-200 bg-white py-0 pl-3 pr-9 text-sm font-bold text-ink-900"
+        >
+          {TODAS_LAS_ETAPAS.map((etapa) => (
+            <option key={etapa} value={etapa}>
+              {ETIQUETA_ESTADO_APLICACION[etapa]}
+            </option>
+          ))}
+        </select>
+      </div>
+      {mover.isError && (
+        <p role="alert" className="mt-2 text-sm font-bold text-danger-700">
+          No pudimos cambiarle la etapa. Inténtalo de nuevo.
+        </p>
+      )}
+      {descartando && (
+        <FormularioDeDescarte
+          vacanteId={vacanteId}
+          aplicado={aplicado}
+          alCerrar={() => setDescartando(false)}
+        />
+      )}
+    </li>
+  );
+}
+
+/** Los candidatos de la vacante, todos o los de una etapa, los más recientes primero. */
+function Candidatos({
+  pipeline,
+  filtro,
+  alFiltrar,
+}: {
+  pipeline: PipelineDeVacante;
+  filtro: Filtro;
+  alFiltrar: (etapa: Filtro) => void;
+}) {
+  const [todos, setTodos] = useState(false);
+  const { vacante, aplicados } = pipeline;
+  const lista = deLaEtapa(aplicados, filtro);
+  const visibles = todos ? lista : lista.slice(0, CANDIDATOS_VISIBLES);
+
+  return (
+    <section aria-label="Candidatos" className="rounded-[22px] border border-mist-200 bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[19px]">
+          {filtro ? ETIQUETA_ESTADO_APLICACION[filtro] : "Candidatos"}
+          <span className="ml-2 text-[15px] font-semibold text-mist-600 tabular-nums">
+            {lista.length}
+          </span>
+        </h2>
+        {filtro ? (
+          <Button variant="link" size="sm" onClick={() => alFiltrar(null)}>
+            Ver todos
+          </Button>
+        ) : (
+          <span className="text-[13.5px] text-mist-600">Más recientes primero</span>
+        )}
+      </div>
+      {aplicados.length === 0 ? (
+        <p className="py-6 text-sm text-mist-600">{sinAplicaciones(vacante.moderacion)}</p>
+      ) : lista.length === 0 ? (
+        <p className="py-6 text-sm text-mist-600">Nadie en esta etapa por ahora.</p>
+      ) : (
+        <ul className="mt-1 flex flex-col divide-y divide-mist-150">
+          {visibles.map((a) => (
+            <FilaDeCandidato key={a.id} vacanteId={vacante.id} aplicado={a} />
+          ))}
+        </ul>
+      )}
+      {!todos && lista.length > CANDIDATOS_VISIBLES && (
+        <Button variant="secondary" size="sm" className="mt-3" onClick={() => setTodos(true)}>
+          Ver los {lista.length}
+        </Button>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Los candidatos de una vacante por etapa, con la descarga de todos sus CVs. En los
+ * dos planes la empresa los mueve a mano entre todas las etapas (ADR-024).
+ */
 export function Pipeline({ vacanteId }: { vacanteId: string }) {
   const { data: pipeline, isPending, dataUpdatedAt } = usePipeline(vacanteId);
   useMarcarPostulacionesVistas(vacanteId, pipeline ? dataUpdatedAt : 0);
   const descarga = useDescargarCvs();
+  const [filtro, setFiltro] = useState<Filtro>(null);
 
   if (isPending) return null;
   if (!pipeline) {
@@ -430,64 +629,8 @@ export function Pipeline({ vacanteId }: { vacanteId: string }) {
       {pipeline.evaluaciones && <ResumenDeLaEvaluacion resumen={pipeline.evaluaciones} />}
       {pipeline.evaluaciones && <Evaluados vacanteId={vacante.id} aplicados={aplicados} />}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(280px,1fr)_minmax(0,1.6fr)]">
-        <Etapas pipeline={pipeline} />
-        <section
-          aria-label="Aplicados"
-          className="rounded-[22px] border border-mist-200 bg-white p-5"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-[19px]">Aplicados</h2>
-            <span className="text-[13.5px] text-mist-600">Más recientes primero</span>
-          </div>
-          {aplicados.length === 0 ? (
-            <p className="py-6 text-sm text-mist-600">{sinAplicaciones(vacante.moderacion)}</p>
-          ) : (
-            <table className="mt-2 w-full border-collapse text-[14.5px]">
-              <thead>
-                <tr className="text-left text-[12.5px] text-mist-600">
-                  <th scope="col" className="py-2 font-bold">
-                    Candidato
-                  </th>
-                  <th scope="col" className="py-2 font-bold">
-                    Aplicó
-                  </th>
-                  <th scope="col" className="py-2 font-bold">
-                    CV
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {aplicados.slice(0, APLICADOS_VISIBLES).map((a) => (
-                  <tr key={a.id} className="border-t border-mist-150">
-                    <td className="py-3 font-bold">{a.nombre}</td>
-                    <td className="py-3 text-mist-600">{cuandoAplico(a.aplicoEn)}</td>
-                    <td className="py-3">
-                      {a.cvFormato === null ? (
-                        <span className="text-mist-500">Sin CV</span>
-                      ) : a.cvUrl ? (
-                        <a
-                          href={a.cvUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-bold text-aqua-700 hover:underline"
-                        >
-                          CV.{a.cvFormato}
-                        </a>
-                      ) : (
-                        <span className="text-mist-500">CV.{a.cvFormato}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {aplicados.length > APLICADOS_VISIBLES && (
-            <p className="mt-3 text-sm text-mist-600">
-              Y {aplicados.length - APLICADOS_VISIBLES} más en el .zip.
-            </p>
-          )}
-        </section>
+        <Etapas pipeline={pipeline} filtro={filtro} alFiltrar={setFiltro} />
+        <Candidatos pipeline={pipeline} filtro={filtro} alFiltrar={setFiltro} />
       </div>
     </>
   );

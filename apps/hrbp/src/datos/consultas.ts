@@ -21,6 +21,7 @@ import {
   entrar,
   listarMisVacantes,
   marcarPostulacionesVistas,
+  moverDeEtapa,
   obtenerPipeline,
   obtenerResumenCockpit,
   obtenerSesion,
@@ -30,7 +31,7 @@ import {
   solicitarDescargaDeCvs,
   verificarCodigo,
 } from "./panel";
-import { SinAccesoAlPanel } from "./tipos";
+import { type EtapaAlMover, type PipelineDeVacante, SinAccesoAlPanel } from "./tipos";
 
 const CLAVES = {
   sesion: ["sesion"],
@@ -102,6 +103,37 @@ export function useEliminarVacante() {
   return useMutation({
     mutationFn: eliminarVacante,
     onSuccess: () => cliente.invalidateQueries({ queryKey: CLAVES.misVacantes }),
+  });
+}
+
+/**
+ * Mover a un candidato de etapa. La pantalla lo ve en su nueva etapa al instante;
+ * si la base no lo guarda, vuelve a donde estaba y el pipeline se pide de nuevo.
+ * Al guardarse no hace falta volver a pedirlo: la etapa es lo único que cambió.
+ */
+export function useMoverDeEtapa(vacanteId: string) {
+  const cliente = useQueryClient();
+  const clave = CLAVES.pipeline(vacanteId);
+  return useMutation({
+    mutationFn: ({ aplicacionId, etapa }: { aplicacionId: string; etapa: EtapaAlMover }) =>
+      moverDeEtapa(aplicacionId, etapa),
+    onMutate: async ({ aplicacionId, etapa }) => {
+      await cliente.cancelQueries({ queryKey: clave });
+      const antes = cliente.getQueryData<PipelineDeVacante | null>(clave);
+      if (antes) {
+        cliente.setQueryData<PipelineDeVacante>(clave, {
+          ...antes,
+          aplicados: antes.aplicados.map((a) =>
+            a.id === aplicacionId ? { ...a, estado: etapa } : a,
+          ),
+        });
+      }
+      return { antes };
+    },
+    onError: (_error, _pedido, contexto) => {
+      if (contexto?.antes) cliente.setQueryData(clave, contexto.antes);
+      void cliente.invalidateQueries({ queryKey: clave });
+    },
   });
 }
 

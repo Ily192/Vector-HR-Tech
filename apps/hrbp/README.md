@@ -2,8 +2,8 @@
 
 El panel de la empresa: una SPA con Vite y React 19, desplegada en Vercel. Lo que ve cada empresa depende de los módulos de su plan ([ADR-017](../../docs/adr/017-career-site-modulo-gratuito.md)):
 
-- **Career site (gratis):** Mis vacantes (con su cupo y Eliminar), Crear empleo (con las skills de la vacante, vista previa y un brochure breve de los servicios) y el pipeline de cada vacante, abierto solo en *Aplicados*, con la descarga de todos los CVs en un .zip y el gancho: cuántos CVs mencionan las skills, sin IA ([ADR-019](../../docs/adr/019-plan-gratis-sin-ia.md)).
-- **Servicios de IA:** además, el cockpit *Hoy* y el pipeline completo.
+- **Bolsa de empleo (gratis):** Mis vacantes (con su cupo y Eliminar), Crear empleo (con las skills de la vacante y vista previa) y los candidatos de cada vacante: el pipeline completo, a mano, con todas las etapas, contratados y descartados ([ADR-024](../../docs/adr/024-pipeline-manual-del-plan-gratis.md)), la descarga de todos los CVs en un .zip y el gancho: cuántos CVs mencionan las skills, sin IA ([ADR-019](../../docs/adr/019-plan-gratis-sin-ia.md)).
+- **Servicios de IA:** además, el cockpit *Hoy* y la evaluación con IA de cada aplicación ([ADR-021](../../docs/adr/021-evaluacion-ia-del-plan-de-pago.md)).
 
 **Admin (`/admin`, solo Vector HR):** las métricas de la plataforma y de la web, y la cola de revisión de vacantes con Aprobar y Rechazar ([ADR-022](../../docs/adr/022-moderacion-de-vacantes.md), enmienda del 2026-11-17). Quién entra lo decide el hr-engine (`ADMIN_CORREOS`); el menú muestra "Admin" solo si `/admin/yo` responde 200. Tiene su propio marco, de una columna, para el teléfono.
 
@@ -42,6 +42,8 @@ src/
   cockpit/
     textos.ts          los textos del cockpit a partir de sus números (puros, con test)
     embudo.ts          cálculos de dibujo del embudo (puros, con test)
+  pipeline/
+    etapas.ts          contar y filtrar a los candidatos por etapa, y el color de cada una (puros, con test)
   test/montar.tsx      monta el panel en una URL con datos recién reiniciados
 ```
 
@@ -52,9 +54,9 @@ src/
 Ver [ADR-016](../../docs/adr/016-logica-de-negocio-fuera-de-la-ui.md).
 
 - **Indicadores del cockpit** (conteos, variaciones, % del tope, la decisión del día y el embudo): los calcula la base con `resumen_del_cockpit()` (migración 0016) y llegan con la forma de `ResumenCockpit` en `datos/tipos.ts`. El componente no suma nada; `cockpit/textos.ts` solo los pone en palabras.
-- **Límites del plan** (vacantes activas, publicaciones cada 30 días, aplicaciones por vacante, etapas habilitadas) y **números del gancho**: los aplica la base (migraciones 0008 y 0010; la dueña de las reglas es `domain/plan.py`) y llegan ya decididos en `datos/tipos.ts`. El adaptador de ejemplo los imita solo para que la demo se comporte como el producto.
+- **Límites del plan** (vacantes activas, publicaciones cada 30 días, aplicaciones por vacante) y **números del gancho**: los aplica la base (migraciones 0008 y 0010; la dueña de las reglas es `domain/plan.py`) y llegan ya decididos en `datos/tipos.ts`. El adaptador de ejemplo los imita solo para que la demo se comporte como el producto.
 - **Módulos visibles**: `sesion.modulos`, que salen del plan de la empresa (`LIMITES_DEL_PLAN`, ADR-017).
-- **Etapas del embudo y su orden**: `ETAPAS_DEL_PIPELINE` de `@fluveai/types/reglas`.
+- **Etapas del embudo y su orden**: `ETAPAS_DEL_PIPELINE` y `ETAPAS_DE_SALIDA` de `@fluveai/types/reglas`. Son las mismas en los dos planes y quién mueve a quién lo decide la base (0004 y 0021, ADR-024); `pipeline/etapas.ts` solo cuenta y filtra lo que ya llegó.
 - **Textos de estados, modalidades, niveles y siguiente paso**: `@fluveai/types/etiquetas`.
 - **Formato de salario y de fechas**: `@fluveai/ui` (`formatearSalario`, `haceCuanto`), el mismo que usa el career site.
 - **Importaciones**: se importa por subruta (`@fluveai/types/reglas`, `/etiquetas`) y no desde la raíz, para no meter Zod en el bundle.

@@ -1,5 +1,5 @@
 import { ETIQUETA_ESTADO_APLICACION, ETIQUETA_SIGUIENTE_PASO } from "@fluveai/types/etiquetas";
-import { ETAPAS_DEL_PIPELINE, type EtapaDelPipeline } from "@fluveai/types/reglas";
+import { ETAPAS_DEL_PIPELINE } from "@fluveai/types/reglas";
 import { Badge, buttonVariants } from "@fluveai/ui";
 import { Plus } from "lucide-react";
 
@@ -16,15 +16,7 @@ import { useResumenCockpit } from "../datos/consultas";
 import type { DecisionDelDia, ResumenCockpit, VacanteDelDia } from "../datos/tipos";
 import { Encabezado } from "../marco/marco";
 import { Enlace } from "../navegacion/ruta";
-
-// Del interés (aqua) a la decisión (flame), como en el tablero B.
-const BARRA_DE_ETAPA: Record<EtapaDelPipeline, string> = {
-  applied: "bg-aqua-100",
-  evaluated: "bg-aqua-300",
-  shortlisted: "bg-aqua-600",
-  interviewed: "bg-flame-400",
-  offered: "bg-flame-500",
-};
+import { BARRA_DE_ETAPA } from "../pipeline/etapas";
 
 const formatoFecha = new Intl.DateTimeFormat("es-MX", {
   weekday: "long",
