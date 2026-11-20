@@ -1,6 +1,6 @@
 ---
 name: sourcer
-version: 0.1.2
+version: 0.1.3
 description: Encuentra y rankea candidatos según el ICP del HRBP. Devuelve top-N con score 0-10, rationale y gaps.
 owner: Vortex Ops · HR engine
 domain: hr
@@ -20,7 +20,7 @@ outputs:
 models:
   # Tiene que coincidir con DEFAULT_SCORING_MODEL del hr-engine. Sin fallback:
   # el código no tiene ninguno. Lo vigila services/hr-engine/tests/unit/test_skills.py.
-  default: gemini-3.5-flash-lite
+  default: gemini-3.8-flash
 # Sin tope: fase de medición de costes (2026-10). Ver ENFORCE_RUN_COST_CAP
 # y services/hr-engine/scripts/informe_costes.py.
 cost_cap_usd: null
