@@ -58,8 +58,14 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(screen.getByText("Te quedan 1 de 4 vacantes")).toBeInTheDocument();
     expect(screen.getByText(/usas tu última vacante libre/)).toBeInTheDocument();
 
+    // La ubicación pide el país: sin él, FormaRemota no muestra una vacante presencial a nadie.
+    expect(screen.getByText("Ciudad y país")).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Ubicación/)).toHaveAttribute("placeholder", "Monterrey, México");
+
     fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Supervisor de turno" } });
-    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Saltillo, Coah." } });
+    fireEvent.change(screen.getByLabelText(/^Ubicación/), {
+      target: { value: "Saltillo, México" },
+    });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "18000" } });
     fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "22000" } });
     fireEvent.change(screen.getByLabelText("Moneda"), { target: { value: "MXN" } });
@@ -96,7 +102,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(moneda).not.toBeRequired();
 
     fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Cajero" } });
-    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Valencia" } });
+    fireEvent.change(screen.getByLabelText(/^Ubicación/), { target: { value: "Valencia" } });
     fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Cobra." } });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "300" } });
     expect(moneda).toBeRequired();
@@ -117,7 +123,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     fireEvent.change(await screen.findByLabelText("Puesto"), {
       target: { value: "Montacarguista" },
     });
-    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
+    fireEvent.change(screen.getByLabelText(/^Ubicación/), { target: { value: "Apodaca, NL" } });
     fireEvent.change(screen.getByLabelText(/Descripción/), {
       target: { value: "Opera montacargas." },
     });
@@ -327,7 +333,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     expect(screen.getByRole("button", { name: "Quitar Montacargas" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Puesto"), { target: { value: "Almacenista" } });
-    fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
+    fireEvent.change(screen.getByLabelText(/^Ubicación/), { target: { value: "Apodaca, NL" } });
     fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Surte pedidos." } });
     fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
 
@@ -351,7 +357,7 @@ describe("panel de empresa · plan gratis (ADR-017)", () => {
     montarPanel("/vacantes/nueva");
     const publicar = async (puesto: string) => {
       fireEvent.change(await screen.findByLabelText("Puesto"), { target: { value: puesto } });
-      fireEvent.change(screen.getByLabelText("Ubicación"), { target: { value: "Apodaca, NL" } });
+      fireEvent.change(screen.getByLabelText(/^Ubicación/), { target: { value: "Apodaca, NL" } });
       fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: "Opera." } });
       fireEvent.click(screen.getByRole("button", { name: "Publicar en la bolsa de empleo" }));
       await screen.findByRole("heading", { level: 1, name: puesto });
