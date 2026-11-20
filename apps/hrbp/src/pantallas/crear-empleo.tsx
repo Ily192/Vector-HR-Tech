@@ -311,12 +311,14 @@ export function CrearEmpleo() {
                   ))}
                 </select>
               </Campo>
-              <Campo etiqueta="Ubicación">
+              {/* Con el país, FormaRemota (que lee `vacantes_publicas`) muestra una vacante
+                  híbrida o presencial a las personas de ese país; sin él, a nadie. */}
+              <Campo etiqueta="Ubicación" ayuda="Ciudad y país">
                 <input
                   required
                   value={borrador.ubicacion}
                   onChange={(e) => editar({ ubicacion: e.target.value })}
-                  placeholder="Monterrey, NL"
+                  placeholder="Monterrey, México"
                   className={CLASE_CAMPO}
                 />
               </Campo>
