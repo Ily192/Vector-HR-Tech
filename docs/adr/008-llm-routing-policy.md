@@ -40,7 +40,7 @@ apartó de ella, manda esto:
 
 | Caso | Hoy en el código | Dónde |
 |---|---|---|
-| Scoring (cv-evaluator y sourcer) | `gemini-2.5-flash`, a 0.30 / 2.50 USD por 1M tokens (entrada / salida). `gemini-1.5-flash` está retirado | `app/config.py::default_scoring_model`, `app/clients/scoring.py::_PRICING_USD_PER_1M` |
+| Scoring (cv-evaluator y sourcer) | `gemini-3.8-flash` con `thinking_level` low, a 0.75 / 3.75 USD por 1M tokens (entrada / salida) hasta el 2026-12-31 y 1.50 / 7.50 desde el 2027-01-01. Ver la actualización del 2026-11-19 | `app/config.py::default_scoring_model`, `app/clients/scoring.py::precio_por_millon` |
 | Respaldo de scoring | `gpt-5-mini` vía OpenAI Responses API, con el mismo SKILL.md y esquema. No hay fallback a `gpt-4o-mini` | `fallback_scoring_model`, `_score_con_openai` |
 | Disponibilidad | Circuit breaker por proveedor en Redis; si caen todos, la evaluación se aplaza y luego pasa a revisión manual | `app/clients/circuit_breaker.py`, `app/workers/run_state.py` |
 | Siguiente paso del candidato | Lo decide una regla fija según el score, no el modelo | `app/domain/siguiente_paso.py` |
@@ -103,7 +103,7 @@ No existe `app/providers/`: la abstracción multi-proveedor vive en
   | `gemini-3.8-flash` low | 0,97 | 75 % | 0 de 24 | PASA | US$0,35 |
 
 - **Decisión pendiente (Ilyra) antes de activar la evaluación con IA del plan de pago.**
-  El sesgo es condición de ADR-021 §9.
+  El sesgo es condición de ADR-021 §9. Se tomó el 2026-11-19: ver abajo.
   - El default queda en `gemini-3.5-flash-lite`, el reemplazo oficial, porque el plan
     de pago todavía no está en producción. Con él la prueba de sesgo no pasa.
   - Opciones:
@@ -113,6 +113,42 @@ No existe `app/providers/`: la abstracción multi-proveedor vive en
     - (b) Trabajar el SKILL.md de cv-evaluator (la regla de edad) y volver a medir con
       3.5 Flash-Lite.
   - El set sintético es chico: hay que confirmar con el set real antes de producción.
+
+## Actualización 2026-11-19 · el scoring pasa a `gemini-3.8-flash`
+
+- **Decisión de Ilyra: la opción (a).** En sus palabras, "ya tenemos gemini pago, puedes
+  usar otro modelo y cerrar la prueba de sesgo", y "si es necesario el modelo más caro,
+  lo usamos y sacamos costos para saber cuánto cobrar".
+- **Qué cambió en el código:**
+  - `DEFAULT_SCORING_MODEL=gemini-3.8-flash` y `SCORING_THINKING_LEVEL=low`, la
+    configuración que pasó la eval del 2026-11-13 (0 de 24 pares movidos). "low" es el
+    mínimo que acepta 3.8 Flash.
+  - El precio depende del día: 0.75 / 3.75 USD por 1M hasta el 2026-12-31, el de
+    lanzamiento, y 1.50 / 7.50 desde el 2027-01-01
+    (`app/clients/scoring.py::precio_por_millon`). Sin eso, el tope mensual de gasto
+    (`IA_PRESUPUESTO_MENSUAL_USD`) contaría la mitad de lo real desde enero.
+  - El SKILL.md de cv-evaluator (0.3.2) y el de sourcer (0.1.3) declaran el modelo. El
+    sourcer usa el mismo scoring, así que también cambia de modelo.
+  - Fuente: [pricing](https://ai.google.dev/gemini-api/docs/pricing), revisado el
+    2026-11-19.
+- **Costo por CV, estimado con la eval del 2026-11-13.** La corrida hace 168 llamadas: 24
+  de acierto (8 casos por 3 repeticiones) y 144 de sesgo (24 pares, 2 lados, 3
+  repeticiones).
+
+  | Modelo | Corrida | Por llamada, CV sintético | Por CV, con el margen de `config.py` |
+  |---|---|---|---|
+  | `gemini-3.5-flash-lite` minimal | US$0,17 | ~US$0,001 | ~US$0,0025 |
+  | `gemini-3.8-flash` low, hasta el 2026-12-31 | US$0,35 | ~US$0,002 | ~US$0,005 |
+  | `gemini-3.8-flash` low, desde el 2027-01-01 | ~US$0,70 | ~US$0,004 | ~US$0,010 |
+
+  Los CVs sintéticos son más cortos que los reales. El margen de `config.py` es la
+  estimación previa de 10.000 CVs con US$25 en 3.5 Flash-Lite. Con 150 CVs por vacante,
+  la IA cuesta entre US$0,75 y US$1,50 por vacante.
+- **Lo que falta para cerrar ADR-021 §9:**
+  - La prueba con el set real. Son al menos 10 casos con el score que puso una persona,
+    en la ruta privada `EVALS_CV_EVALUATOR_DIR`. El sintético tiene 8.
+  - El respaldo `gpt-5-mini` no tiene medido el sesgo. Si Gemini cae, el barrido puntúa
+    con él.
 
 ## Alternatives considered
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from types import SimpleNamespace
 from typing import Any
 
@@ -241,25 +242,60 @@ def test_gemini_3_razona_con_thinking_level_y_sin_muestreo(modelo: str) -> None:
 async def test_el_razonamiento_se_cobra_como_salida(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _fake_genai_client([_genai_response(_VALID_SCORING_JSON, thinking_tokens=300)])
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
+    monkeypatch.setattr(scoring_mod, "_hoy", lambda: date(2026, 11, 19))
 
     result = await scoring_mod._score_con_gemini({"headline": "Senior"}, "ICP Python")
 
     assert result.output_tokens == 500
-    # 1000/1M * 0.30 + (200 + 300)/1M * 2.50
-    assert result.cost_usd == pytest.approx(0.0003 + 0.00125)
+    # gemini-3.8-flash, precio de lanzamiento: 1000/1M * 0.75 + (200 + 300)/1M * 3.75
+    assert result.cost_usd == pytest.approx(0.00075 + 0.001875)
 
 
 def test_default_scoring_model_is_current() -> None:
-    # 2.5 Flash está deprecado: responde 404 a claves nuevas y se apaga el 2026-12-01.
-    assert settings.default_scoring_model == "gemini-3.5-flash-lite"
+    # gemini-3.8-flash es el que pasa la prueba de sesgo de ADR-021 §9 (ADR-008).
+    assert settings.default_scoring_model == "gemini-3.8-flash"
     assert not settings.default_scoring_model.startswith("gemini-2.")
     assert "1.5" not in settings.default_scoring_model
+
+
+def test_el_default_razona_en_low_el_nivel_con_que_paso_el_sesgo() -> None:
+    config = scoring_mod._generation_config(settings.default_scoring_model)
+    assert config.thinking_config is not None
+    assert config.thinking_config.thinking_level is genai_types.ThinkingLevel.LOW
+
+
+@pytest.mark.parametrize(
+    ("dia", "precio"),
+    [
+        (date(2026, 11, 19), (0.75, 3.75)),
+        (date(2026, 12, 31), (0.75, 3.75)),
+        (date(2027, 1, 1), (1.50, 7.50)),
+    ],
+)
+def test_gemini_38_flash_cobra_el_precio_que_rige_ese_dia(
+    dia: date, precio: tuple[float, float]
+) -> None:
+    """El de lanzamiento vence el 2026-12-31: el tope mensual no puede contar con él."""
+    assert scoring_mod.precio_por_millon("gemini-3.8-flash", dia) == precio
+
+
+def test_los_modelos_sin_precio_de_lanzamiento_no_cambian_con_la_fecha() -> None:
+    for dia in (date(2026, 11, 19), date(2027, 6, 1)):
+        assert scoring_mod.precio_por_millon("gemini-3.5-flash-lite", dia) == (0.30, 2.50)
+        assert scoring_mod.precio_por_millon("gpt-5-mini", dia) == (0.25, 2.00)
+
+
+def test_cost_usd_cobra_al_precio_de_hoy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(scoring_mod, "_hoy", lambda: date(2027, 1, 1))
+    # 1M de entrada y 1M de salida al precio estándar.
+    assert scoring_mod.cost_usd("gemini-3.8-flash", 1_000_000, 1_000_000) == pytest.approx(9.0)
 
 
 @pytest.mark.asyncio
 async def test_score_candidate_fit_parses_and_prices(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _fake_genai_client([_genai_response(_VALID_SCORING_JSON)])
     monkeypatch.setattr(scoring_mod, "_get_client", lambda: client)
+    monkeypatch.setattr(scoring_mod, "_hoy", lambda: date(2026, 11, 19))
 
     result = await scoring_mod._score_con_gemini(
         {"full_name": "Ana Dev", "headline": "Senior", "summary": "10 años"},
@@ -269,9 +305,9 @@ async def test_score_candidate_fit_parses_and_prices(monkeypatch: pytest.MonkeyP
     assert result.response.score == 8.0
     assert result.response.recommended_next_step == "entrevista"
     assert result.input_tokens == 1000
-    # 1000/1M * 0.30 + 200/1M * 2.50
-    assert result.cost_usd == pytest.approx(0.0003 + 0.0005)
-    assert result.model == "gemini-3.5-flash-lite"
+    # gemini-3.8-flash, precio de lanzamiento: 1000/1M * 0.75 + 200/1M * 3.75
+    assert result.cost_usd == pytest.approx(0.00075 + 0.00075)
+    assert result.model == "gemini-3.8-flash"
 
 
 @pytest.mark.asyncio

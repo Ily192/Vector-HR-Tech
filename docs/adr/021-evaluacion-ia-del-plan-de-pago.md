@@ -140,7 +140,7 @@ Son las de ADR-018, puestas al día:
 - [x] Aviso al candidato con IA en el career site (§7): #82.
 - [x] Descartar con acción humana y motivo en el panel (§4): #85, y la base lo exige (0015).
 - [ ] Acceso del candidato a su evaluación (portal del candidato).
-- [ ] Evaluación de impacto con las pruebas de sesgo (§9). **El 2026-11-13, con `gemini-3.5-flash-lite` y el set sintético, el acierto pasa (Pearson 0,99) pero el sesgo NO: 4 de 24 pares se movieron 1 punto, sobre todo por edad. Con `gemini-3.8-flash` pasa (0 de 24), al doble de costo.** Ver la enmienda de ADR-008 y la decisión pendiente.
+- [ ] Evaluación de impacto con las pruebas de sesgo (§9). **El 2026-11-13, con `gemini-3.5-flash-lite` y el set sintético, el acierto pasa (Pearson 0,99) pero el sesgo NO: 4 de 24 pares se movieron 1 punto, sobre todo por edad. Con `gemini-3.8-flash` pasa (0 de 24), al doble de costo.** El 2026-11-19 Ilyra eligió `gemini-3.8-flash`, que es el modelo por defecto desde ese PR (ver la actualización de ADR-008). Falta repetir la prueba con el set real: al menos 10 casos.
 
 ## Implementación
 

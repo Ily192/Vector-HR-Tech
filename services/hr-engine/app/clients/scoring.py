@@ -11,6 +11,11 @@ ya no acepta `temperature` ni `top_p`. Fuentes:
 https://ai.google.dev/gemini-api/docs/deprecations y
 https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.6.
 
+Cambio (2026-11-19): el default pasa a `gemini-3.8-flash` con `thinking_level` low,
+porque es el que pasa la prueba de sesgo de ADR-021 §9 (ver la enmienda de ADR-008).
+Su precio de lanzamiento vence el 2026-12-31: `precio_por_millon` cobra el que rige
+el día de la llamada, para que el tope mensual de gasto no se quede corto.
+
 Resiliencia:
 - Timeout explícito por request (`GEMINI_TIMEOUT_SECONDS`; el SDK lo toma en ms).
 - Retries sobre las excepciones reales (`google.genai.errors.ServerError`,
@@ -30,6 +35,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, replace
+from datetime import UTC, date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
@@ -54,11 +60,12 @@ from app.monitoring import hash_pii, logger
 from app.skills import load_skill
 
 #: Pricing USD por 1M tokens (nivel de pago, texto). La salida incluye el razonamiento.
-#: Fuente: https://ai.google.dev/gemini-api/docs/pricing (revisado el 2026-11-12).
+#: Fuente: https://ai.google.dev/gemini-api/docs/pricing (revisado el 2026-11-19).
 _PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     # modelo: (input, output)
     "gemini-3.5-flash-lite": (0.30, 2.50),
-    "gemini-3.8-flash": (0.75, 3.75),
+    # El precio estándar. El de lanzamiento, en _PRECIO_DE_LANZAMIENTO.
+    "gemini-3.8-flash": (1.50, 7.50),
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
@@ -66,6 +73,27 @@ _PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     "gpt-5-mini": (0.25, 2.00),
 }
 _DEFAULT_PRICING = (0.30, 2.50)
+
+#: Precios de lanzamiento: rigen hasta la fecha indicada, incluida. Después, el de
+#: _PRICING_USD_PER_1M. gemini-3.8-flash tiene precio de lanzamiento hasta el
+#: 2026-12-31 (https://ai.google.dev/gemini-api/docs/pricing, revisado el 2026-11-19).
+_PRECIO_DE_LANZAMIENTO: dict[str, tuple[date, tuple[float, float]]] = {
+    "gemini-3.8-flash": (date(2026, 12, 31), (0.75, 3.75)),
+}
+
+
+def _hoy() -> date:
+    """La fecha UTC de hoy. Aparte, para que los tests puedan fijarla."""
+    return datetime.now(UTC).date()
+
+
+def precio_por_millon(model: str, hoy: date | None = None) -> tuple[float, float]:
+    """(entrada, salida) en USD por 1M tokens de `model`, el día `hoy` (UTC)."""
+    dia = hoy or _hoy()
+    lanzamiento = _PRECIO_DE_LANZAMIENTO.get(model)
+    if lanzamiento and dia <= lanzamiento[0]:
+        return lanzamiento[1]
+    return _PRICING_USD_PER_1M.get(model, _DEFAULT_PRICING)
 
 
 class CandidateFitResponse(BaseModel):
@@ -186,7 +214,7 @@ def _thinking_config(model: str) -> types.ThinkingConfig | None:
     `max_output_tokens`: con 1024, mucho razonamiento puede dejar el JSON cortado y
     cobrado igual.
 
-    - Gemini 3 (el default): `thinking_level` (`SCORING_THINKING_LEVEL`, "minimal").
+    - Gemini 3 (el default): `thinking_level` (`SCORING_THINKING_LEVEL`, "low").
     - 2.5 Flash (solo si se configura a mano): `thinking_budget`
       (`SCORING_THINKING_BUDGET`, 0 lo apaga). 2.5 Pro no permite apagarlo: con él se
       deja el valor por defecto del modelo.
@@ -205,8 +233,8 @@ def _thinking_config(model: str) -> types.ThinkingConfig | None:
 
 
 def cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
-    """USD de una llamada. `output_tokens` tiene que incluir los de razonamiento."""
-    price_in, price_out = _PRICING_USD_PER_1M.get(model, _DEFAULT_PRICING)
+    """USD de una llamada, al precio de hoy. `output_tokens` incluye los de razonamiento."""
+    price_in, price_out = precio_por_millon(model)
     return (input_tokens / 1_000_000) * price_in + (output_tokens / 1_000_000) * price_out
 
 

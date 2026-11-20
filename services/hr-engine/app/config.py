@@ -92,19 +92,21 @@ class Settings(BaseSettings):
     # ─── LLMs ────────────────────────────────────────────
     openai_api_key: str = ""
     google_api_key: str = ""
-    # gemini-2.5-flash está deprecado y desde el 2026-12-01 Google lo redirige a
-    # gemini-3.5-flash-lite, al mismo precio (0.30/2.50 USD por 1M). Con claves nuevas
-    # responde 404. Fuente: https://ai.google.dev/gemini-api/docs/deprecations.
-    default_scoring_model: str = "gemini-3.5-flash-lite"
-    # Cuánto razona un Gemini 3 al puntuar (`thinking_level`). "minimal" es el
-    # predeterminado de 3.5 Flash-Lite y lo más parecido al razonamiento apagado de 2.5.
-    # Los tokens de razonamiento se cobran como salida y comparten los 1024 de
-    # max_output_tokens (app/clients/scoring.py::_thinking_config).
-    scoring_thinking_level: Literal["minimal", "low", "medium", "high"] = "minimal"
+    # gemini-3.8-flash porque es el que pasa la prueba de sesgo de ADR-021 §9 (0 de 24
+    # pares movidos; gemini-3.5-flash-lite movió 4). Decisión de Ilyra del 2026-11-19,
+    # en la enmienda de ADR-008. Cuesta 0.75/3.75 USD por 1M hasta el 2026-12-31 y
+    # 1.50/7.50 desde el 2027-01-01 (app/clients/scoring.py::precio_por_millon).
+    # Fuente: https://ai.google.dev/gemini-api/docs/pricing.
+    default_scoring_model: str = "gemini-3.8-flash"
+    # Cuánto razona un Gemini 3 al puntuar (`thinking_level`). gemini-3.8-flash no acepta
+    # "minimal": "low" es el mínimo y con él se midió el sesgo. Los tokens de
+    # razonamiento se cobran como salida y comparten los 1024 de max_output_tokens
+    # (app/clients/scoring.py::_thinking_config).
+    scoring_thinking_level: Literal["minimal", "low", "medium", "high"] = "low"
     # Solo para un modelo 2.5 configurado a mano: su razonamiento va por budget (0 = apagado).
     scoring_thinking_budget: int = Field(default=0, ge=0, le=24576)
-    # Respaldo de otro proveedor si Gemini cae o tiene el circuito abierto. gpt-5-mini
-    # (0.25/2.00 USD por 1M) es lo más parecido en precio a gemini-3.5-flash-lite (0.30/2.50).
+    # Respaldo de otro proveedor si Gemini cae o tiene el circuito abierto: gpt-5-mini
+    # (0.25/2.00 USD por 1M). Su sesgo no está medido (ADR-008).
     fallback_scoring_model: str = "gpt-5-mini"
     # Circuit breaker por proveedor (app/clients/circuit_breaker.py).
     llm_breaker_umbral: int = 5
@@ -140,7 +142,9 @@ class Settings(BaseSettings):
     evaluaciones_lote: int = Field(default=50, ge=1, le=500)
     evaluaciones_en_paralelo: int = Field(default=8, ge=1, le=32)
     # Tope de seguridad de toda la plataforma: al llegar, no se evalúa nada nuevo
-    # hasta el mes siguiente. US$25 son unos 10.000 CVs con gemini-3.5-flash-lite.
+    # hasta el mes siguiente. Con gemini-3.8-flash, US$25 son unos 5.000 CVs a su precio
+    # de lanzamiento y unos 2.500 desde el 2027-01-01. Es la estimación de 10.000 CVs con
+    # 3.5 Flash-Lite, escalada por lo que costó cada modelo en la eval de ADR-008.
     ia_presupuesto_mensual_usd: float = Field(default=25.0, ge=0)
 
     # ─── Panel de la empresa ─────────────────────────────
